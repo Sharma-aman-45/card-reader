@@ -950,19 +950,41 @@
                         console.log('Found phone:', clientData.phone);
                     }
                     
-                    // Enhanced name extraction from plain text
+                    // IMPROVED NAME EXTRACTION - More aggressive and comprehensive
                     const namePatterns = [
-                        /^[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?$/,  // Full name pattern
-                        /^[A-Z]+\s+[A-Z]+$/,  // All caps name
-                        /^[A-Z][a-z]+\s[A-Z]\.\s[A-Z][a-z]+$/,  // Name with middle initial
-                        /^[A-Z][a-z]+\s+[A-Z][a-z]+$/,  // Simple two-word name
-                        /^[A-Z][a-z]+$/,  // Single word name (if no other data found)
+                        // Standard name patterns
+                        /^[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?$/,  // John Doe Smith
+                        /^[A-Z]+\s+[A-Z]+$/,  // JOHN DOE
+                        /^[A-Z][a-z]+\s[A-Z]\.\s[A-Z][a-z]+$/,  // John A. Doe
+                        /^[A-Z][a-z]+\s+[A-Z][a-z]+$/,  // John Doe
+                        /^[A-Z][a-z]+$/,  // John (single name)
+                        
+                        // More flexible patterns
+                        /^[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+$/,  // Three word names
+                        /^[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+$/,  // Four word names
+                        /^[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+$/,  // Five word names
+                        
+                        // Handle names with special characters
+                        /^[A-Z][a-z]+\s+[A-Z][a-z]+-[A-Z][a-z]+$/,  // Hyphenated names
+                        /^[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+-[A-Z][a-z]+$/,  // Three word with hyphen
+                        
+                        // Handle names with apostrophes
+                        /^[A-Z][a-z]+\s+[A-Z][a-z]+'[A-Z][a-z]+$/,  // Names with apostrophes
+                        
+                        // Handle names with dots (initials)
+                        /^[A-Z]\.\s+[A-Z][a-z]+$/,  // J. Doe
+                        /^[A-Z][a-z]+\s+[A-Z]\.\s+[A-Z][a-z]+$/,  // John A. Doe
+                        /^[A-Z]\.\s+[A-Z]\.\s+[A-Z][a-z]+$/,  // J.A. Doe
+                        
+                        // Handle all caps names with spaces
+                        /^[A-Z]+\s+[A-Z]+\s+[A-Z]+$/,  // JOHN DOE SMITH
+                        /^[A-Z]+\s+[A-Z]+$/,  // JOHN DOE
                     ];
                     
-                    // Look for name in first few lines
-                    for (let i = 0; i < Math.min(lines.length, 3); i++) {
+                    // First pass: Look for name in first few lines with strict patterns
+                    for (let i = 0; i < Math.min(lines.length, 5); i++) {
                         const cleanLine = lines[i].trim();
-                        console.log('Checking line for name:', cleanLine);
+                        console.log('Checking line for name (strict):', cleanLine);
                         
                         // Skip if line contains email or phone
                         if (cleanLine.includes('@') || phoneRegex.test(cleanLine)) {
@@ -974,9 +996,9 @@
                         for (const pattern of namePatterns) {
                             if (pattern.test(cleanLine) && !clientData.name) {
                                 // Additional validation: make sure it looks like a name
-                                if (cleanLine.length >= 3 && cleanLine.length <= 50) {
+                                if (cleanLine.length >= 3 && cleanLine.length <= 100) {
                                     clientData.name = cleanLine;
-                                    console.log('Found name with pattern:', clientData.name);
+                                    console.log('Found name with strict pattern:', clientData.name);
                                     break;
                                 }
                             }
@@ -984,14 +1006,52 @@
                         if (clientData.name) break;
                     }
                     
-                    // If no name found with patterns, try first line that doesn't contain email/phone
+                    // Second pass: More flexible name detection if strict patterns didn't work
+                    if (!clientData.name) {
+                        console.log('No name found with strict patterns, trying flexible detection');
+                        for (let i = 0; i < Math.min(lines.length, 5); i++) {
+                            const cleanLine = lines[i].trim();
+                            console.log('Checking line for name (flexible):', cleanLine);
+                            
+                            // Skip if line contains email or phone
+                            if (cleanLine.includes('@') || phoneRegex.test(cleanLine)) {
+                                continue;
+                            }
+                            
+                            // More flexible name detection
+                            if (cleanLine.length >= 3 && cleanLine.length <= 100) {
+                                // Check if it looks like a name (contains letters and spaces, no numbers)
+                                if (/^[A-Za-z\s\.\-']+$/.test(cleanLine) && 
+                                    cleanLine.split(' ').length >= 1 && 
+                                    cleanLine.split(' ').length <= 5) {
+                                    
+                                    // Additional checks to avoid common non-name words
+                                    const words = cleanLine.split(' ');
+                                    const hasValidWords = words.every(word => 
+                                        word.length >= 2 && 
+                                        !['the', 'and', 'or', 'for', 'with', 'from', 'to', 'in', 'on', 'at', 'by'].includes(word.toLowerCase())
+                                    );
+                                    
+                                    if (hasValidWords) {
+                                        clientData.name = cleanLine;
+                                        console.log('Found name with flexible detection:', clientData.name);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Third pass: If still no name, try the first line that doesn't contain email/phone
                     if (!clientData.name && lines.length > 0) {
                         console.log('Trying fallback name extraction');
                         for (const line of lines) {
                             const cleanLine = line.trim();
                             if (!cleanLine.includes('@') && !phoneRegex.test(cleanLine) && 
-                                cleanLine.length >= 3 && cleanLine.length <= 50 &&
-                                /^[A-Za-z\s\.]+$/.test(cleanLine)) {
+                                cleanLine.length >= 3 && cleanLine.length <= 100 &&
+                                /^[A-Za-z\s\.\-']+$/.test(cleanLine) &&
+                                cleanLine.split(' ').length >= 1 && 
+                                cleanLine.split(' ').length <= 5) {
                                 clientData.name = cleanLine;
                                 console.log('Found name with fallback:', clientData.name);
                                 break;
