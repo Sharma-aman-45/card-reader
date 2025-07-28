@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exhibition Card Reader</title>
+    <title>Exhibition Card Reader Pro</title>
     <style>
         * {
             margin: 0;
@@ -12,56 +12,103 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
             min-height: 100vh;
             color: #333;
+            overflow-x: hidden;
+        }
+
+        .background-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
+            position: relative;
+            z-index: 1;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
             color: white;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-size: 3rem;
+            margin-bottom: 15px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
+            font-weight: 700;
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
+            font-size: 1.2rem;
+            opacity: 0.95;
+            font-weight: 300;
         }
 
         .main-content {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1.2fr 0.8fr;
             gap: 30px;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 25px;
+            padding: 35px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
         }
 
         .card h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-            font-size: 1.5rem;
+            color: white;
+            margin-bottom: 25px;
+            font-size: 1.6rem;
             text-align: center;
+            font-weight: 600;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
         .scanner-section {
@@ -71,61 +118,147 @@
         .camera-container {
             position: relative;
             max-width: 100%;
-            margin: 20px 0;
-            border-radius: 10px;
+            margin: 25px 0;
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            background: #000;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         #video {
             width: 100%;
             height: auto;
-            max-height: 300px;
+            max-height: 400px;
             object-fit: cover;
+            border-radius: 20px;
+        }
+
+        .camera-placeholder {
+            color: rgba(255,255,255,0.7);
+            font-size: 1.1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .camera-placeholder .icon {
+            font-size: 3rem;
+            opacity: 0.5;
         }
 
         #canvas {
             display: none;
         }
 
+        .scanning-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(102, 126, 234, 0.1);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+        }
+
+        .scanning-overlay.active {
+            display: flex;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+
+        .scan-line {
+            width: 80%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ff00, transparent);
+            animation: scan 2s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { transform: translateY(-100px); }
+            100% { transform: translateY(100px); }
+        }
+
         .upload-area {
-            border: 2px dashed #667eea;
-            border-radius: 10px;
+            border: 3px dashed rgba(255,255,255,0.4);
+            border-radius: 20px;
             padding: 40px 20px;
             text-align: center;
-            margin: 20px 0;
+            margin: 25px 0;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: rgba(102, 126, 234, 0.05);
+            background: rgba(255,255,255,0.05);
+            color: white;
         }
 
         .upload-area:hover {
-            border-color: #764ba2;
-            background: rgba(118, 75, 162, 0.1);
+            border-color: rgba(255,255,255,0.8);
+            background: rgba(255,255,255,0.1);
+            transform: scale(1.02);
         }
 
         .upload-area.dragover {
-            border-color: #764ba2;
-            background: rgba(118, 75, 162, 0.15);
-            transform: scale(1.02);
+            border-color: #00ff88;
+            background: rgba(0,255,136,0.1);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0,255,136,0.3);
+        }
+
+        .upload-area .icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            opacity: 0.8;
         }
 
         .btn {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
+            padding: 15px 30px;
+            border-radius: 50px;
             cursor: pointer;
             font-size: 1rem;
-            margin: 10px;
+            font-weight: 600;
+            margin: 8px;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.3);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
         }
 
         .btn:disabled {
@@ -134,93 +267,146 @@
             transform: none;
         }
 
+        .btn.success {
+            background: linear-gradient(135deg, #00c851, #007e33);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+        }
+
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: white;
+            font-size: 0.95rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
 
         .form-group input {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
+            padding: 15px 20px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 15px;
             font-size: 1rem;
-            transition: border-color 0.3s ease;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255,255,255,0.6);
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+            border-color: #00ff88;
+            box-shadow: 0 0 20px rgba(0,255,136,0.3);
+            background: rgba(255,255,255,0.15);
         }
 
         .clients-table {
             grid-column: 1 / -1;
             overflow-x: auto;
+            animation: fadeInUp 1s ease-out 0.3s both;
+        }
+
+        .table-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .stats {
+            background: rgba(255,255,255,0.1);
+            padding: 15px 25px;
+            border-radius: 15px;
+            color: white;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            margin-left: auto;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
         }
 
         th, td {
-            padding: 12px;
+            padding: 15px 12px;
             text-align: left;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: white;
         }
 
         th {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            font-weight: bold;
+            background: linear-gradient(135deg, rgba(102,126,234,0.8), rgba(118,75,162,0.8));
+            font-weight: 600;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
 
         tr:hover {
-            background: rgba(102, 126, 234, 0.1);
+            background: rgba(255,255,255,0.1);
         }
 
         .linkedin-link {
-            color: #0077b5;
+            color: #00d4ff;
             text-decoration: none;
-            font-weight: bold;
+            font-weight: 600;
+            transition: color 0.3s ease;
         }
 
         .linkedin-link:hover {
-            text-decoration: underline;
+            color: #00ff88;
+            text-shadow: 0 0 5px rgba(0,255,136,0.5);
         }
 
         .status-message {
-            padding: 15px;
-            border-radius: 8px;
-            margin: 10px 0;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 15px 0;
             text-align: center;
-            font-weight: bold;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         .success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: rgba(0, 200, 81, 0.2);
+            color: #00ff88;
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
         }
 
         .error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff6b6b;
+            border: 2px solid rgba(255, 107, 107, 0.3);
+            box-shadow: 0 0 20px rgba(255, 68, 68, 0.2);
         }
 
         .info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
         }
 
         .file-input {
@@ -230,15 +416,16 @@
         .processing {
             display: none;
             text-align: center;
-            padding: 20px;
+            padding: 30px;
+            color: white;
         }
 
         .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            border: 4px solid rgba(255,255,255,0.2);
+            border-top: 4px solid #00ff88;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
             margin: 0 auto 20px;
         }
@@ -248,10 +435,58 @@
             100% { transform: rotate(360deg); }
         }
 
-        @media (max-width: 768px) {
+        .detection-info {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            color: white;
+            font-size: 0.9rem;
+            backdrop-filter: blur(5px);
+        }
+
+        .source-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 2px;
+        }
+
+        .source-qr {
+            background: linear-gradient(135deg, #00c851, #007e33);
+            color: white;
+        }
+
+        .source-ocr {
+            background: linear-gradient(135deg, #ff8800, #cc6600);
+            color: white;
+        }
+
+        .source-manual {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        @media (max-width: 1024px) {
             .main-content {
                 grid-template-columns: 1fr;
-                gap: 20px;
+                gap: 25px;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .card {
+                padding: 25px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
             }
             
             .header h1 {
@@ -259,123 +494,167 @@
             }
             
             table {
-                font-size: 0.9rem;
+                font-size: 0.85rem;
+            }
+            
+            th, td {
+                padding: 10px 8px;
+            }
+            
+            .table-controls {
+                flex-direction: column;
+            }
+            
+            .stats {
+                margin-left: 0;
+                text-align: center;
             }
         }
     </style>
 </head>
 <body>
+    <div class="background-animation"></div>
+    
     <div class="container">
         <div class="header">
-            <h1>📱 Exhibition Card Reader</h1>
-            <p>Scan QR codes, extract business card data, and collect client information</p>
+            <h1>🚀 Exhibition Card Reader Pro</h1>
+            <p>Advanced QR & Business Card Scanner with AI-Powered Data Extraction</p>
         </div>
 
         <div class="main-content">
-            <!-- QR Code & Card Scanner Section -->
+            <!-- Enhanced Scanner Section -->
             <div class="card">
-                <h2>📷 QR Code & Card Scanner</h2>
+                <h2>📱 Smart Scanner</h2>
                 <div class="scanner-section">
-                    <div class="camera-container">
-                        <video id="video" autoplay playsinline></video>
+                    <div class="camera-container" id="cameraContainer">
+                        <video id="video" autoplay playsinline muted></video>
+                        <div class="camera-placeholder" id="cameraPlaceholder">
+                            <div class="icon">📷</div>
+                            <div>Click "Start Camera" to begin scanning</div>
+                        </div>
+                        <div class="scanning-overlay" id="scanningOverlay">
+                            <div class="scan-line"></div>
+                        </div>
                         <canvas id="canvas"></canvas>
                     </div>
                     
-                    <button id="startCamera" class="btn">Start Camera</button>
-                    <button id="stopCamera" class="btn" disabled>Stop Camera</button>
-                    <button id="captureImage" class="btn" disabled>Capture & Analyze</button>
+                    <div style="margin: 20px 0;">
+                        <button id="startCamera" class="btn">🔴 Start Camera</button>
+                        <button id="stopCamera" class="btn" disabled>⏹️ Stop Camera</button>
+                        <button id="captureImage" class="btn" disabled>📸 Capture & Analyze</button>
+                    </div>
+
+                    <div class="detection-info">
+                        <strong>🤖 Smart Detection:</strong> Automatically detects QR codes, vCards, and business card text. 
+                        Falls back to OCR if QR codes contain only links or error codes.
+                    </div>
                 </div>
 
                 <div class="upload-area" id="uploadArea">
-                    <p>📁 Or drag & drop an image here</p>
-                    <p style="font-size: 0.9rem; color: #666; margin-top: 10px;">Supports QR codes and business card images</p>
+                    <div class="icon">📁</div>
+                    <p><strong>Drag & Drop Images Here</strong></p>
+                    <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 10px;">
+                        Supports QR codes, business cards, and contact images
+                    </p>
                     <input type="file" id="fileInput" class="file-input" accept="image/*">
-                    <button class="btn" onclick="document.getElementById('fileInput').click()">Choose File</button>
+                    <button class="btn" onclick="document.getElementById('fileInput').click()">
+                        Choose File
+                    </button>
                 </div>
 
                 <div class="processing" id="processing">
                     <div class="spinner"></div>
-                    <p>Processing image and extracting data...</p>
+                    <p>🔍 Analyzing image and extracting contact data...</p>
                 </div>
 
                 <div id="statusMessage"></div>
             </div>
 
-            <!-- Manual Entry Section -->
+            <!-- Enhanced Manual Entry -->
             <div class="card">
                 <h2>✍️ Manual Entry</h2>
                 <form id="manualForm">
                     <div class="form-group">
-                        <label for="manualName">Full Name:</label>
+                        <label for="manualName">👤 Full Name:</label>
                         <input type="text" id="manualName" placeholder="Enter client's full name">
                     </div>
                     
                     <div class="form-group">
-                        <label for="manualEmail">Email:</label>
+                        <label for="manualEmail">📧 Email Address:</label>
                         <input type="email" id="manualEmail" placeholder="Enter email address">
                     </div>
                     
                     <div class="form-group">
-                        <label for="manualPhone">Phone Number:</label>
+                        <label for="manualPhone">📞 Phone Number:</label>
                         <input type="tel" id="manualPhone" placeholder="Enter phone number">
                     </div>
                     
                     <div class="form-group">
-                        <label for="manualCompany">Company (Optional):</label>
-                        <input type="text" id="manualCompany" placeholder="Enter company name">
+                        <label for="manualCompany">🏢 Company:</label>
+                        <input type="text" id="manualCompany" placeholder="Enter company name (optional)">
                     </div>
                     
                     <div class="form-group">
-                        <label for="manualLinkedIn">LinkedIn Profile (Optional):</label>
-                        <input type="url" id="manualLinkedIn" placeholder="LinkedIn profile URL">
+                        <label for="manualLinkedIn">💼 LinkedIn Profile:</label>
+                        <input type="url" id="manualLinkedIn" placeholder="LinkedIn profile URL (optional)">
                     </div>
                     
-                    <button type="submit" class="btn">Add Client Manually</button>
-                    <button type="button" id="searchLinkedIn" class="btn">🔍 Search LinkedIn</button>
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button type="submit" class="btn success">➕ Add Client</button>
+                        <button type="button" id="searchLinkedIn" class="btn">🔍 Find LinkedIn</button>
+                    </div>
                 </form>
             </div>
         </div>
 
-        <!-- Clients Table -->
+        <!-- Enhanced Clients Table -->
         <div class="card clients-table">
-            <h2>👥 Collected Clients Data</h2>
-            <button id="exportData" class="btn">📊 Export to CSV</button>
-            <button id="clearData" class="btn" style="background: #dc3545;">🗑️ Clear All Data</button>
+            <h2>👥 Collected Clients Database</h2>
             
-            <table id="clientsTable">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>Company</th>
-                        <th>LinkedIn</th>
-                        <th>Source</th>
-                        <th>Timestamp</th>
-                    </tr>
-                </thead>
-                <tbody id="clientsTableBody">
-                    <!-- Data will be populated here -->
-                </tbody>
-            </table>
+            <div class="table-controls">
+                <button id="exportData" class="btn success">📊 Export CSV</button>
+                <button id="clearData" class="btn danger">🗑️ Clear All</button>
+                <div class="stats" id="clientStats">
+                    📊 Total Clients: 0
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table id="clientsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>👤 Name</th>
+                            <th>📧 Email</th>
+                            <th>📞 Phone</th>
+                            <th>🏢 Company</th>
+                            <th>💼 LinkedIn</th>
+                            <th>🔍 Source</th>
+                            <th>⏰ Added</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clientsTableBody">
+                        <!-- Data will be populated here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <!-- QR Code Scanner Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qr-scanner/1.4.2/qr-scanner.umd.min.js"></script>
-    <!-- Tesseract.js for OCR -->
+    <!-- Libraries -->
+    <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
 
     <script>
-        class ExhibitionCardReader {
+        class ExhibitionCardReaderPro {
             constructor() {
                 this.clients = this.loadClients();
                 this.video = document.getElementById('video');
                 this.canvas = document.getElementById('canvas');
                 this.ctx = this.canvas.getContext('2d');
-                this.qrScanner = null;
                 this.stream = null;
+                this.isScanning = false;
+                this.scanInterval = null;
                 
                 this.initializeEventListeners();
                 this.updateClientsTable();
@@ -396,57 +675,149 @@
             setupDragAndDrop() {
                 const uploadArea = document.getElementById('uploadArea');
                 
-                uploadArea.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    uploadArea.classList.add('dragover');
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, this.preventDefaults, false);
                 });
-                
-                uploadArea.addEventListener('dragleave', () => {
-                    uploadArea.classList.remove('dragover');
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'), false);
                 });
-                
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('dragover'), false);
+                });
+
                 uploadArea.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    uploadArea.classList.remove('dragover');
                     const files = e.dataTransfer.files;
                     if (files.length > 0) {
                         this.processImageFile(files[0]);
                     }
-                });
+                }, false);
+            }
+
+            preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
             }
 
             async startCamera() {
                 try {
-                    this.stream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { facingMode: 'environment' } 
-                    });
+                    // Request camera with higher resolution for better scanning
+                    const constraints = {
+                        video: {
+                            facingMode: 'environment',
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 }
+                        }
+                    };
+
+                    this.stream = await navigator.mediaDevices.getUserMedia(constraints);
                     this.video.srcObject = this.stream;
                     
+                    // Wait for video to be ready
+                    await new Promise((resolve) => {
+                        this.video.onloadedmetadata = () => {
+                            resolve();
+                        };
+                    });
+
+                    document.getElementById('cameraPlaceholder').style.display = 'none';
                     document.getElementById('startCamera').disabled = true;
                     document.getElementById('stopCamera').disabled = false;
                     document.getElementById('captureImage').disabled = false;
                     
-                    this.showStatus('Camera started successfully!', 'success');
+                    // Start continuous scanning
+                    this.startContinuousScanning();
+                    
+                    this.showStatus('📷 Camera started! Point at QR codes or business cards for automatic detection.', 'success');
                 } catch (error) {
-                    this.showStatus('Error accessing camera: ' + error.message, 'error');
+                    console.error('Camera error:', error);
+                    this.showStatus('❌ Camera access denied or not available: ' + error.message, 'error');
                 }
             }
 
+            startContinuousScanning() {
+                this.isScanning = true;
+                document.getElementById('scanningOverlay').classList.add('active');
+                
+                this.scanInterval = setInterval(() => {
+                    if (this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
+                        this.scanForQRCode();
+                    }
+                }, 500); // Scan every 500ms
+            }
+
+            scanForQRCode() {
+                if (!this.video.videoWidth || !this.video.videoHeight) return;
+
+                this.canvas.width = this.video.videoWidth;
+                this.canvas.height = this.video.videoHeight;
+                this.ctx.drawImage(this.video, 0, 0);
+                
+                const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                
+                if (code) {
+                    this.handleQRCodeDetection(code.data);
+                }
+            }
+
+            async handleQRCodeDetection(qrData) {
+                // Stop continuous scanning temporarily
+                this.isScanning = false;
+                clearInterval(this.scanInterval);
+                document.getElementById('scanningOverlay').classList.remove('active');
+                
+                this.showStatus('🎯 QR Code detected! Processing...', 'info');
+                
+                // Parse QR data
+                const clientData = this.parseQRData(qrData);
+                
+                // Check if QR contains contact info
+                if (clientData.name || clientData.email || clientData.phone) {
+                    await this.addClientWithLinkedInSearch(clientData, 'QR Code');
+                } else {
+                    // QR code doesn't contain contact info, try OCR on the current frame
+                    this.showStatus('🔍 QR code found but no contact info detected. Scanning nearby text...', 'info');
+                    const imageData = this.canvas.toDataURL('image/png');
+                    await this.analyzeImageWithOCR(imageData, 'QR + OCR Fallback');
+                }
+                
+                // Resume scanning after 3 seconds
+                setTimeout(() => {
+                    if (this.stream && !this.stream.getTracks()[0].readyState === 'ended') {
+                        this.startContinuousScanning();
+                    }
+                }, 3000);
+            }
+
             stopCamera() {
+                this.isScanning = false;
+                if (this.scanInterval) {
+                    clearInterval(this.scanInterval);
+                }
+                
                 if (this.stream) {
                     this.stream.getTracks().forEach(track => track.stop());
                     this.video.srcObject = null;
                     this.stream = null;
                 }
                 
+                document.getElementById('cameraPlaceholder').style.display = 'flex';
+                document.getElementById('scanningOverlay').classList.remove('active');
                 document.getElementById('startCamera').disabled = false;
                 document.getElementById('stopCamera').disabled = true;
                 document.getElementById('captureImage').disabled = true;
                 
-                this.showStatus('Camera stopped', 'info');
+                this.showStatus('⏹️ Camera stopped', 'info');
             }
 
             async captureAndAnalyze() {
+                if (!this.video.videoWidth || !this.video.videoHeight) {
+                    this.showStatus('❌ Camera not ready. Please wait a moment.', 'error');
+                    return;
+                }
+
                 this.canvas.width = this.video.videoWidth;
                 this.canvas.height = this.video.videoHeight;
                 this.ctx.drawImage(this.video, 0, 0);
@@ -463,156 +834,244 @@
             }
 
             processImageFile(file) {
+                if (!file.type.startsWith('image/')) {
+                    this.showStatus('❌ Please upload a valid image file.', 'error');
+                    return;
+                }
+
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     this.analyzeImage(e.target.result);
                 };
                 reader.readAsDataURL(file);
+                
+                this.showStatus('📁 Image uploaded. Processing...', 'info');
             }
 
             async analyzeImage(imageData) {
                 this.showProcessing(true);
-                this.showStatus('Analyzing image...', 'info');
+                this.showStatus('🔍 Analyzing image for QR codes and text...', 'info');
 
                 try {
-                    // Try QR code scanning first
-                    const qrResult = await this.scanQRCode(imageData);
+                    // First try QR code scanning
+                    const qrResult = await this.scanQRCodeFromImage(imageData);
                     if (qrResult) {
                         const clientData = this.parseQRData(qrResult);
                         if (clientData.name || clientData.email || clientData.phone) {
                             await this.addClientWithLinkedInSearch(clientData, 'QR Code');
                             this.showProcessing(false);
                             return;
+                        } else {
+                            // QR found but no contact info, fall back to OCR
+                            this.showStatus('🔄 QR code detected but no contact info. Trying text recognition...', 'info');
+                            await this.analyzeImageWithOCR(imageData, 'QR + OCR Fallback');
+                            this.showProcessing(false);
+                            return;
                         }
                     }
 
-                    // If QR code fails, try OCR
-                    const ocrResult = await this.performOCR(imageData);
-                    const clientData = this.extractClientDataFromText(ocrResult);
-                    
-                    if (clientData.name || clientData.email || clientData.phone) {
-                        await this.addClientWithLinkedInSearch(clientData, 'OCR/Business Card');
-                    } else {
-                        this.showStatus('No client data found. Please use manual entry.', 'error');
-                    }
+                    // No QR code found, try OCR directly
+                    await this.analyzeImageWithOCR(imageData, 'OCR/Business Card');
                 } catch (error) {
-                    this.showStatus('Error analyzing image: ' + error.message, 'error');
+                    this.showStatus('❌ Error analyzing image: ' + error.message, 'error');
                 } finally {
                     this.showProcessing(false);
                 }
             }
 
-            async scanQRCode(imageData) {
-                try {
+            async scanQRCodeFromImage(imageData) {
+                return new Promise((resolve) => {
+                    if (typeof jsQR === 'undefined') {
+                        this.showStatus('❌ QR code library (jsQR) failed to load.', 'error');
+                        resolve(null);
+                        return;
+                    }
                     const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                        
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const code = jsQR(imageData.data, imageData.width, imageData.height);
+                        
+                        resolve(code ? code.data : null);
+                    };
+                    img.onerror = () => resolve(null);
                     img.src = imageData;
-                    
-                    return new Promise((resolve, reject) => {
-                        img.onload = async () => {
-                            try {
-                                const result = await QrScanner.scanImage(img);
-                                resolve(result);
-                            } catch (error) {
-                                resolve(null); // QR code not found, try OCR
-                            }
-                        };
-                        img.onerror = () => resolve(null);
-                    });
-                } catch (error) {
-                    return null;
-                }
+                });
             }
 
             parseQRData(qrText) {
                 const clientData = { name: '', email: '', phone: '', company: '' };
                 
-                // Try to parse vCard format
+                // Check if it's a vCard format
                 if (qrText.startsWith('BEGIN:VCARD')) {
                     const lines = qrText.split('\n');
                     lines.forEach(line => {
-                        if (line.startsWith('FN:')) clientData.name = line.substring(3);
-                        if (line.startsWith('EMAIL:')) clientData.email = line.substring(6);
-                        if (line.startsWith('TEL:')) clientData.phone = line.substring(4);
-                        if (line.startsWith('ORG:')) clientData.company = line.substring(4);
+                        const cleanLine = line.trim();
+                        if (cleanLine.startsWith('FN:')) clientData.name = cleanLine.substring(3);
+                        if (cleanLine.startsWith('N:')) {
+                            const nameParts = cleanLine.substring(2).split(';');
+                            if (!clientData.name && nameParts.length >= 2) {
+                                clientData.name = `${nameParts[1]} ${nameParts[0]}`.trim();
+                            }
+                        }
+                        if (cleanLine.startsWith('EMAIL:') || cleanLine.includes('EMAIL:')) {
+                            const emailMatch = cleanLine.match(/EMAIL[^:]*:(.*)/i);
+                            if (emailMatch) clientData.email = emailMatch[1].trim();
+                        }
+                        if (cleanLine.startsWith('TEL:') || cleanLine.includes('TEL:')) {
+                            const telMatch = cleanLine.match(/TEL[^:]*:(.*)/i);
+                            if (telMatch) clientData.phone = telMatch[1].trim();
+                        }
+                        if (cleanLine.startsWith('ORG:')) clientData.company = cleanLine.substring(4);
                     });
                 } else {
-                    // Try to extract from plain text
+                    // Try to extract from plain text or other formats
                     const emailMatch = qrText.match(/[\w\.-]+@[\w\.-]+\.\w+/);
                     const phoneMatch = qrText.match(/[\+]?[\d\s\-\(\)]{10,}/);
                     
                     if (emailMatch) clientData.email = emailMatch[0];
                     if (phoneMatch) clientData.phone = phoneMatch[0];
                     
-                    // Simple name extraction (assume first line if structured)
-                    const lines = qrText.split('\n').filter(line => line.trim());
-                    if (lines.length > 0 && !clientData.name) {
-                        clientData.name = lines[0];
+                    // Check if it's just a URL or error code (no contact info)
+                    const isUrl = qrText.match(/^https?:\/\//);
+                    const isErrorCode = qrText.match(/^(ERROR|FAIL|INVALID)/i);
+                    
+                    if (!isUrl && !isErrorCode) {
+                        // Try to extract name from first line
+                        const lines = qrText.split('\n').filter(line => line.trim());
+                        if (lines.length > 0 && !clientData.name) {
+                            // Look for name pattern
+                            const namePattern = /^[A-Z][a-z]+ [A-Z][a-z]+/;
+                            for (const line of lines) {
+                                if (namePattern.test(line.trim())) {
+                                    clientData.name = line.trim();
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
                 
                 return clientData;
             }
 
-            async performOCR(imageData) {
+            async analyzeImageWithOCR(imageData, source) {
                 try {
+                    this.showStatus('🤖 Performing text recognition...', 'info');
+                    
                     const { data: { text } } = await Tesseract.recognize(imageData, 'eng', {
-                        logger: m => console.log(m)
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                this.showStatus(`🔍 OCR Progress: ${Math.round(m.progress * 100)}%`, 'info');
+                            }
+                        }
                     });
-                    return text;
+                    
+                    const clientData = this.extractClientDataFromText(text);
+                    
+                    // Allow adding if at least email, name, or phone is found
+                    if (clientData.email || clientData.name || clientData.phone) {
+                        await this.addClientWithLinkedInSearch(clientData, source);
+                    } else {
+                        this.showStatus('❌ No contact information found in the image. Please try manual entry.', 'error');
+                    }
                 } catch (error) {
-                    throw new Error('OCR processing failed: ' + error.message);
+                    this.showStatus('❌ OCR processing failed: ' + error.message, 'error');
                 }
             }
 
             extractClientDataFromText(text) {
                 const clientData = { name: '', email: '', phone: '', company: '' };
                 
-                // Extract email
-                const emailMatch = text.match(/[\w\.-]+@[\w\.-]+\.\w+/);
-                if (emailMatch) clientData.email = emailMatch[0];
-                
-                // Extract phone number
-                const phoneMatch = text.match(/[\+]?[\d\s\-\(\)]{10,}/);
-                if (phoneMatch) clientData.phone = phoneMatch[0].replace(/\s+/g, '');
-                
-                // Extract name (simple heuristic - look for capitalized words)
-                const lines = text.split('\n').filter(line => line.trim());
-                const namePattern = /^[A-Z][a-z]+\s+[A-Z][a-z]+/;
-                for (const line of lines) {
-                    if (namePattern.test(line.trim()) && !clientData.name) {
-                        clientData.name = line.trim();
-                        break;
-                    }
+                // Extract email (improved regex)
+                const emailRegex = /[\w\.-]+@[\w\.-]+\.\w+/g;
+                const emailMatches = text.match(emailRegex);
+                if (emailMatches) {
+                    clientData.email = emailMatches[0];
                 }
                 
-                // Extract company (look for common company suffixes)
-                const companyPattern = /(.*?)\s+(Inc|LLC|Corp|Ltd|Company|Co\.)/i;
-                const companyMatch = text.match(companyPattern);
-                if (companyMatch) clientData.company = companyMatch[0];
+                // Extract phone number (improved regex for various formats)
+                const phoneRegex = /(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})|(?:\+?[\d\s\-\(\)]{10,15})/g;
+                const phoneMatches = text.match(phoneRegex);
+                if (phoneMatches) {
+                    clientData.phone = phoneMatches[0].replace(/\s+/g, '');
+                }
                 
+                // Extract name (improved logic)
+                const lines = text.split('\n').filter(line => line.trim().length > 2);
+                const namePatterns = [
+                    /^[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?$/,  // Full name pattern
+                    /^[A-Z]+\s+[A-Z]+$/,  // All caps name
+                    /^[A-Z][a-z]+\s[A-Z]\.\s[A-Z][a-z]+$/  // Name with middle initial
+                ];
+                
+                for (const line of lines) {
+                    const cleanLine = line.trim();
+                    for (const pattern of namePatterns) {
+                        if (pattern.test(cleanLine) && !clientData.name) {
+                            // Make sure it's not an email or phone
+                            if (!cleanLine.includes('@') && !cleanLine.match(/\d{3}/)) {
+                                clientData.name = cleanLine;
+                                break;
+                            }
+                        }
+                    }
+                    if (clientData.name) break;
+                }
+                
+                // Extract company (look for common company indicators)
+                const companyPatterns = [
+                    /(.*?)\s+(Inc\.?|LLC|Corp\.?|Ltd\.?|Company|Co\.?|Corporation|Group|Solutions|Services|Technologies|Tech)(?!\w)/i,
+                    /^[A-Z][a-zA-Z\s&]+(?:Inc\.?|LLC|Corp\.?|Ltd\.?)$/i
+                ];
+                
+                for (const line of lines) {
+                    const cleanLine = line.trim();
+                    for (const pattern of companyPatterns) {
+                        const match = cleanLine.match(pattern);
+                        if (match && !clientData.company) {
+                            clientData.company = match[0];
+                            break;
+                        }
+                    }
+                    if (clientData.company) break;
+                }
+                
+                // NEW: If email is found but name/phone/company are missing, still allow adding
+                if (clientData.email && !clientData.name && !clientData.phone && !clientData.company) {
+                    // Try to find a line with the email and use the previous line as name if possible
+                    for (let i = 0; i < lines.length; i++) {
+                        if (lines[i].includes(clientData.email) && i > 0) {
+                            const possibleName = lines[i-1].trim();
+                            if (possibleName && !possibleName.includes('@') && possibleName.length < 40) {
+                                clientData.name = possibleName;
+                            }
+                        }
+                    }
+                }
                 return clientData;
             }
 
             async addClientWithLinkedInSearch(clientData, source) {
                 if (clientData.name) {
+                    this.showStatus('🔍 Searching for LinkedIn profile...', 'info');
                     clientData.linkedIn = await this.findLinkedInProfile(clientData.name, clientData.company);
                 }
                 
                 this.addClient({...clientData, source});
-                this.showStatus(`Client data extracted and added successfully! Source: ${source}`, 'success');
+                this.showStatus(`✅ Client data extracted and added successfully! Source: ${source}`, 'success');
             }
 
             async findLinkedInProfile(name, company = '') {
                 try {
-                    // Simulate LinkedIn search (in a real implementation, you'd use LinkedIn API or web scraping)
-                    // For demo purposes, we'll create a mock LinkedIn URL
+                    // Create LinkedIn search URL
                     const searchQuery = `${name} ${company}`.trim().replace(/\s+/g, '+');
-                    const linkedInSearchURL = `https://www.linkedin.com/search/results/people/?keywords=${searchQuery}`;
-                    
-                    // In a real implementation, you would:
-                    // 1. Use LinkedIn API (requires authentication and approval)
-                    // 2. Use a web scraping service
-                    // 3. Use a third-party service that provides LinkedIn search
+                    const linkedInSearchURL = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(searchQuery)}`;
                     
                     return linkedInSearchURL;
                 } catch (error) {
@@ -625,40 +1084,54 @@
                 const name = document.getElementById('manualName').value;
                 const company = document.getElementById('manualCompany').value;
                 
-                if (!name) {
-                    this.showStatus('Please enter a name to search LinkedIn', 'error');
+                if (!name.trim()) {
+                    this.showStatus('❌ Please enter a name to search LinkedIn', 'error');
                     return;
                 }
                 
                 const searchQuery = `${name} ${company}`.trim().replace(/\s+/g, '+');
-                const linkedInURL = `https://www.linkedin.com/search/results/people/?keywords=${searchQuery}`;
+                const linkedInURL = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(searchQuery)}`;
                 
                 document.getElementById('manualLinkedIn').value = linkedInURL;
-                this.showStatus('LinkedIn search URL generated!', 'success');
+                this.showStatus('🔗 LinkedIn search URL generated!', 'success');
+                
+                // Open LinkedIn search in new tab
+                window.open(linkedInURL, '_blank');
             }
 
             handleManualEntry(event) {
                 event.preventDefault();
                 
                 const clientData = {
-                    name: document.getElementById('manualName').value,
-                    email: document.getElementById('manualEmail').value,
-                    phone: document.getElementById('manualPhone').value,
-                    company: document.getElementById('manualCompany').value,
-                    linkedIn: document.getElementById('manualLinkedIn').value,
+                    name: document.getElementById('manualName').value.trim(),
+                    email: document.getElementById('manualEmail').value.trim(),
+                    phone: document.getElementById('manualPhone').value.trim(),
+                    company: document.getElementById('manualCompany').value.trim(),
+                    linkedIn: document.getElementById('manualLinkedIn').value.trim(),
                     source: 'Manual Entry'
                 };
                 
                 if (!clientData.name && !clientData.email && !clientData.phone) {
-                    this.showStatus('Please fill in at least name, email, or phone number', 'error');
+                    this.showStatus('❌ Please fill in at least name, email, or phone number', 'error');
+                    return;
+                }
+                
+                // Validate email format
+                if (clientData.email && !this.isValidEmail(clientData.email)) {
+                    this.showStatus('❌ Please enter a valid email address', 'error');
                     return;
                 }
                 
                 this.addClient(clientData);
-                this.showStatus('Client added successfully!', 'success');
+                this.showStatus('✅ Client added successfully via manual entry!', 'success');
                 
                 // Clear form
                 document.getElementById('manualForm').reset();
+            }
+
+            isValidEmail(email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
             }
 
             addClient(clientData) {
@@ -675,26 +1148,55 @@
 
             updateClientsTable() {
                 const tbody = document.getElementById('clientsTableBody');
+                const stats = document.getElementById('clientStats');
+                
                 tbody.innerHTML = '';
                 
-                this.clients.forEach((client, index) => {
-                    const row = tbody.insertRow();
-                    row.innerHTML = `
-                        <td>${index + 1}</td>
-                        <td>${client.name || 'N/A'}</td>
-                        <td>${client.email || 'N/A'}</td>
-                        <td>${client.phone || 'N/A'}</td>
-                        <td>${client.company || 'N/A'}</td>
-                        <td>${client.linkedIn ? `<a href="${client.linkedIn}" target="_blank" class="linkedin-link">LinkedIn</a>` : 'N/A'}</td>
-                        <td>${client.source}</td>
-                        <td>${client.timestamp}</td>
+                if (this.clients.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 40px; opacity: 0.7;">
+                                📭 No clients added yet. Start scanning or add manually!
+                            </td>
+                        </tr>
                     `;
-                });
+                } else {
+                    this.clients.forEach((client, index) => {
+                        const row = tbody.insertRow();
+                        const sourceClass = client.source.toLowerCase().includes('qr') ? 'source-qr' : 
+                                          client.source.toLowerCase().includes('ocr') ? 'source-ocr' : 'source-manual';
+                        
+                        row.innerHTML = `
+                            <td><strong>${index + 1}</strong></td>
+                            <td>${client.name || '<em>N/A</em>'}</td>
+                            <td>${client.email || '<em>N/A</em>'}</td>
+                            <td>${client.phone || '<em>N/A</em>'}</td>
+                            <td>${client.company || '<em>N/A</em>'}</td>
+                            <td>${client.linkedIn ? `<a href="${client.linkedIn}" target="_blank" class="linkedin-link">🔗 LinkedIn</a>` : '<em>N/A</em>'}</td>
+                            <td><span class="source-badge ${sourceClass}">${client.source}</span></td>
+                            <td>${client.timestamp}</td>
+                        `;
+                        
+                        row.style.animation = 'fadeInUp 0.5s ease-out';
+                    });
+                }
+                
+                // Update stats
+                const qrCount = this.clients.filter(c => c.source.toLowerCase().includes('qr')).length;
+                const ocrCount = this.clients.filter(c => c.source.toLowerCase().includes('ocr')).length;
+                const manualCount = this.clients.filter(c => c.source === 'Manual Entry').length;
+                
+                stats.innerHTML = `
+                    📊 Total: ${this.clients.length} | 
+                    📱 QR: ${qrCount} | 
+                    🤖 OCR: ${ocrCount} | 
+                    ✍️ Manual: ${manualCount}
+                `;
             }
 
             exportToCSV() {
                 if (this.clients.length === 0) {
-                    this.showStatus('No data to export', 'error');
+                    this.showStatus('❌ No data to export', 'error');
                     return;
                 }
                 
@@ -702,51 +1204,72 @@
                 const csvContent = [
                     headers.join(','),
                     ...this.clients.map(client => [
-                        `"${client.name || ''}"`,
-                        `"${client.email || ''}"`,
-                        `"${client.phone || ''}"`,
-                        `"${client.company || ''}"`,
-                        `"${client.linkedIn || ''}"`,
-                        `"${client.source}"`,
-                        `"${client.timestamp}"`
+                        `"${(client.name || '').replace(/"/g, '""')}"`,
+                        `"${(client.email || '').replace(/"/g, '""')}"`,
+                        `"${(client.phone || '').replace(/"/g, '""')}"`,
+                        `"${(client.company || '').replace(/"/g, '""')}"`,
+                        `"${(client.linkedIn || '').replace(/"/g, '""')}"`,
+                        `"${client.source.replace(/"/g, '""')}"`,
+                        `"${client.timestamp.replace(/"/g, '""')}"`
                     ].join(','))
                 ].join('\n');
                 
-                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = `exhibition-clients-${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
                 a.click();
+                document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
                 
-                this.showStatus('Data exported successfully!', 'success');
+                this.showStatus('📊 Data exported successfully!', 'success');
             }
 
             clearAllData() {
-                if (confirm('Are you sure you want to clear all client data? This action cannot be undone.')) {
+                if (this.clients.length === 0) {
+                    this.showStatus('❌ No data to clear', 'error');
+                    return;
+                }
+                
+                if (confirm(`🗑️ Are you sure you want to clear all ${this.clients.length} client records? This action cannot be undone.`)) {
                     this.clients = [];
                     this.saveClients();
                     this.updateClientsTable();
-                    this.showStatus('All data cleared', 'info');
+                    this.showStatus('🗑️ All client data cleared', 'info');
                 }
             }
 
             loadClients() {
-                const saved = window.clientsData || [];
-                return saved;
+                try {
+                    return window.clientsData || [];
+                } catch (error) {
+                    console.error('Error loading clients:', error);
+                    return [];
+                }
             }
 
             saveClients() {
-                window.clientsData = this.clients;
+                try {
+                    window.clientsData = this.clients;
+                } catch (error) {
+                    console.error('Error saving clients:', error);
+                }
             }
 
             showStatus(message, type) {
                 const statusEl = document.getElementById('statusMessage');
                 statusEl.innerHTML = `<div class="status-message ${type}">${message}</div>`;
-                setTimeout(() => {
-                    statusEl.innerHTML = '';
-                }, 5000);
+                
+                // Auto-hide success and info messages after 5 seconds
+                if (type === 'success' || type === 'info') {
+                    setTimeout(() => {
+                        if (statusEl.innerHTML.includes(message)) {
+                            statusEl.innerHTML = '';
+                        }
+                    }, 5000);
+                }
             }
 
             showProcessing(show) {
@@ -756,7 +1279,35 @@
 
         // Initialize the application when the page loads
         document.addEventListener('DOMContentLoaded', () => {
-            new ExhibitionCardReader();
+            try {
+                new ExhibitionCardReaderPro();
+                console.log('🚀 Exhibition Card Reader Pro initialized successfully!');
+            } catch (error) {
+                console.error('❌ Error initializing application:', error);
+                document.body.innerHTML = `
+                    <div style="text-align: center; padding: 50px; color: white;">
+                        <h1>❌ Application Error</h1>
+                        <p>Failed to initialize the card reader. Please refresh the page.</p>
+                        <p style="font-size: 0.9rem; opacity: 0.8;">Error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+
+        // Add some helpful keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 's':
+                        e.preventDefault();
+                        document.getElementById('startCamera').click();
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        document.getElementById('exportData').click();
+                        break;
+                }
+            }
         });
     </script>
 </body>
