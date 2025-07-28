@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exhibition Card Reader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+
+        .scanner-section {
+            text-align: center;
+        }
+
+        .camera-container {
+            position: relative;
+            max-width: 100%;
+            margin: 20px 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        #video {
+            width: 100%;
+            height: auto;
+            max-height: 300px;
+            object-fit: cover;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.1);
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.15);
+            transform: scale(1.02);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+        }
+
+        .clients-table {
+            grid-column: 1 / -1;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .linkedin-link {
+            color: #0077b5;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .linkedin-link:hover {
+            text-decoration: underline;
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .processing {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            table {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 Exhibition Card Reader</h1>
+            <p>Scan QR codes, extract business card data, and collect client information</p>
+        </div>
+
+        <div class="main-content">
+            <!-- QR Code & Card Scanner Section -->
+            <div class="card">
+                <h2>📷 QR Code & Card Scanner</h2>
+                <div class="scanner-section">
+                    <div class="camera-container">
+                        <video id="video" autoplay playsinline></video>
+                        <canvas id="canvas"></canvas>
+                    </div>
+                    
+                    <button id="startCamera" class="btn">Start Camera</button>
+                    <button id="stopCamera" class="btn" disabled>Stop Camera</button>
+                    <button id="captureImage" class="btn" disabled>Capture & Analyze</button>
+                </div>
+
+                <div class="upload-area" id="uploadArea">
+                    <p>📁 Or drag & drop an image here</p>
+                    <p style="font-size: 0.9rem; color: #666; margin-top: 10px;">Supports QR codes and business card images</p>
+                    <input type="file" id="fileInput" class="file-input" accept="image/*">
+                    <button class="btn" onclick="document.getElementById('fileInput').click()">Choose File</button>
+                </div>
+
+                <div class="processing" id="processing">
+                    <div class="spinner"></div>
+                    <p>Processing image and extracting data...</p>
+                </div>
+
+                <div id="statusMessage"></div>
+            </div>
+
+            <!-- Manual Entry Section -->
+            <div class="card">
+                <h2>✍️ Manual Entry</h2>
+                <form id="manualForm">
+                    <div class="form-group">
+                        <label for="manualName">Full Name:</label>
+                        <input type="text" id="manualName" placeholder="Enter client's full name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="manualEmail">Email:</label>
+                        <input type="email" id="manualEmail" placeholder="Enter email address">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="manualPhone">Phone Number:</label>
+                        <input type="tel" id="manualPhone" placeholder="Enter phone number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="manualCompany">Company (Optional):</label>
+                        <input type="text" id="manualCompany" placeholder="Enter company name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="manualLinkedIn">LinkedIn Profile (Optional):</label>
+                        <input type="url" id="manualLinkedIn" placeholder="LinkedIn profile URL">
+                    </div>
+                    
+                    <button type="submit" class="btn">Add Client Manually</button>
+                    <button type="button" id="searchLinkedIn" class="btn">🔍 Search LinkedIn</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Clients Table -->
+        <div class="card clients-table">
+            <h2>👥 Collected Clients Data</h2>
+            <button id="exportData" class="btn">📊 Export to CSV</button>
+            <button id="clearData" class="btn" style="background: #dc3545;">🗑️ Clear All Data</button>
+            
+            <table id="clientsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Company</th>
+                        <th>LinkedIn</th>
+                        <th>Source</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody id="clientsTableBody">
+                    <!-- Data will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- QR Code Scanner Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qr-scanner/1.4.2/qr-scanner.umd.min.js"></script>
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+
+    <script>
+        class ExhibitionCardReader {
+            constructor() {
+                this.clients = this.loadClients();
+                this.video = document.getElementById('video');
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.qrScanner = null;
+                this.stream = null;
+                
+                this.initializeEventListeners();
+                this.updateClientsTable();
+                this.setupDragAndDrop();
+            }
+
+            initializeEventListeners() {
+                document.getElementById('startCamera').addEventListener('click', () => this.startCamera());
+                document.getElementById('stopCamera').addEventListener('click', () => this.stopCamera());
+                document.getElementById('captureImage').addEventListener('click', () => this.captureAndAnalyze());
+                document.getElementById('fileInput').addEventListener('change', (e) => this.handleFileUpload(e));
+                document.getElementById('manualForm').addEventListener('submit', (e) => this.handleManualEntry(e));
+                document.getElementById('searchLinkedIn').addEventListener('click', () => this.searchLinkedIn());
+                document.getElementById('exportData').addEventListener('click', () => this.exportToCSV());
+                document.getElementById('clearData').addEventListener('click', () => this.clearAllData());
+            }
+
+            setupDragAndDrop() {
+                const uploadArea = document.getElementById('uploadArea');
+                
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragover');
+                });
+                
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('dragover');
+                });
+                
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        this.processImageFile(files[0]);
+                    }
+                });
+            }
+
+            async startCamera() {
+                try {
+                    this.stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: 'environment' } 
+                    });
+                    this.video.srcObject = this.stream;
+                    
+                    document.getElementById('startCamera').disabled = true;
+                    document.getElementById('stopCamera').disabled = false;
+                    document.getElementById('captureImage').disabled = false;
+                    
+                    this.showStatus('Camera started successfully!', 'success');
+                } catch (error) {
+                    this.showStatus('Error accessing camera: ' + error.message, 'error');
+                }
+            }
+
+            stopCamera() {
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.video.srcObject = null;
+                    this.stream = null;
+                }
+                
+                document.getElementById('startCamera').disabled = false;
+                document.getElementById('stopCamera').disabled = true;
+                document.getElementById('captureImage').disabled = true;
+                
+                this.showStatus('Camera stopped', 'info');
+            }
+
+            async captureAndAnalyze() {
+                this.canvas.width = this.video.videoWidth;
+                this.canvas.height = this.video.videoHeight;
+                this.ctx.drawImage(this.video, 0, 0);
+                
+                const imageData = this.canvas.toDataURL('image/png');
+                await this.analyzeImage(imageData);
+            }
+
+            handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    this.processImageFile(file);
+                }
+            }
+
+            processImageFile(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.analyzeImage(e.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+
+            async analyzeImage(imageData) {
+                this.showProcessing(true);
+                this.showStatus('Analyzing image...', 'info');
+
+                try {
+                    // Try QR code scanning first
+                    const qrResult = await this.scanQRCode(imageData);
+                    if (qrResult) {
+                        const clientData = this.parseQRData(qrResult);
+                        if (clientData.name || clientData.email || clientData.phone) {
+                            await this.addClientWithLinkedInSearch(clientData, 'QR Code');
+                            this.showProcessing(false);
+                            return;
+                        }
+                    }
+
+                    // If QR code fails, try OCR
+                    const ocrResult = await this.performOCR(imageData);
+                    const clientData = this.extractClientDataFromText(ocrResult);
+                    
+                    if (clientData.name || clientData.email || clientData.phone) {
+                        await this.addClientWithLinkedInSearch(clientData, 'OCR/Business Card');
+                    } else {
+                        this.showStatus('No client data found. Please use manual entry.', 'error');
+                    }
+                } catch (error) {
+                    this.showStatus('Error analyzing image: ' + error.message, 'error');
+                } finally {
+                    this.showProcessing(false);
+                }
+            }
+
+            async scanQRCode(imageData) {
+                try {
+                    const img = new Image();
+                    img.src = imageData;
+                    
+                    return new Promise((resolve, reject) => {
+                        img.onload = async () => {
+                            try {
+                                const result = await QrScanner.scanImage(img);
+                                resolve(result);
+                            } catch (error) {
+                                resolve(null); // QR code not found, try OCR
+                            }
+                        };
+                        img.onerror = () => resolve(null);
+                    });
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            parseQRData(qrText) {
+                const clientData = { name: '', email: '', phone: '', company: '' };
+                
+                // Try to parse vCard format
+                if (qrText.startsWith('BEGIN:VCARD')) {
+                    const lines = qrText.split('\n');
+                    lines.forEach(line => {
+                        if (line.startsWith('FN:')) clientData.name = line.substring(3);
+                        if (line.startsWith('EMAIL:')) clientData.email = line.substring(6);
+                        if (line.startsWith('TEL:')) clientData.phone = line.substring(4);
+                        if (line.startsWith('ORG:')) clientData.company = line.substring(4);
+                    });
+                } else {
+                    // Try to extract from plain text
+                    const emailMatch = qrText.match(/[\w\.-]+@[\w\.-]+\.\w+/);
+                    const phoneMatch = qrText.match(/[\+]?[\d\s\-\(\)]{10,}/);
+                    
+                    if (emailMatch) clientData.email = emailMatch[0];
+                    if (phoneMatch) clientData.phone = phoneMatch[0];
+                    
+                    // Simple name extraction (assume first line if structured)
+                    const lines = qrText.split('\n').filter(line => line.trim());
+                    if (lines.length > 0 && !clientData.name) {
+                        clientData.name = lines[0];
+                    }
+                }
+                
+                return clientData;
+            }
+
+            async performOCR(imageData) {
+                try {
+                    const { data: { text } } = await Tesseract.recognize(imageData, 'eng', {
+                        logger: m => console.log(m)
+                    });
+                    return text;
+                } catch (error) {
+                    throw new Error('OCR processing failed: ' + error.message);
+                }
+            }
+
+            extractClientDataFromText(text) {
+                const clientData = { name: '', email: '', phone: '', company: '' };
+                
+                // Extract email
+                const emailMatch = text.match(/[\w\.-]+@[\w\.-]+\.\w+/);
+                if (emailMatch) clientData.email = emailMatch[0];
+                
+                // Extract phone number
+                const phoneMatch = text.match(/[\+]?[\d\s\-\(\)]{10,}/);
+                if (phoneMatch) clientData.phone = phoneMatch[0].replace(/\s+/g, '');
+                
+                // Extract name (simple heuristic - look for capitalized words)
+                const lines = text.split('\n').filter(line => line.trim());
+                const namePattern = /^[A-Z][a-z]+\s+[A-Z][a-z]+/;
+                for (const line of lines) {
+                    if (namePattern.test(line.trim()) && !clientData.name) {
+                        clientData.name = line.trim();
+                        break;
+                    }
+                }
+                
+                // Extract company (look for common company suffixes)
+                const companyPattern = /(.*?)\s+(Inc|LLC|Corp|Ltd|Company|Co\.)/i;
+                const companyMatch = text.match(companyPattern);
+                if (companyMatch) clientData.company = companyMatch[0];
+                
+                return clientData;
+            }
+
+            async addClientWithLinkedInSearch(clientData, source) {
+                if (clientData.name) {
+                    clientData.linkedIn = await this.findLinkedInProfile(clientData.name, clientData.company);
+                }
+                
+                this.addClient({...clientData, source});
+                this.showStatus(`Client data extracted and added successfully! Source: ${source}`, 'success');
+            }
+
+            async findLinkedInProfile(name, company = '') {
+                try {
+                    // Simulate LinkedIn search (in a real implementation, you'd use LinkedIn API or web scraping)
+                    // For demo purposes, we'll create a mock LinkedIn URL
+                    const searchQuery = `${name} ${company}`.trim().replace(/\s+/g, '+');
+                    const linkedInSearchURL = `https://www.linkedin.com/search/results/people/?keywords=${searchQuery}`;
+                    
+                    // In a real implementation, you would:
+                    // 1. Use LinkedIn API (requires authentication and approval)
+                    // 2. Use a web scraping service
+                    // 3. Use a third-party service that provides LinkedIn search
+                    
+                    return linkedInSearchURL;
+                } catch (error) {
+                    console.log('LinkedIn search failed:', error);
+                    return '';
+                }
+            }
+
+            searchLinkedIn() {
+                const name = document.getElementById('manualName').value;
+                const company = document.getElementById('manualCompany').value;
+                
+                if (!name) {
+                    this.showStatus('Please enter a name to search LinkedIn', 'error');
+                    return;
+                }
+                
+                const searchQuery = `${name} ${company}`.trim().replace(/\s+/g, '+');
+                const linkedInURL = `https://www.linkedin.com/search/results/people/?keywords=${searchQuery}`;
+                
+                document.getElementById('manualLinkedIn').value = linkedInURL;
+                this.showStatus('LinkedIn search URL generated!', 'success');
+            }
+
+            handleManualEntry(event) {
+                event.preventDefault();
+                
+                const clientData = {
+                    name: document.getElementById('manualName').value,
+                    email: document.getElementById('manualEmail').value,
+                    phone: document.getElementById('manualPhone').value,
+                    company: document.getElementById('manualCompany').value,
+                    linkedIn: document.getElementById('manualLinkedIn').value,
+                    source: 'Manual Entry'
+                };
+                
+                if (!clientData.name && !clientData.email && !clientData.phone) {
+                    this.showStatus('Please fill in at least name, email, or phone number', 'error');
+                    return;
+                }
+                
+                this.addClient(clientData);
+                this.showStatus('Client added successfully!', 'success');
+                
+                // Clear form
+                document.getElementById('manualForm').reset();
+            }
+
+            addClient(clientData) {
+                const client = {
+                    id: Date.now(),
+                    ...clientData,
+                    timestamp: new Date().toLocaleString()
+                };
+                
+                this.clients.push(client);
+                this.saveClients();
+                this.updateClientsTable();
+            }
+
+            updateClientsTable() {
+                const tbody = document.getElementById('clientsTableBody');
+                tbody.innerHTML = '';
+                
+                this.clients.forEach((client, index) => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${client.name || 'N/A'}</td>
+                        <td>${client.email || 'N/A'}</td>
+                        <td>${client.phone || 'N/A'}</td>
+                        <td>${client.company || 'N/A'}</td>
+                        <td>${client.linkedIn ? `<a href="${client.linkedIn}" target="_blank" class="linkedin-link">LinkedIn</a>` : 'N/A'}</td>
+                        <td>${client.source}</td>
+                        <td>${client.timestamp}</td>
+                    `;
+                });
+            }
+
+            exportToCSV() {
+                if (this.clients.length === 0) {
+                    this.showStatus('No data to export', 'error');
+                    return;
+                }
+                
+                const headers = ['Name', 'Email', 'Phone', 'Company', 'LinkedIn', 'Source', 'Timestamp'];
+                const csvContent = [
+                    headers.join(','),
+                    ...this.clients.map(client => [
+                        `"${client.name || ''}"`,
+                        `"${client.email || ''}"`,
+                        `"${client.phone || ''}"`,
+                        `"${client.company || ''}"`,
+                        `"${client.linkedIn || ''}"`,
+                        `"${client.source}"`,
+                        `"${client.timestamp}"`
+                    ].join(','))
+                ].join('\n');
+                
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `exhibition-clients-${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                
+                this.showStatus('Data exported successfully!', 'success');
+            }
+
+            clearAllData() {
+                if (confirm('Are you sure you want to clear all client data? This action cannot be undone.')) {
+                    this.clients = [];
+                    this.saveClients();
+                    this.updateClientsTable();
+                    this.showStatus('All data cleared', 'info');
+                }
+            }
+
+            loadClients() {
+                const saved = window.clientsData || [];
+                return saved;
+            }
+
+            saveClients() {
+                window.clientsData = this.clients;
+            }
+
+            showStatus(message, type) {
+                const statusEl = document.getElementById('statusMessage');
+                statusEl.innerHTML = `<div class="status-message ${type}">${message}</div>`;
+                setTimeout(() => {
+                    statusEl.innerHTML = '';
+                }, 5000);
+            }
+
+            showProcessing(show) {
+                document.getElementById('processing').style.display = show ? 'block' : 'none';
+            }
+        }
+
+        // Initialize the application when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ExhibitionCardReader();
+        });
+    </script>
+</body>
+</html>
