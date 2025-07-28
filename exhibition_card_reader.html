@@ -24,9 +24,9 @@
                 <h2>📱 Smart Scanner</h2>
                 <div class="scanner-section">
                     <div id="qr-reader" style="width:100%;max-width:400px;margin:0 auto;"></div>
-                    <div class="camera-placeholder" id="cameraPlaceholder">
-                        <div class="icon">📷</div>
-                        <div>Click "Start Camera" to begin scanning</div>
+                        <div class="camera-placeholder" id="cameraPlaceholder">
+                            <div class="icon">📷</div>
+                            <div>Click "Start Camera" to begin scanning</div>
                     </div>
                     <div style="margin: 20px 0;">
                         <button id="startCamera" class="btn">🔴 Start Camera</button>
@@ -116,17 +116,17 @@
         if (html5QrCode && cameraStarted) {
             await html5QrCode.stop();
             cameraStarted = false;
-            document.getElementById('cameraPlaceholder').style.display = 'flex';
-            document.getElementById('startCamera').disabled = false;
-            document.getElementById('captureImage').disabled = true;
+                document.getElementById('cameraPlaceholder').style.display = 'flex';
+                document.getElementById('startCamera').disabled = false;
+                document.getElementById('captureImage').disabled = true;
             showStatus('⏹️ Camera stopped', 'info');
         }
     }
     async function captureAndAnalyze() {
         if (!cameraStarted) {
             showStatus('❌ Camera not started.', 'error');
-            return;
-        }
+                    return;
+                }
         showProcessing(true);
         try {
             // Pause the camera, grab the frame, and scan for QR
@@ -143,15 +143,15 @@
             const imageDataUrl = canvas.toDataURL('image/png');
             // Try QR scan from image
             const qrResult = await scanQRCodeFromImage(imageDataUrl);
-            if (qrResult) {
+                    if (qrResult) {
                 await processQRResult(qrResult, 'Camera QR');
-            } else {
+                        } else {
                 showStatus('🔄 No QR found, running OCR...', 'info');
                 await analyzeImageWithOCR(imageDataUrl, 'Camera OCR');
             }
         } catch (err) {
             showStatus('❌ Error during capture: ' + err.message, 'error');
-        } finally {
+                } finally {
             showProcessing(false);
             stopCamera();
         }
@@ -176,7 +176,7 @@
         if (clientData.name || clientData.email || clientData.phone) {
             await ExhibitionCardReaderPro.prototype.addClientWithLinkedInSearch.call(window.cardReaderInstance, clientData, source);
             showStatus('✅ Client data extracted and added successfully! Source: ' + source, 'success');
-        } else {
+                } else {
             showStatus('🔄 QR found but no contact info, running OCR...', 'info');
             // Fallback to OCR
             const video = document.querySelector('#qr-reader video');
@@ -193,9 +193,9 @@
     async function analyzeImageWithOCR(imageData, source) {
         try {
             showStatus('🤖 Performing text recognition...', 'info');
-            const { data: { text } } = await Tesseract.recognize(imageData, 'eng', {
-                logger: m => {
-                    if (m.status === 'recognizing text') {
+                    const { data: { text } } = await Tesseract.recognize(imageData, 'eng', {
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
                         showStatus(`🔍 OCR Progress: ${Math.round(m.progress * 100)}%`, 'info');
                     }
                 }
@@ -261,11 +261,11 @@
     // --- Manual Entry and Table logic ---
     // ... (reuse your ExhibitionCardReaderPro class for manual entry, table, etc.) ...
     // --- Initialize the rest of the app ---
-    document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', () => {
         window.cardReaderInstance = new ExhibitionCardReaderPro();
         showProcessing(false);
         document.getElementById('captureImage').disabled = true;
-    });
+        });
     </script>
 </body>
-</html> 
+</html>
