@@ -1029,7 +1029,7 @@
                                     const words = cleanLine.split(' ');
                                     const hasValidWords = words.every(word => 
                                         word.length >= 2 && 
-                                        !['the', 'and', 'or', 'for', 'with', 'from', 'to', 'in', 'on', 'at', 'by'].includes(word.toLowerCase())
+                                        !['the', 'and', 'or', 'for', 'with', 'from', 'to', 'in', 'on', 'at', 'by', 'of', 'a', 'an'].includes(word.toLowerCase())
                                     );
                                     
                                     if (hasValidWords) {
@@ -1054,6 +1054,22 @@
                                 cleanLine.split(' ').length <= 5) {
                                 clientData.name = cleanLine;
                                 console.log('Found name with fallback:', clientData.name);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Fourth pass: If still no name, try to extract from any line that looks like a name
+                    if (!clientData.name) {
+                        console.log('Trying final name extraction from any line');
+                        for (const line of lines) {
+                            const cleanLine = line.trim();
+                            // Look for any line that starts with a capital letter and contains only letters/spaces
+                            if (/^[A-Z][a-z]+(\s+[A-Z][a-z]+)*$/.test(cleanLine) && 
+                                cleanLine.length >= 3 && cleanLine.length <= 50 &&
+                                !cleanLine.includes('@') && !phoneRegex.test(cleanLine)) {
+                                clientData.name = cleanLine;
+                                console.log('Found name with final extraction:', clientData.name);
                                 break;
                             }
                         }
@@ -1379,7 +1395,8 @@
 
             loadClients() {
                 try {
-                    return window.clientsData || [];
+                    const stored = localStorage.getItem('exhibitionCardReaderClients');
+                    return stored ? JSON.parse(stored) : [];
                 } catch (error) {
                     console.error('Error loading clients:', error);
                     return [];
@@ -1388,7 +1405,8 @@
 
             saveClients() {
                 try {
-                    window.clientsData = this.clients;
+                    localStorage.setItem('exhibitionCardReaderClients', JSON.stringify(this.clients));
+                    console.log('Clients saved to localStorage:', this.clients.length);
                 } catch (error) {
                     console.error('Error saving clients:', error);
                 }
