@@ -635,6 +635,7 @@
 
     <!-- Libraries -->
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
 
     <script>
@@ -677,7 +678,9 @@
 
                 uploadArea.addEventListener('drop', (e) => {
                     const files = e.dataTransfer.files;
+                    console.log('Drop event triggered, files:', files);
                     if (files.length > 0) {
+                        this.showStatus('📁 File dropped, processing...', 'info');
                         this.processImageFile(files[0]);
                     }
                 }, false);
@@ -778,33 +781,49 @@
 
             async scanQRCodeFromImage(imageDataUrl) {
                 try {
+                    // Try html5-qrcode first
                     const html5QrCodeFile = new Html5Qrcode();
                     const blob = await (await fetch(imageDataUrl)).blob();
                     const qrText = await html5QrCodeFile.scanFile(blob, true);
                     return qrText;
                 } catch (e) {
-                    return null;
+                    console.log('html5-qrcode failed, trying jsQR fallback:', e);
+                    // Fallback to jsQR
+                    return new Promise((resolve) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            ctx.drawImage(img, 0, 0);
+                            
+                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            const code = jsQR(imageData.data, imageData.width, imageData.height);
+                            
+                            resolve(code ? code.data : null);
+                        };
+                        img.onerror = () => resolve(null);
+                        img.src = imageDataUrl;
+                    });
                 }
             }
 
             async processQRResult(qrText, source) {
+                console.log('Processing QR result:', qrText);
                 const clientData = this.parseQRData(qrText);
+                console.log('Extracted client data:', clientData);
+                
                 if (clientData.name || clientData.email || clientData.phone) {
                     await this.addClientWithLinkedInSearch(clientData, source);
                     this.showStatus('✅ Client data extracted and added successfully! Source: ' + source, 'success');
                 } else {
                     this.showStatus('🔄 QR found but no contact info, running OCR...', 'info');
-                    // Fallback to OCR
-                    const video = document.querySelector('#qr-reader video');
-                    if (video) {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = video.videoWidth;
-                        canvas.height = video.videoHeight;
-                        canvas.getContext('2d').drawImage(video, 0, 0);
-                        const imageDataUrl = canvas.toDataURL('image/png');
-                        await this.analyzeImageWithOCR(imageDataUrl, source + ' + OCR Fallback');
-                    }
+                    // For file uploads, we need to get the original image data for OCR
+                    // This will be handled in the calling method
+                    return false; // Indicate no contact info found
                 }
+                return true; // Indicate contact info was found
             }
 
             handleFileUpload(event) {
@@ -815,20 +834,35 @@
             }
 
             async processImageFile(file) {
+                console.log('Processing file:', file.name, file.type);
+                
                 if (!file.type.startsWith('image/')) {
                     this.showStatus('❌ Please upload a valid image file.', 'error');
                     return;
                 }
 
                 this.showProcessing(true);
+                this.showStatus('🔍 Analyzing image for QR codes and text...', 'info');
+                
                 try {
                     // Try QR scan from file using html5-qrcode
                     const html5QrCodeFile = new Html5Qrcode();
                     const qrText = await html5QrCodeFile.scanFile(file, true);
                     
                     if (qrText) {
-                        await this.processQRResult(qrText, 'File QR');
+                        console.log('QR found:', qrText);
+                        const contactFound = await this.processQRResult(qrText, 'File QR');
+                        if (!contactFound) {
+                            // QR found but no contact info, run OCR on the file
+                            console.log('No contact info in QR, running OCR on file');
+                            const reader = new FileReader();
+                            reader.onload = async (ev) => {
+                                await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
+                            };
+                            reader.readAsDataURL(file);
+                        }
                     } else {
+                        console.log('No QR found, trying OCR');
                         this.showStatus('🔄 No QR found, running OCR...', 'info');
                         const reader = new FileReader();
                         reader.onload = async (ev) => {
@@ -837,7 +871,31 @@
                         reader.readAsDataURL(file);
                     }
                 } catch (err) {
-                    this.showStatus('❌ Error analyzing file: ' + err.message, 'error');
+                    console.log('html5-qrcode file scan failed, trying jsQR fallback:', err);
+                    // Fallback to jsQR for file scanning
+                    try {
+                        const reader = new FileReader();
+                        reader.onload = async (ev) => {
+                            const qrResult = await this.scanQRCodeFromImage(ev.target.result);
+                            if (qrResult) {
+                                console.log('QR found with jsQR fallback:', qrResult);
+                                const contactFound = await this.processQRResult(qrResult, 'File QR (jsQR)');
+                                if (!contactFound) {
+                                    // QR found but no contact info, run OCR
+                                    console.log('No contact info in QR, running OCR');
+                                    await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
+                                }
+                            } else {
+                                console.log('No QR found with jsQR, trying OCR');
+                                this.showStatus('🔄 No QR found, running OCR...', 'info');
+                                await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
+                            }
+                        };
+                        reader.readAsDataURL(file);
+                    } catch (fallbackErr) {
+                        console.error('Both QR methods failed:', fallbackErr);
+                        this.showStatus('❌ Error analyzing file: ' + (fallbackErr.message || 'Unknown error'), 'error');
+                    }
                 } finally {
                     this.showProcessing(false);
                 }
@@ -845,9 +903,11 @@
 
             parseQRData(qrText) {
                 const clientData = { name: '', email: '', phone: '', company: '' };
+                console.log('Parsing QR text:', qrText);
                 
                 // Check if it's a vCard format
                 if (qrText.startsWith('BEGIN:VCARD')) {
+                    console.log('Detected vCard format');
                     const lines = qrText.split('\n');
                     lines.forEach(line => {
                         const cleanLine = line.trim();
@@ -869,33 +929,110 @@
                         if (cleanLine.startsWith('ORG:')) clientData.company = cleanLine.substring(4);
                     });
                 } else {
-                    // Try to extract from plain text or other formats
-                    const emailMatch = qrText.match(/[\w\.-]+@[\w\.-]+\.\w+/);
-                    const phoneMatch = qrText.match(/[\+]?[\d\s\-\(\)]{10,}/);
+                    console.log('Parsing as plain text');
+                    // Enhanced plain text parsing
+                    const lines = qrText.split('\n').filter(line => line.trim().length > 0);
+                    console.log('Lines found:', lines);
                     
-                    if (emailMatch) clientData.email = emailMatch[0];
-                    if (phoneMatch) clientData.phone = phoneMatch[0];
+                    // Extract email (improved regex)
+                    const emailRegex = /[\w\.-]+@[\w\.-]+\.\w+/g;
+                    const emailMatches = qrText.match(emailRegex);
+                    if (emailMatches) {
+                        clientData.email = emailMatches[0];
+                        console.log('Found email:', clientData.email);
+                    }
+                    
+                    // Extract phone number (improved regex for various formats)
+                    const phoneRegex = /(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})|(?:\+?[\d\s\-\(\)]{10,15})/g;
+                    const phoneMatches = qrText.match(phoneRegex);
+                    if (phoneMatches) {
+                        clientData.phone = phoneMatches[0].replace(/\s+/g, '');
+                        console.log('Found phone:', clientData.phone);
+                    }
+                    
+                    // Enhanced name extraction from plain text
+                    const namePatterns = [
+                        /^[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?$/,  // Full name pattern
+                        /^[A-Z]+\s+[A-Z]+$/,  // All caps name
+                        /^[A-Z][a-z]+\s[A-Z]\.\s[A-Z][a-z]+$/,  // Name with middle initial
+                        /^[A-Z][a-z]+\s+[A-Z][a-z]+$/,  // Simple two-word name
+                        /^[A-Z][a-z]+$/,  // Single word name (if no other data found)
+                    ];
+                    
+                    // Look for name in first few lines
+                    for (let i = 0; i < Math.min(lines.length, 3); i++) {
+                        const cleanLine = lines[i].trim();
+                        console.log('Checking line for name:', cleanLine);
+                        
+                        // Skip if line contains email or phone
+                        if (cleanLine.includes('@') || phoneRegex.test(cleanLine)) {
+                            console.log('Skipping line (contains email/phone):', cleanLine);
+                            continue;
+                        }
+                        
+                        // Check name patterns
+                        for (const pattern of namePatterns) {
+                            if (pattern.test(cleanLine) && !clientData.name) {
+                                // Additional validation: make sure it looks like a name
+                                if (cleanLine.length >= 3 && cleanLine.length <= 50) {
+                                    clientData.name = cleanLine;
+                                    console.log('Found name with pattern:', clientData.name);
+                                    break;
+                                }
+                            }
+                        }
+                        if (clientData.name) break;
+                    }
+                    
+                    // If no name found with patterns, try first line that doesn't contain email/phone
+                    if (!clientData.name && lines.length > 0) {
+                        console.log('Trying fallback name extraction');
+                        for (const line of lines) {
+                            const cleanLine = line.trim();
+                            if (!cleanLine.includes('@') && !phoneRegex.test(cleanLine) && 
+                                cleanLine.length >= 3 && cleanLine.length <= 50 &&
+                                /^[A-Za-z\s\.]+$/.test(cleanLine)) {
+                                clientData.name = cleanLine;
+                                console.log('Found name with fallback:', clientData.name);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Extract company (look for common company indicators)
+                    const companyPatterns = [
+                        /(.*?)\s+(Inc\.?|LLC|Corp\.?|Ltd\.?|Company|Co\.?|Corporation|Group|Solutions|Services|Technologies|Tech)(?!\w)/i,
+                        /^[A-Z][a-zA-Z\s&]+(?:Inc\.?|LLC|Corp\.?|Ltd\.?)$/i
+                    ];
+                    
+                    for (const line of lines) {
+                        const cleanLine = line.trim();
+                        for (const pattern of companyPatterns) {
+                            const match = cleanLine.match(pattern);
+                            if (match && !clientData.company) {
+                                clientData.company = match[0];
+                                console.log('Found company:', clientData.company);
+                                break;
+                            }
+                        }
+                        if (clientData.company) break;
+                    }
                     
                     // Check if it's just a URL or error code (no contact info)
                     const isUrl = qrText.match(/^https?:\/\//);
                     const isErrorCode = qrText.match(/^(ERROR|FAIL|INVALID)/i);
                     
-                    if (!isUrl && !isErrorCode) {
-                        // Try to extract name from first line
-                        const lines = qrText.split('\n').filter(line => line.trim());
-                        if (lines.length > 0 && !clientData.name) {
-                            // Look for name pattern
-                            const namePattern = /^[A-Z][a-z]+ [A-Z][a-z]+/;
-                            for (const line of lines) {
-                                if (namePattern.test(line.trim())) {
-                                    clientData.name = line.trim();
-                                    break;
-                                }
-                            }
+                    if (isUrl && !clientData.name && !clientData.email && !clientData.phone) {
+                        // If it's just a URL, try to extract domain as company
+                        const domainMatch = qrText.match(/https?:\/\/([^\/]+)/);
+                        if (domainMatch) {
+                            clientData.company = domainMatch[1].replace('www.', '');
+                            console.log('Extracted company from URL:', clientData.company);
                         }
                     }
                 }
                 
+                console.log('Final extracted data:', clientData);
                 return clientData;
             }
 
@@ -944,9 +1081,9 @@
                 // Extract name (improved logic)
                 const lines = text.split('\n').filter(line => line.trim().length > 2);
                 const namePatterns = [
-                    /^[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?$/,  // Full name pattern
-                    /^[A-Z]+\s+[A-Z]+$/,  // All caps name
-                    /^[A-Z][a-z]+\s[A-Z]\.\s[A-Z][a-z]+$/  // Name with middle initial
+                    /^[A-Z][a-z]+ [A-Z][a-z]+/,  // Full name pattern
+                    /^[A-Z]+\s+[A-Z]+/,  // All caps name
+                    /^[A-Z][a-z]+\s[A-Z]\.\s[A-Z][a-z]+/,  // Name with middle initial
                 ];
                 
                 for (const line of lines) {
