@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exhibition Card Reader Pro</title>
+    <style>
+        /* ... existing styles ... */
+    </style>
+    <!-- Add html5-qrcode library -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+</head>
+<body>
+    <div class="background-animation"></div>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Exhibition Card Reader Pro</h1>
+            <p>Advanced QR & Business Card Scanner with AI-Powered Data Extraction</p>
+        </div>
+        <div class="main-content">
+            <!-- Enhanced Scanner Section -->
+            <div class="card">
+                <h2>📱 Smart Scanner</h2>
+                <div class="scanner-section">
+                    <div id="qr-reader" style="width:100%;max-width:400px;margin:0 auto;"></div>
+                    <div class="camera-placeholder" id="cameraPlaceholder">
+                        <div class="icon">📷</div>
+                        <div>Click "Start Camera" to begin scanning</div>
+                    </div>
+                    <div style="margin: 20px 0;">
+                        <button id="startCamera" class="btn">🔴 Start Camera</button>
+                        <button id="captureImage" class="btn" disabled>📸 Capture & Analyze</button>
+                    </div>
+                    <div class="detection-info">
+                        <strong>🤖 Smart Detection:</strong> Automatically detects QR codes, vCards, and business card text. 
+                        Falls back to OCR if QR codes contain only links or error codes.
+                    </div>
+                </div>
+                <div class="upload-area" id="uploadArea">
+                    <div class="icon">📁</div>
+                    <p><strong>Drag & Drop Images Here</strong></p>
+                    <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 10px;">
+                        Supports QR codes, business cards, and contact images
+                    </p>
+                    <input type="file" id="fileInput" class="file-input" accept="image/*">
+                    <button class="btn" onclick="document.getElementById('fileInput').click()">
+                        Choose File
+                    </button>
+                </div>
+                <div class="processing" id="processing">
+                    <div class="spinner"></div>
+                    <p>🔍 Analyzing image and extracting contact data...</p>
+                </div>
+                <div id="statusMessage"></div>
+            </div>
+            <!-- ... Manual Entry and Clients Table (unchanged) ... -->
+        </div>
+        <!-- ... Clients Table ... -->
+    </div>
+    <script>
+    // --- QR + Camera logic using html5-qrcode ---
+    let html5QrCode = null;
+    let cameraStarted = false;
+    let lastScanResult = null;
+    
+    function showStatus(message, type) {
+        const statusEl = document.getElementById('statusMessage');
+        statusEl.innerHTML = `<div class="status-message ${type}">${message}</div>`;
+        if (type === 'success' || type === 'info') {
+            setTimeout(() => {
+                if (statusEl.innerHTML.includes(message)) {
+                    statusEl.innerHTML = '';
+                }
+            }, 5000);
+        }
+    }
+    function showProcessing(show) {
+        document.getElementById('processing').style.display = show ? 'block' : 'none';
+    }
+    async function startCamera() {
+        if (cameraStarted) return;
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("qr-reader");
+        }
+        document.getElementById('cameraPlaceholder').style.display = 'none';
+        document.getElementById('startCamera').disabled = true;
+        document.getElementById('captureImage').disabled = false;
+        try {
+            const devices = await Html5Qrcode.getCameras();
+            if (devices && devices.length) {
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: 250 },
+                    (decodedText, decodedResult) => {
+                        if (lastScanResult !== decodedText) {
+                            lastScanResult = decodedText;
+                            processQRResult(decodedText, 'Camera QR');
+                            stopCamera();
+                        }
+                    },
+                    (errorMessage) => {
+                        // Optionally show scan errors
+                    }
+                );
+                cameraStarted = true;
+                showStatus('📷 Camera started! Point at QR codes or business cards for automatic detection.', 'success');
+            } else {
+                showStatus('❌ No camera found.', 'error');
+            }
+        } catch (err) {
+            showStatus('❌ Camera error: ' + err.message, 'error');
+        }
+    }
+    async function stopCamera() {
+        if (html5QrCode && cameraStarted) {
+            await html5QrCode.stop();
+            cameraStarted = false;
+            document.getElementById('cameraPlaceholder').style.display = 'flex';
+            document.getElementById('startCamera').disabled = false;
+            document.getElementById('captureImage').disabled = true;
+            showStatus('⏹️ Camera stopped', 'info');
+        }
+    }
+    async function captureAndAnalyze() {
+        if (!cameraStarted) {
+            showStatus('❌ Camera not started.', 'error');
+            return;
+        }
+        showProcessing(true);
+        try {
+            // Pause the camera, grab the frame, and scan for QR
+            const canvas = document.createElement('canvas');
+            const video = document.querySelector('#qr-reader video');
+            if (!video) {
+                showStatus('❌ Video stream not found.', 'error');
+                showProcessing(false);
+                return;
+            }
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const imageDataUrl = canvas.toDataURL('image/png');
+            // Try QR scan from image
+            const qrResult = await scanQRCodeFromImage(imageDataUrl);
+            if (qrResult) {
+                await processQRResult(qrResult, 'Camera QR');
+            } else {
+                showStatus('🔄 No QR found, running OCR...', 'info');
+                await analyzeImageWithOCR(imageDataUrl, 'Camera OCR');
+            }
+        } catch (err) {
+            showStatus('❌ Error during capture: ' + err.message, 'error');
+        } finally {
+            showProcessing(false);
+            stopCamera();
+        }
+    }
+    async function scanQRCodeFromImage(imageDataUrl) {
+        if (window.Html5QrcodeSupportedFormats) {
+            // Use html5-qrcode's scanFile API if available
+            try {
+                const html5QrCodeFile = new Html5Qrcode(/* element id not needed for file scan */);
+                const blob = await (await fetch(imageDataUrl)).blob();
+                const qrText = await html5QrCodeFile.scanFile(blob, true);
+                return qrText;
+            } catch (e) {
+                return null;
+            }
+        }
+        return null;
+    }
+    async function processQRResult(qrText, source) {
+        // Parse QR data (reuse your parseQRData logic)
+        const clientData = ExhibitionCardReaderPro.prototype.parseQRData(qrText);
+        if (clientData.name || clientData.email || clientData.phone) {
+            await ExhibitionCardReaderPro.prototype.addClientWithLinkedInSearch.call(window.cardReaderInstance, clientData, source);
+            showStatus('✅ Client data extracted and added successfully! Source: ' + source, 'success');
+        } else {
+            showStatus('🔄 QR found but no contact info, running OCR...', 'info');
+            // Fallback to OCR
+            const video = document.querySelector('#qr-reader video');
+            if (video) {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                const imageDataUrl = canvas.toDataURL('image/png');
+                await analyzeImageWithOCR(imageDataUrl, source + ' + OCR Fallback');
+            }
+        }
+    }
+    async function analyzeImageWithOCR(imageData, source) {
+        try {
+            showStatus('🤖 Performing text recognition...', 'info');
+            const { data: { text } } = await Tesseract.recognize(imageData, 'eng', {
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                        showStatus(`🔍 OCR Progress: ${Math.round(m.progress * 100)}%`, 'info');
+                    }
+                }
+            });
+            const clientData = ExhibitionCardReaderPro.prototype.extractClientDataFromText(text);
+            if (clientData.email || clientData.name || clientData.phone) {
+                await ExhibitionCardReaderPro.prototype.addClientWithLinkedInSearch.call(window.cardReaderInstance, clientData, source);
+                showStatus('✅ Client data extracted and added successfully! Source: ' + source, 'success');
+            } else {
+                showStatus('❌ No contact information found in the image. Please try manual entry.', 'error');
+            }
+        } catch (error) {
+            showStatus('❌ OCR processing failed: ' + error.message, 'error');
+        }
+    }
+    // --- File Upload QR logic ---
+    document.getElementById('fileInput').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        showProcessing(true);
+        try {
+            // Try QR scan from file
+            const html5QrCodeFile = new Html5Qrcode(/* element id not needed for file scan */);
+            const qrText = await html5QrCodeFile.scanFile(file, true);
+            if (qrText) {
+                await processQRResult(qrText, 'File QR');
+            } else {
+                showStatus('🔄 No QR found, running OCR...', 'info');
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    await analyzeImageWithOCR(ev.target.result, 'File OCR');
+                };
+                reader.readAsDataURL(file);
+            }
+        } catch (err) {
+            showStatus('❌ Error analyzing file: ' + err.message, 'error');
+        } finally {
+            showProcessing(false);
+        }
+    });
+    // --- Drag and Drop ---
+    const uploadArea = document.getElementById('uploadArea');
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+    });
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'), false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('dragover'), false);
+    });
+    uploadArea.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            document.getElementById('fileInput').files = files;
+            const event = new Event('change');
+            document.getElementById('fileInput').dispatchEvent(event);
+        }
+    }, false);
+    // --- Button Event Listeners ---
+    document.getElementById('startCamera').addEventListener('click', startCamera);
+    document.getElementById('captureImage').addEventListener('click', captureAndAnalyze);
+    // --- Manual Entry and Table logic ---
+    // ... (reuse your ExhibitionCardReaderPro class for manual entry, table, etc.) ...
+    // --- Initialize the rest of the app ---
+    document.addEventListener('DOMContentLoaded', () => {
+        window.cardReaderInstance = new ExhibitionCardReaderPro();
+        showProcessing(false);
+        document.getElementById('captureImage').disabled = true;
+    });
+    </script>
+</body>
+</html> 
