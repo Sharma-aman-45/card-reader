@@ -915,6 +915,7 @@
                 this.cameraStarted = false;
                 this.lastScanResult = null;
                 this.currentScanMode = 'qr'; // 'qr' or 'image'
+                this.isCapturing = false; // Prevent multiple captures
                 
                 this.initializeEventListeners();
                 this.updateClientsTable();
@@ -1017,7 +1018,23 @@
              * Capture and analyze image for business card scanning
              */
             async captureAndAnalyzeImage() {
+                // Prevent multiple captures
+                if (this.isCapturing) {
+                    this.showStatus('⏳ Already capturing, please wait...', 'warning');
+                    return;
+                }
+                
+                this.isCapturing = true;
+                
                 try {
+                    this.showStatus('📸 Preparing to capture business card image...', 'info');
+                    
+                    // Show countdown for user feedback
+                    for (let i = 2; i > 0; i--) {
+                        this.showStatus(`📸 Capturing in ${i} seconds...`, 'info');
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                    
                     this.showStatus('📸 Capturing business card image...', 'info');
                     
                     // Get the video element from html5-qrcode
@@ -1025,6 +1042,12 @@
                     if (!videoElement) {
                         this.showStatus('❌ Camera not ready for capture', 'error');
                         return;
+                    }
+                    
+                    // Additional check to ensure video is playing
+                    if (videoElement.readyState < 2) {
+                        this.showStatus('⏳ Camera still initializing, please wait...', 'info');
+                        await new Promise(resolve => setTimeout(resolve, 1000));
                     }
                     
                     // Create canvas and capture frame
@@ -1040,10 +1063,12 @@
                             await this.processImageFile(blob);
                             this.stopCamera();
                         }
+                        this.isCapturing = false; // Reset capture flag
                     }, 'image/jpeg', 0.9);
                     
                 } catch (error) {
                     this.showStatus('❌ Failed to capture image: ' + error.message, 'error');
+                    this.isCapturing = false; // Reset capture flag on error
                 }
             }
 
@@ -1088,6 +1113,13 @@
                         this.cameraStarted = true;
                         const modeText = this.currentScanMode === 'qr' ? 'QR codes' : 'business cards';
                         this.showStatus(`📷 Camera started! Point at ${modeText} for scanning.`, 'success');
+                        
+                        // For business card mode, add extra stabilization time
+                        if (this.currentScanMode === 'image') {
+                            setTimeout(() => {
+                                this.showStatus('✅ Camera stabilized and ready for business card capture!', 'success');
+                            }, 3000);
+                        }
                     } else {
                         this.showStatus('❌ No camera found.', 'error');
                     }
