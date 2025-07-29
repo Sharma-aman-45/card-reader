@@ -268,6 +268,31 @@
             transform: none;
         }
 
+        .mode-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #00c851, #007e33);
+            border-color: #00c851;
+            box-shadow: 0 4px 15px rgba(0,200,81,0.3);
+        }
+
+        .mode-btn:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        .mode-btn.active:hover {
+            background: linear-gradient(135deg, #00d861, #008e43);
+            box-shadow: 0 6px 20px rgba(0,200,81,0.4);
+        }
+
         .btn.success {
             background: linear-gradient(135deg, #00c851, #007e33);
         }
@@ -533,12 +558,22 @@
                             <div>Click "Start Camera" to begin scanning</div>
                         </div>
                     <div style="margin: 20px 0;">
-                        <button id="startCamera" class="btn">🔴 Start Camera</button>
-                        <button id="captureImage" class="btn" disabled>📸 Capture & Analyze</button>
+                        <div class="scan-mode-buttons" style="margin-bottom: 15px; text-align: center;">
+                            <button id="qrModeBtn" class="btn mode-btn active" style="margin-right: 10px;">🔲 QR Code Mode</button>
+                            <button id="imageModeBtn" class="btn mode-btn" style="margin-left: 10px;">📄 Business Card Mode</button>
+                        </div>
+                        <div style="text-align: center;">
+                            <button id="startCamera" class="btn">🔴 Start Camera</button>
+                            <button id="captureImage" class="btn" disabled>📸 Capture & Analyze</button>
+                        </div>
                     </div>
                     <div class="detection-info">
-                        <strong>🤖 Smart Detection:</strong> Automatically detects QR codes, vCards, and business card text. 
-                        Falls back to OCR if QR codes contain only links or error codes.
+                        <strong>🤖 Smart Detection:</strong> 
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            <li><strong>QR Mode:</strong> Scans QR codes for vCard and contact data</li>
+                            <li><strong>Business Card Mode:</strong> Captures and analyzes entire business card text</li>
+                        </ul>
+                        Automatically falls back to OCR if QR codes contain only links or error codes.
                     </div>
                 </div>
 
@@ -879,10 +914,12 @@
                 this.html5QrCode = null;
                 this.cameraStarted = false;
                 this.lastScanResult = null;
+                this.currentScanMode = 'qr'; // 'qr' or 'image'
                 
                 this.initializeEventListeners();
                 this.updateClientsTable();
                 this.setupDragAndDrop();
+                this.updateScanModeUI();
             }
 
             initializeEventListeners() {
@@ -893,6 +930,10 @@
                 document.getElementById('searchLinkedIn').addEventListener('click', () => this.searchLinkedIn());
                 document.getElementById('exportData').addEventListener('click', () => this.exportToCSV());
                 document.getElementById('clearData').addEventListener('click', () => this.clearAllData());
+                
+                // Add scan mode toggle listeners
+                document.getElementById('qrModeBtn').addEventListener('click', () => this.setScanMode('qr'));
+                document.getElementById('imageModeBtn').addEventListener('click', () => this.setScanMode('image'));
             }
 
             setupDragAndDrop() {
@@ -925,6 +966,72 @@
                 e.stopPropagation();
             }
 
+            /**
+             * Set the current scan mode and update UI
+             */
+            setScanMode(mode) {
+                this.currentScanMode = mode;
+                this.updateScanModeUI();
+                
+                const modeText = mode === 'qr' ? 'QR Code' : 'Business Card';
+                this.showStatus(`🔄 Switched to ${modeText} scanning mode`, 'info');
+                
+                // Stop camera if running to apply new mode
+                if (this.cameraStarted) {
+                    this.stopCamera();
+                }
+            }
+
+            /**
+             * Update the scan mode UI buttons
+             */
+            updateScanModeUI() {
+                const qrBtn = document.getElementById('qrModeBtn');
+                const imageBtn = document.getElementById('imageModeBtn');
+                
+                if (this.currentScanMode === 'qr') {
+                    qrBtn.classList.add('active');
+                    imageBtn.classList.remove('active');
+                } else {
+                    imageBtn.classList.add('active');
+                    qrBtn.classList.remove('active');
+                }
+            }
+
+            /**
+             * Capture and analyze image for business card scanning
+             */
+            async captureAndAnalyzeImage() {
+                try {
+                    this.showStatus('📸 Capturing business card image...', 'info');
+                    
+                    // Get the video element from html5-qrcode
+                    const videoElement = document.querySelector('#qr-reader video');
+                    if (!videoElement) {
+                        this.showStatus('❌ Camera not ready for capture', 'error');
+                        return;
+                    }
+                    
+                    // Create canvas and capture frame
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = videoElement.videoWidth;
+                    canvas.height = videoElement.videoHeight;
+                    ctx.drawImage(videoElement, 0, 0);
+                    
+                    // Convert to blob and process
+                    canvas.toBlob(async (blob) => {
+                        if (blob) {
+                            await this.processImageFile(blob);
+                            this.stopCamera();
+                        }
+                    }, 'image/jpeg', 0.9);
+                    
+                } catch (error) {
+                    this.showStatus('❌ Failed to capture image: ' + error.message, 'error');
+                }
+            }
+
             async startCamera() {
                 if (this.cameraStarted) return;
                 
@@ -932,29 +1039,40 @@
                     this.html5QrCode = new Html5Qrcode("qr-reader");
                 }
 
-                    document.getElementById('cameraPlaceholder').style.display = 'none';
-                    document.getElementById('startCamera').disabled = true;
-                    document.getElementById('captureImage').disabled = false;
+                document.getElementById('cameraPlaceholder').style.display = 'none';
+                document.getElementById('startCamera').disabled = true;
+                document.getElementById('captureImage').disabled = false;
                     
                 try {
                     const devices = await Html5Qrcode.getCameras();
                     if (devices && devices.length) {
+                        const config = this.currentScanMode === 'qr' 
+                            ? { fps: 10, qrbox: 250 }
+                            : { fps: 10, qrbox: { width: 400, height: 300 } };
+                            
                         await this.html5QrCode.start(
                             { facingMode: "environment" },
-                            { fps: 10, qrbox: 250 },
+                            config,
                             (decodedText, decodedResult) => {
-                                if (this.lastScanResult !== decodedText) {
-                                    this.lastScanResult = decodedText;
-                                    this.processQRResult(decodedText, 'Camera QR');
-                                    this.stopCamera();
+                                if (this.currentScanMode === 'qr') {
+                                    // QR Mode: Process QR code immediately
+                                    if (this.lastScanResult !== decodedText) {
+                                        this.lastScanResult = decodedText;
+                                        this.processQRResult(decodedText, 'QR Camera');
+                                        this.stopCamera();
+                                    }
+                                } else {
+                                    // Image Mode: Capture and analyze business card
+                                    this.captureAndAnalyzeImage();
                                 }
                             },
                             (errorMessage) => {
-                                // Optionally show scan errors
+                                // Handle scan errors
                             }
                         );
                         this.cameraStarted = true;
-                    this.showStatus('📷 Camera started! Point at QR codes or business cards for automatic detection.', 'success');
+                        const modeText = this.currentScanMode === 'qr' ? 'QR codes' : 'business cards';
+                        this.showStatus(`📷 Camera started! Point at ${modeText} for scanning.`, 'success');
                     } else {
                         this.showStatus('❌ No camera found.', 'error');
                     }
