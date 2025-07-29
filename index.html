@@ -640,6 +640,239 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
 
     <script>
+        // Helper class for the efficient name extraction
+        class EfficientNameExtractor {
+            constructor() {
+                // Define name patterns with scoring weights
+                this.namePatterns = [
+                    // High confidence patterns (score: 10)
+                    { pattern: /^[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/, score: 10, description: "Standard First Last" },
+                    { pattern: /^[A-Z][a-z]{2,}\s+[A-Z]\.\s+[A-Z][a-z]{2,}$/, score: 10, description: "First M. Last" },
+                    { pattern: /^[A-Z]\.\s+[A-Z][a-z]{2,}$/, score: 9, description: "F. Last" },
+                    
+                    // Medium confidence patterns (score: 7-8)
+                    { pattern: /^[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/, score: 8, description: "First Middle Last" },
+                    { pattern: /^[A-Z][a-z]{2,}\s+[A-Z][a-z]+-[A-Z][a-z]{2,}$/, score: 7, description: "First Hyphen-Last" },
+                    { pattern: /^[A-Z][a-z]{2,}\s+[A-Z][a-z]+'[A-Z][a-z]{2,}$/, score: 7, description: "First O'Last" },
+                    
+                    // Title patterns (score: 8-9)
+                    { pattern: /^Dr\.\s+[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/i, score: 9, description: "Dr. First Last" },
+                    { pattern: /^Mr\.\s+[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/i, score: 9, description: "Mr. First Last" },
+                    { pattern: /^Ms\.\s+[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/i, score: 9, description: "Ms. First Last" },
+                    { pattern: /^Mrs\.\s+[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/i, score: 9, description: "Mrs. First Last" },
+                    
+                    // Lower confidence patterns (score: 5-6)
+                    { pattern: /^[A-Z]{2,}\s+[A-Z]{2,}$/, score: 6, description: "FIRST LAST" },
+                    { pattern: /^[A-Z][a-z]{1,}\s+[A-Z][a-z]{1,}$/, score: 5, description: "Short names" },
+                    { pattern: /^[A-Z][a-z]{2,}$/, score: 4, description: "Single name" },
+                    
+                    // Initials patterns (score: 6-7)
+                    { pattern: /^[A-Z]\.\s+[A-Z]\.\s+[A-Z][a-z]{2,}$/, score: 7, description: "A.B. Last" },
+                    { pattern: /^[A-Z][a-z]{2,}\s+[A-Z]\.\s+[A-Z]\.$/, score: 6, description: "First A.B." }
+                ];
+                
+                // Common words that should be excluded from names
+                this.excludeWords = new Set([
+                    'the', 'and', 'or', 'for', 'with', 'from', 'to', 'in', 'on', 'at', 'by', 'of', 'a', 'an',
+                    'inc', 'llc', 'corp', 'ltd', 'company', 'co', 'corporation', 'group', 'solutions', 
+                    'services', 'technologies', 'tech', 'systems', 'associates', 'partners', 'consulting',
+                    'email', 'phone', 'tel', 'fax', 'mobile', 'cell', 'office', 'home', 'work',
+                    'address', 'street', 'avenue', 'road', 'drive', 'lane', 'blvd', 'suite', 'apt',
+                    'www', 'http', 'https', 'com', 'org', 'net', 'edu', 'gov'
+                ]);
+                
+                // Common first names for additional validation
+                this.commonFirstNames = new Set([
+                    'james', 'john', 'robert', 'michael', 'william', 'david', 'richard', 'joseph', 'thomas', 'christopher',
+                    'charles', 'daniel', 'matthew', 'anthony', 'mark', 'donald', 'steven', 'paul', 'andrew', 'joshua',
+                    'mary', 'patricia', 'jennifer', 'linda', 'elizabeth', 'barbara', 'susan', 'jessica', 'sarah', 'karen',
+                    'nancy', 'lisa', 'betty', 'helen', 'sandra', 'donna', 'carol', 'ruth', 'sharon', 'michelle'
+                ]);
+            }
+            
+            /**
+             * Extract name with scoring system - main method
+             */
+            extractName(text) {
+                if (!text || typeof text !== 'string') {
+                    return { name: '', confidence: 0, method: 'invalid_input' };
+                }
+                
+                // Clean and prepare text
+                const lines = this.preprocessText(text);
+                if (lines.length === 0) {
+                    return { name: '', confidence: 0, method: 'no_lines' };
+                }
+                
+                // Try different extraction methods in order of reliability
+                const methods = [
+                    () => this.extractWithPatternMatching(lines),
+                    () => this.extractWithPositionalLogic(lines),
+                    () => this.extractWithHeuristics(lines)
+                ];
+                
+                for (let i = 0; i < methods.length; i++) {
+                    const result = methods[i]();
+                    if (result.confidence >= 5) { // Minimum confidence threshold
+                        return result;
+                    }
+                }
+                
+                return { name: '', confidence: 0, method: 'no_match' };
+            }
+            
+            /**
+             * Preprocess text into clean lines
+             */
+            preprocessText(text) {
+                return text
+                    .split(/[\n\r]+/)
+                    .map(line => line.trim())
+                    .filter(line => {
+                        if (line.length < 2) return false;
+                        if (line.includes('@')) return false;
+                        if (/https?:\/\//.test(line)) return false;
+                        if (/^\+?\d[\d\s\-\(\)]{7,}/.test(line)) return false;
+                        if (/^\d+/.test(line)) return false;
+                        return true;
+                    })
+                    .slice(0, 8);
+            }
+            
+            /**
+             * Method 1: Pattern matching with scoring
+             */
+            extractWithPatternMatching(lines) {
+                let bestMatch = { name: '', confidence: 0, method: 'pattern_matching' };
+                
+                for (const line of lines) {
+                    for (const { pattern, score, description } of this.namePatterns) {
+                        if (pattern.test(line)) {
+                            let adjustedScore = score;
+                            
+                            // Boost score if first name is common
+                            const firstWord = line.split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, '');
+                            if (this.commonFirstNames.has(firstWord)) {
+                                adjustedScore += 2;
+                            }
+                            
+                            // Boost score if it's in the first few lines
+                            const lineIndex = lines.indexOf(line);
+                            if (lineIndex === 0) adjustedScore += 3;
+                            else if (lineIndex === 1) adjustedScore += 2;
+                            else if (lineIndex === 2) adjustedScore += 1;
+                            
+                            // Penalty for very long lines
+                            if (line.length > 40) adjustedScore -= 2;
+                            
+                            // Penalty if line contains excluded words
+                            const words = line.toLowerCase().split(/\s+/);
+                            const hasExcludedWords = words.some(word => this.excludeWords.has(word));
+                            if (hasExcludedWords) adjustedScore -= 3;
+                            
+                            if (adjustedScore > bestMatch.confidence) {
+                                bestMatch = {
+                                    name: line.trim(),
+                                    confidence: adjustedScore,
+                                    method: `pattern_matching_${description}`
+                                };
+                            }
+                        }
+                    }
+                }
+                
+                return bestMatch;
+            }
+            
+            /**
+             * Method 2: Positional logic
+             */
+            extractWithPositionalLogic(lines) {
+                for (let i = 0; i < Math.min(lines.length, 3); i++) {
+                    const line = lines[i];
+                    
+                    if (this.isLikelyName(line)) {
+                        let confidence = 6 - i;
+                        
+                        if (/^[A-Z][a-z]+\s+[A-Z][a-z]+$/.test(line)) {
+                            confidence += 3;
+                        }
+                        
+                        return {
+                            name: line.trim(),
+                            confidence: confidence,
+                            method: `positional_logic_line_${i + 1}`
+                        };
+                    }
+                }
+                
+                return { name: '', confidence: 0, method: 'positional_logic' };
+            }
+            
+            /**
+             * Method 3: Heuristic-based extraction
+             */
+            extractWithHeuristics(lines) {
+                const candidates = [];
+                
+                for (const line of lines) {
+                    if (this.isLikelyName(line)) {
+                        let score = 0;
+                        
+                        const wordCount = line.split(/\s+/).length;
+                        if (wordCount === 2) score += 4;
+                        else if (wordCount === 3) score += 3;
+                        else if (wordCount === 1) score += 1;
+                        else score -= 1;
+                        
+                        const words = line.split(/\s+/);
+                        const properlyCapitalized = words.every(word => 
+                            /^[A-Z][a-z]*$/.test(word) || /^[A-Z]\.$/.test(word)
+                        );
+                        if (properlyCapitalized) score += 3;
+                        
+                        if (line.length >= 4 && line.length <= 30) score += 2;
+                        if (line.length > 40) score -= 3;
+                        
+                        const letterRatio = (line.match(/[a-zA-Z]/g) || []).length / line.length;
+                        if (letterRatio > 0.85) score += 2;
+                        
+                        candidates.push({
+                            name: line.trim(),
+                            confidence: Math.max(0, score),
+                            method: 'heuristic_analysis'
+                        });
+                    }
+                }
+                
+                candidates.sort((a, b) => b.confidence - a.confidence);
+                return candidates[0] || { name: '', confidence: 0, method: 'heuristics' };
+            }
+            
+            /**
+             * Check if a line is likely to be a name
+             */
+            isLikelyName(line) {
+                if (!line || line.length < 2 || line.length > 50) return false;
+                
+                if (!/^[A-Za-z\s\.\-']+$/.test(line)) return false;
+                
+                if (line === line.toUpperCase()) {
+                    const words = line.split(/\s+/);
+                    if (words.length > 3 || words.some(word => word.length > 8)) return false;
+                }
+                
+                const words = line.toLowerCase().split(/\s+/);
+                if (words.some(word => this.excludeWords.has(word))) return false;
+                
+                if (words.length > 5) return false;
+                
+                if (words.some(word => word.length > 20)) return false;
+                
+                return true;
+            }
+        }
+
         class ExhibitionCardReaderPro {
             constructor() {
                 this.clients = this.loadClients();
@@ -906,6 +1139,9 @@
                 const clientData = { name: '', email: '', phone: '', company: '' };
                 console.log('Parsing QR text:', qrText);
                 
+                // Initialize the efficient name extractor
+                const nameExtractor = new EfficientNameExtractor();
+                
                 // Check if it's a vCard format
                 if (qrText.startsWith('BEGIN:VCARD')) {
                     console.log('Detected vCard format');
@@ -930,16 +1166,12 @@
                         if (cleanLine.startsWith('ORG:')) clientData.company = cleanLine.substring(4);
                     });
                 } else {
-                    console.log('Parsing as plain text');
-                    // Enhanced plain text parsing
-                    const lines = qrText.split('\n').filter(line => line.trim().length > 0);
-                    console.log('Lines found:', lines);
+                    console.log('Parsing as plain text with enhanced extraction');
                     
-                    // Extract email (improved regex)
-                    const emailRegex = /[\w\.-]+@[\w\.-]+\.\w+/g;
-                    const emailMatches = qrText.match(emailRegex);
-                    if (emailMatches) {
-                        clientData.email = emailMatches[0];
+                    // OPTIMIZED EMAIL EXTRACTION - Fast and accurate
+                    const emailResult = this.extractEmailOptimized(qrText);
+                    if (emailResult.email) {
+                        clientData.email = emailResult.email;
                         console.log('Found email:', clientData.email);
                     }
                     
@@ -951,132 +1183,30 @@
                         console.log('Found phone:', clientData.phone);
                     }
                     
-                    // IMPROVED NAME EXTRACTION - More aggressive and comprehensive
-                    const namePatterns = [
-                        // Standard name patterns
-                        /^[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?$/,  // John Doe Smith
-                        /^[A-Z]+\s+[A-Z]+$/,  // JOHN DOE
-                        /^[A-Z][a-z]+\s[A-Z]\.\s[A-Z][a-z]+$/,  // John A. Doe
-                        /^[A-Z][a-z]+\s+[A-Z][a-z]+$/,  // John Doe
-                        /^[A-Z][a-z]+$/,  // John (single name)
-                        
-                        // More flexible patterns
-                        /^[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+$/,  // Three word names
-                        /^[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+$/,  // Four word names
-                        /^[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+$/,  // Five word names
-                        
-                        // Handle names with special characters
-                        /^[A-Z][a-z]+\s+[A-Z][a-z]+-[A-Z][a-z]+$/,  // Hyphenated names
-                        /^[A-Z][a-z]+\s+[A-Z][a-z]+\s+[A-Z][a-z]+-[A-Z][a-z]+$/,  // Three word with hyphen
-                        
-                        // Handle names with apostrophes
-                        /^[A-Z][a-z]+\s+[A-Z][a-z]+'[A-Z][a-z]+$/,  // Names with apostrophes
-                        
-                        // Handle names with dots (initials)
-                        /^[A-Z]\.\s+[A-Z][a-z]+$/,  // J. Doe
-                        /^[A-Z][a-z]+\s+[A-Z]\.\s+[A-Z][a-z]+$/,  // John A. Doe
-                        /^[A-Z]\.\s+[A-Z]\.\s+[A-Z][a-z]+$/,  // J.A. Doe
-                        
-                        // Handle all caps names with spaces
-                        /^[A-Z]+\s+[A-Z]+\s+[A-Z]+$/,  // JOHN DOE SMITH
-                        /^[A-Z]+\s+[A-Z]+$/,  // JOHN DOE
-                    ];
-                    
-                    // First pass: Look for name in first few lines with strict patterns
-                    for (let i = 0; i < Math.min(lines.length, 5); i++) {
-                        const cleanLine = lines[i].trim();
-                        console.log('Checking line for name (strict):', cleanLine);
-                        
-                        // Skip if line contains email or phone
-                        if (cleanLine.includes('@') || phoneRegex.test(cleanLine)) {
-                            console.log('Skipping line (contains email/phone):', cleanLine);
-                            continue;
-                        }
-                        
-                        // Check name patterns
-                        for (const pattern of namePatterns) {
-                            if (pattern.test(cleanLine) && !clientData.name) {
-                                // Additional validation: make sure it looks like a name
-                                if (cleanLine.length >= 3 && cleanLine.length <= 100) {
-                                    clientData.name = cleanLine;
-                                    console.log('Found name with strict pattern:', clientData.name);
-                                    break;
-                                }
-                            }
-                        }
-                        if (clientData.name) break;
-                    }
-                    
-                    // Second pass: More flexible name detection if strict patterns didn't work
-                    if (!clientData.name) {
-                        console.log('No name found with strict patterns, trying flexible detection');
-                        for (let i = 0; i < Math.min(lines.length, 5); i++) {
-                            const cleanLine = lines[i].trim();
-                            console.log('Checking line for name (flexible):', cleanLine);
-                            
-                            // Skip if line contains email or phone
-                            if (cleanLine.includes('@') || phoneRegex.test(cleanLine)) {
-                                continue;
-                            }
-                            
-                            // More flexible name detection
-                            if (cleanLine.length >= 3 && cleanLine.length <= 100) {
-                                // Check if it looks like a name (contains letters and spaces, no numbers)
-                                if (/^[A-Za-z\s\.\-']+$/.test(cleanLine) && 
-                                    cleanLine.split(' ').length >= 1 && 
-                                    cleanLine.split(' ').length <= 5) {
-                                    
-                                    // Additional checks to avoid common non-name words
-                                    const words = cleanLine.split(' ');
-                                    const hasValidWords = words.every(word => 
-                                        word.length >= 2 && 
-                                        !['the', 'and', 'or', 'for', 'with', 'from', 'to', 'in', 'on', 'at', 'by', 'of', 'a', 'an'].includes(word.toLowerCase())
-                                    );
-                                    
-                                    if (hasValidWords) {
-                                        clientData.name = cleanLine;
-                                        console.log('Found name with flexible detection:', clientData.name);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Third pass: If still no name, try the first line that doesn't contain email/phone
-                    if (!clientData.name && lines.length > 0) {
-                        console.log('Trying fallback name extraction');
-                            for (const line of lines) {
+                    // EFFICIENT NAME EXTRACTION - New algorithm
+                    const nameResult = nameExtractor.extractName(qrText);
+                    if (nameResult.name && nameResult.confidence >= 5) {
+                        clientData.name = nameResult.name;
+                        console.log(`Efficient name extraction: ${clientData.name} (confidence: ${nameResult.confidence}, method: ${nameResult.method})`);
+                    } else {
+                        console.log('Name extraction failed with new algorithm, trying fallback');
+                        // Fallback to basic name extraction if needed
+                        const lines = qrText.split('\n').filter(line => line.trim().length > 2);
+                        for (const line of lines.slice(0, 3)) {
                             const cleanLine = line.trim();
-                            if (!cleanLine.includes('@') && !phoneRegex.test(cleanLine) && 
-                                cleanLine.length >= 3 && cleanLine.length <= 100 &&
+                            if (cleanLine.length >= 3 && cleanLine.length <= 50 && 
                                 /^[A-Za-z\s\.\-']+$/.test(cleanLine) &&
-                                cleanLine.split(' ').length >= 1 && 
-                                cleanLine.split(' ').length <= 5) {
+                                !cleanLine.includes('@') && 
+                                !phoneRegex.test(cleanLine)) {
                                 clientData.name = cleanLine;
                                 console.log('Found name with fallback:', clientData.name);
-                                    break;
-                                }
-                            }
-                    }
-                    
-                    // Fourth pass: If still no name, try to extract from any line that looks like a name
-                    if (!clientData.name) {
-                        console.log('Trying final name extraction from any line');
-                        for (const line of lines) {
-                            const cleanLine = line.trim();
-                            // Look for any line that starts with a capital letter and contains only letters/spaces
-                            if (/^[A-Z][a-z]+(\s+[A-Z][a-z]+)*$/.test(cleanLine) && 
-                                cleanLine.length >= 3 && cleanLine.length <= 50 &&
-                                !cleanLine.includes('@') && !phoneRegex.test(cleanLine)) {
-                                clientData.name = cleanLine;
-                                console.log('Found name with final extraction:', clientData.name);
                                 break;
                             }
                         }
                     }
                     
-                    // Extract company (look for common company indicators)
+                    // Extract company (existing logic)
+                    const lines = qrText.split('\n').filter(line => line.trim().length > 0);
                     const companyPatterns = [
                         /(.*?)\s+(Inc\.?|LLC|Corp\.?|Ltd\.?|Company|Co\.?|Corporation|Group|Solutions|Services|Technologies|Tech)(?!\w)/i,
                         /^[A-Z][a-zA-Z\s&]+(?:Inc\.?|LLC|Corp\.?|Ltd\.?)$/i
@@ -1113,6 +1243,117 @@
                 return clientData;
             }
 
+            // OPTIMIZED EMAIL EXTRACTION METHOD
+            extractEmailOptimized(text) {
+                // Multiple email patterns for better accuracy
+                const emailPatterns = [
+                    // Standard email pattern
+                    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+                    // Email with common prefixes
+                    /(?:email|e-mail|mail|contact)[\s:]*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi,
+                    // Email in parentheses or brackets
+                    /[\(\[][^\)\]]*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})[^\(\[\]]*[\)\]]/g
+                ];
+                
+                for (const pattern of emailPatterns) {
+                    const matches = text.match(pattern);
+                    if (matches && matches.length > 0) {
+                        // Clean up the email (remove prefixes, parentheses, etc.)
+                        let email = matches[0];
+                        
+                        // Extract email from patterns with prefixes
+                        if (pattern.source.includes('email|e-mail|mail|contact')) {
+                            const emailMatch = email.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+                            if (emailMatch) email = emailMatch[1];
+                        }
+                        
+                        // Remove parentheses/brackets if present
+                        email = email.replace(/[\(\)\[\]]/g, '');
+                        
+                        // Validate email format
+                        if (this.isValidEmail(email)) {
+                            return { email: email.toLowerCase(), confidence: 'high' };
+                        }
+                    }
+                }
+                
+                return { email: '', confidence: 'none' };
+            }
+
+            // EMAIL VALIDATION HELPER
+            isValidEmail(email) {
+                const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                return emailRegex.test(email) && 
+                       email.length >= 5 && 
+                       email.length <= 254 &&
+                       !email.includes('..') &&
+                       !email.startsWith('.') &&
+                       !email.endsWith('.');
+            }
+
+            // Also add this method to your ExhibitionCardReaderPro class for OCR text extraction
+            extractClientDataFromText(text) {
+                const clientData = { name: '', email: '', phone: '', company: '' };
+                
+                // Initialize the efficient name extractor
+                const nameExtractor = new EfficientNameExtractor();
+                
+                // OPTIMIZED EMAIL EXTRACTION for OCR
+                const emailResult = this.extractEmailOptimized(text);
+                if (emailResult.email) {
+                    clientData.email = emailResult.email;
+                }
+                
+                // Extract phone number (improved regex for various formats)
+                const phoneRegex = /(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})|(?:\+?[\d\s\-\(\)]{10,15})/g;
+                const phoneMatches = text.match(phoneRegex);
+                if (phoneMatches) {
+                    clientData.phone = phoneMatches[0].replace(/\s+/g, '');
+                }
+                
+                // EFFICIENT NAME EXTRACTION for OCR text
+                const nameResult = nameExtractor.extractName(text);
+                if (nameResult.name && nameResult.confidence >= 4) { // Lower threshold for OCR
+                    clientData.name = nameResult.name;
+                    console.log(`OCR name extraction: ${clientData.name} (confidence: ${nameResult.confidence})`);
+                }
+                
+                // Extract company (existing logic)
+                const lines = text.split('\n').filter(line => line.trim().length > 2);
+                const companyPatterns = [
+                    /(.*?)\s+(Inc\.?|LLC|Corp\.?|Ltd\.?|Company|Co\.?|Corporation|Group|Solutions|Services|Technologies|Tech)(?!\w)/i,
+                    /^[A-Z][a-zA-Z\s&]+(?:Inc\.?|LLC|Corp\.?|Ltd\.?)$/i
+                ];
+                
+                for (const line of lines) {
+                    const cleanLine = line.trim();
+                    for (const pattern of companyPatterns) {
+                        const match = cleanLine.match(pattern);
+                        if (match && !clientData.company) {
+                            clientData.company = match[0];
+                            break;
+                        }
+                    }
+                    if (clientData.company) break;
+                }
+                
+                // If email is found but name is missing, try to find a name near the email
+                if (clientData.email && !clientData.name) {
+                    for (let i = 0; i < lines.length; i++) {
+                        if (lines[i].includes(clientData.email) && i > 0) {
+                            const possibleName = lines[i-1].trim();
+                            const nameCheck = nameExtractor.extractName(possibleName);
+                            if (nameCheck.confidence >= 3) {
+                                clientData.name = nameCheck.name;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                return clientData;
+            }
+
             async analyzeImageWithOCR(imageData, source) {
                 try {
                     this.showStatus('🤖 Performing text recognition...', 'info');
@@ -1136,78 +1377,6 @@
                 } catch (error) {
                     this.showStatus('❌ OCR processing failed: ' + error.message, 'error');
                 }
-            }
-
-            extractClientDataFromText(text) {
-                const clientData = { name: '', email: '', phone: '', company: '' };
-                
-                // Extract email (improved regex)
-                const emailRegex = /[\w\.-]+@[\w\.-]+\.\w+/g;
-                const emailMatches = text.match(emailRegex);
-                if (emailMatches) {
-                    clientData.email = emailMatches[0];
-                }
-                
-                // Extract phone number (improved regex for various formats)
-                const phoneRegex = /(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})|(?:\+?[\d\s\-\(\)]{10,15})/g;
-                const phoneMatches = text.match(phoneRegex);
-                if (phoneMatches) {
-                    clientData.phone = phoneMatches[0].replace(/\s+/g, '');
-                }
-                
-                // Extract name (improved logic)
-                const lines = text.split('\n').filter(line => line.trim().length > 2);
-                const namePatterns = [
-                    /^[A-Z][a-z]+ [A-Z][a-z]+/,  // Full name pattern
-                    /^[A-Z]+\s+[A-Z]+/,  // All caps name
-                    /^[A-Z][a-z]+\s[A-Z]\.\s[A-Z][a-z]+/,  // Name with middle initial
-                ];
-                
-                for (const line of lines) {
-                    const cleanLine = line.trim();
-                    for (const pattern of namePatterns) {
-                        if (pattern.test(cleanLine) && !clientData.name) {
-                            // Make sure it's not an email or phone
-                            if (!cleanLine.includes('@') && !cleanLine.match(/\d{3}/)) {
-                                clientData.name = cleanLine;
-                                break;
-                            }
-                        }
-                    }
-                    if (clientData.name) break;
-                }
-                
-                // Extract company (look for common company indicators)
-                const companyPatterns = [
-                    /(.*?)\s+(Inc\.?|LLC|Corp\.?|Ltd\.?|Company|Co\.?|Corporation|Group|Solutions|Services|Technologies|Tech)(?!\w)/i,
-                    /^[A-Z][a-zA-Z\s&]+(?:Inc\.?|LLC|Corp\.?|Ltd\.?)$/i
-                ];
-                
-                for (const line of lines) {
-                    const cleanLine = line.trim();
-                    for (const pattern of companyPatterns) {
-                        const match = cleanLine.match(pattern);
-                        if (match && !clientData.company) {
-                            clientData.company = match[0];
-                            break;
-                        }
-                    }
-                    if (clientData.company) break;
-                }
-                
-                // NEW: If email is found but name/phone/company are missing, still allow adding
-                if (clientData.email && !clientData.name && !clientData.phone && !clientData.company) {
-                    // Try to find a line with the email and use the previous line as name if possible
-                    for (let i = 0; i < lines.length; i++) {
-                        if (lines[i].includes(clientData.email) && i > 0) {
-                            const possibleName = lines[i-1].trim();
-                            if (possibleName && !possibleName.includes('@') && possibleName.length < 40) {
-                                clientData.name = possibleName;
-                            }
-                        }
-                    }
-                }
-                return clientData;
             }
 
             async addClientWithLinkedInSearch(clientData, source) {
