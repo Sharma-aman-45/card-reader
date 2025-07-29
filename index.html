@@ -944,6 +944,41 @@ class ExhibitionCardReaderPro {
         document.getElementById('qrModeBtn').addEventListener('click', () => this.setScanMode('qr'));
         document.getElementById('imageModeBtn').addEventListener('click', () => this.setScanMode('image'));
     }
+    async initTesseractWorker() {
+        if (this.tesseractWorker) {
+            console.log('Tesseract.js worker already initialized.');
+            return;
+        }
+
+        try {
+            this.showStatus('⚙️ Initializing OCR engine (this may take a moment)...', 'info');
+            this.tesseractWorker = await Tesseract.createWorker('eng', 1, { // Specify 'eng' directly here
+                logger: m => {
+                    if (m.status === 'loading tesseract core') {
+                        this.showStatus('⚙️ Loading Tesseract Core...', 'info');
+                    } else if (m.status === 'loading language traineddata') {
+                        this.showStatus('⚙️ Loading language data (eng)...', 'info');
+                    } else if (m.status === 'initializing api') {
+                        this.showStatus('⚙️ Initializing OCR API...', 'info');
+                    } else if (m.status === 'recognizing text') {
+                        this.showStatus(`🔍 OCR Progress: ${Math.round(m.progress * 100)}%`, 'info');
+                    }
+                }
+            });
+            // The above `createWorker` call directly handles load() and loadLanguage()
+            // No need for separate await this.tesseractWorker.load(); and loadLanguage()
+            
+            // However, an explicit initialize() call can sometimes help ensure readiness
+            await this.tesseractWorker.initialize('eng'); 
+
+            console.log('Tesseract.js worker initialized successfully.');
+            this.showStatus('✅ OCR engine ready!', 'success');
+        } catch (error) {
+            console.error('Failed to initialize Tesseract.js worker:', error);
+            this.showStatus('❌ Failed to load OCR engine. Please check your internet connection and try refreshing.', 'error');
+            this.tesseractWorker = null; // Ensure worker is null on failure
+        }
+    }
 
     setupDragAndDrop() {
         const uploadArea = document.getElementById('uploadArea');
@@ -1724,9 +1759,11 @@ class ExhibitionCardReaderPro {
 
     async analyzeImageWithOCR(imageData, source) {
         if (!this.tesseractWorker) {
-            await this.initTesseractWorker(); // Ensure worker is initialized
+            // Attempt to re-initialize if not ready, but usually initTesseractWorker() handles on load
+            this.showStatus('⏳ OCR engine not initialized. Attempting to initialize...', 'info');
+            await this.initTesseractWorker();
             if (!this.tesseractWorker) {
-                this.showStatus('❌ OCR engine not ready. Please try again.', 'error');
+                this.showStatus('❌ OCR engine failed to initialize. Cannot perform text recognition.', 'error');
                 this.showProcessing(false);
                 return;
             }
@@ -1735,9 +1772,10 @@ class ExhibitionCardReaderPro {
         try {
             this.showStatus('🤖 Performing text recognition...', 'info');
 
-            const { data: { text } } = await this.tesseractWorker.recognize(imageData);
+            // Use the already initialized worker
+            const { data: { text } } = await this.tesseractWorker.recognize(imageData); // Ensure this is awaited
 
-            if (!text || text.trim().length < 10) { // Check for minimal useful text
+            if (!text || text.trim().length < 10) {
                 this.showStatus('⚠️ OCR did not find enough readable text. Image might be blurry or too complex.', 'warning');
                 this.showProcessing(false);
                 return;
@@ -1758,6 +1796,7 @@ class ExhibitionCardReaderPro {
             this.showProcessing(false);
         }
     }
+
 
     /**
      * Extract name specifically from business card format
