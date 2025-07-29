@@ -1076,273 +1076,62 @@
                 }
 
                 this.showProcessing(true);
-                this.showStatus('🔍 Multi-pass analysis: QR + OCR + Combination...', 'info');
+                this.showStatus('🔍 Analyzing image for QR codes and text...', 'info');
                 
                 try {
-                    // Multi-pass approach: Try QR first, then OCR, then combine results
-                    const results = await this.processImageMultiPass(file);
-                    
-                    if (results.success) {
-                        this.showStatus('✅ Image processed successfully!', 'success');
-                    } else {
-                        this.showStatus('❌ No contact information found in image', 'error');
-                    }
-                } catch (error) {
-                    console.error('Error processing file:', error);
-                    this.showStatus('❌ Error analyzing file: ' + (error.message || 'Unknown error'), 'error');
-                } finally {
-                    this.showProcessing(false);
-                }
-            }
-
-            /**
-             * Multi-pass image processing: QR + OCR + Intelligent combination
-             */
-            async processImageMultiPass(file) {
-                const results = {
-                    qrData: null,
-                    ocrData: null,
-                    combinedData: null,
-                    success: false
-                };
-
-                // PASS 1: Try QR code scanning with html5-qrcode
-                console.log('🔍 PASS 1: Scanning for QR code (html5-qrcode)...');
-                try {
+                    // Try QR scan from file using html5-qrcode
                     const html5QrCodeFile = new Html5Qrcode();
                     const qrText = await html5QrCodeFile.scanFile(file, true);
                     
                     if (qrText) {
-                        console.log('✅ QR code found (html5-qrcode):', qrText);
-                        results.qrData = qrText;
-                        
-                        // Process QR data
-                        const qrProcessed = await this.processQRResult(qrText, 'File QR');
-                        if (qrProcessed) {
-                            results.success = true;
-                            return results;
+                        console.log('QR found:', qrText);
+                        const contactFound = await this.processQRResult(qrText, 'File QR');
+                        if (!contactFound) {
+                            // QR found but no contact info, run OCR on the file
+                            console.log('No contact info in QR, running OCR on file');
+                const reader = new FileReader();
+                            reader.onload = async (ev) => {
+                                await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
+                };
+                reader.readAsDataURL(file);
                         }
+                    } else {
+                        console.log('No QR found, trying OCR');
+                        this.showStatus('🔄 No QR found, running OCR...', 'info');
+                        const reader = new FileReader();
+                        reader.onload = async (ev) => {
+                            await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
+                        };
+                        reader.readAsDataURL(file);
                     }
                 } catch (err) {
-                    console.log('❌ html5-qrcode failed:', err);
-                }
-
-                // PASS 2: Try QR code scanning with jsQR fallback
-                console.log('🔍 PASS 2: Scanning for QR code (jsQR fallback)...');
-                try {
-                    const reader = new FileReader();
-                    reader.onload = async (ev) => {
-                        const qrResult = await this.scanQRCodeFromImage(ev.target.result);
-                        if (qrResult) {
-                            console.log('✅ QR code found (jsQR):', qrResult);
-                            results.qrData = qrResult;
-                            
-                            // Process QR data
-                            const qrProcessed = await this.processQRResult(qrResult, 'File QR (jsQR)');
-                            if (qrProcessed) {
-                                results.success = true;
-                                return results;
-                            }
-                        }
-                    };
-                    reader.readAsDataURL(file);
-                } catch (err) {
-                    console.log('❌ jsQR failed:', err);
-                }
-
-                // PASS 3: Try OCR scanning
-                console.log('🔍 PASS 3: Running OCR...');
-                try {
-                    const reader = new FileReader();
-                    reader.onload = async (ev) => {
-                        const ocrResult = await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
-                        if (ocrResult && ocrResult.success) {
-                            console.log('✅ OCR completed:', ocrResult.text);
-                            results.ocrData = ocrResult.text;
-                            
-                            // Process OCR data
-                            const ocrProcessed = this.extractClientDataFromText(ocrResult.text);
-                            if (ocrProcessed.name || ocrProcessed.email || ocrProcessed.phone) {
-                                await this.addClientWithLinkedInSearch(ocrProcessed, 'file');
-                                results.success = true;
-                                return results;
-                            }
-                        }
-                    };
-                    reader.readAsDataURL(file);
-                } catch (err) {
-                    console.log('❌ OCR failed:', err);
-                }
-
-                // PASS 4: If both QR and OCR found data, combine intelligently
-                if (results.qrData && results.ocrData) {
-                    console.log('🔍 PASS 4: Combining QR and OCR data...');
-                    const combinedData = this.combineQRAndOCRData(results.qrData, results.ocrData);
-                    
-                    if (combinedData.name || combinedData.email || combinedData.phone) {
-                        await this.addClientWithLinkedInSearch(combinedData, 'file');
-                        results.combinedData = combinedData;
-                        results.success = true;
-                        return results;
-                    }
-                }
-
-                // PASS 5: Final fallback - try OCR with enhanced settings
-                if (!results.success) {
-                    console.log('🔍 PASS 5: Enhanced OCR fallback...');
+                    console.log('html5-qrcode file scan failed, trying jsQR fallback:', err);
+                    // Fallback to jsQR for file scanning
                     try {
                         const reader = new FileReader();
                         reader.onload = async (ev) => {
-                            const enhancedOCR = await this.performEnhancedOCR(ev.target.result);
-                            
-                            if (enhancedOCR.success) {
-                                console.log('✅ Enhanced OCR completed:', enhancedOCR.text);
-                                const enhancedData = this.extractClientDataFromText(enhancedOCR.text);
-                                
-                                if (enhancedData.name || enhancedData.email || enhancedData.phone) {
-                                    await this.addClientWithLinkedInSearch(enhancedData, 'file');
-                                    results.success = true;
-                                    return results;
+                            const qrResult = await this.scanQRCodeFromImage(ev.target.result);
+                    if (qrResult) {
+                                console.log('QR found with jsQR fallback:', qrResult);
+                                const contactFound = await this.processQRResult(qrResult, 'File QR (jsQR)');
+                                if (!contactFound) {
+                                    // QR found but no contact info, run OCR
+                                    console.log('No contact info in QR, running OCR');
+                                    await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
                                 }
+                        } else {
+                                console.log('No QR found with jsQR, trying OCR');
+                                this.showStatus('🔄 No QR found, running OCR...', 'info');
+                                await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
                             }
                         };
                         reader.readAsDataURL(file);
-                    } catch (err) {
-                        console.log('❌ Enhanced OCR failed:', err);
+                    } catch (fallbackErr) {
+                        console.error('Both QR methods failed:', fallbackErr);
+                        this.showStatus('❌ Error analyzing file: ' + (fallbackErr.message || 'Unknown error'), 'error');
                     }
-                }
-
-                return results;
-            }
-
-            /**
-             * Intelligently combine QR and OCR data
-             */
-            combineQRAndOCRData(qrText, ocrText) {
-                console.log('Combining QR and OCR data...');
-                console.log('QR Text:', qrText);
-                console.log('OCR Text:', ocrText);
-                
-                const combinedData = { name: '', email: '', phone: '', company: '', notes: '' };
-                
-                // Extract data from both sources
-                const qrData = this.parseQRData(qrText);
-                const ocrData = this.extractClientDataFromText(ocrText);
-                
-                console.log('QR Extracted:', qrData);
-                console.log('OCR Extracted:', ocrData);
-                
-                // Combine with priority logic
-                
-                // NAME: Prefer QR if it's a vCard, otherwise OCR if more complete
-                if (qrText.startsWith('BEGIN:VCARD') && qrData.name) {
-                    combinedData.name = qrData.name;
-                    console.log('Using QR name (vCard):', combinedData.name);
-                } else if (ocrData.name && (!qrData.name || ocrData.name.length > qrData.name.length)) {
-                    combinedData.name = ocrData.name;
-                    console.log('Using OCR name (more complete):', combinedData.name);
-                } else if (qrData.name) {
-                    combinedData.name = qrData.name;
-                    console.log('Using QR name:', combinedData.name);
-                }
-                
-                // EMAIL: Combine all unique emails
-                const allEmails = new Set();
-                if (qrData.email) allEmails.add(qrData.email);
-                if (ocrData.email) allEmails.add(qrData.email);
-                
-                if (allEmails.size > 0) {
-                    const emailArray = Array.from(allEmails);
-                    combinedData.email = emailArray[0]; // Primary email
-                    if (emailArray.length > 1) {
-                        combinedData.notes = `Additional emails: ${emailArray.slice(1).join(', ')}`;
-                    }
-                    console.log('Combined emails:', emailArray);
-                }
-                
-                // PHONE: Combine all unique phones
-                const allPhones = new Set();
-                if (qrData.phone) allPhones.add(qrData.phone);
-                if (ocrData.phone) allPhones.add(qrData.phone);
-                
-                if (allPhones.size > 0) {
-                    const phoneArray = Array.from(allPhones);
-                    combinedData.phone = phoneArray[0]; // Primary phone
-                    if (phoneArray.length > 1) {
-                        const phoneNote = `Additional phones: ${phoneArray.slice(1).join(', ')}`;
-                        combinedData.notes = combinedData.notes 
-                            ? `${combinedData.notes}; ${phoneNote}`
-                            : phoneNote;
-                    }
-                    console.log('Combined phones:', phoneArray);
-                }
-                
-                // COMPANY: Prefer OCR for company names (usually more readable)
-                if (ocrData.company) {
-                    combinedData.company = ocrData.company;
-                    console.log('Using OCR company:', combinedData.company);
-                } else if (qrData.company) {
-                    combinedData.company = qrData.company;
-                    console.log('Using QR company:', combinedData.company);
-                }
-                
-                // Add source information to notes
-                const sourceInfo = 'Combined from QR code and OCR text';
-                if (combinedData.notes) {
-                    combinedData.notes = `${sourceInfo}; ${combinedData.notes}`;
-                } else {
-                    combinedData.notes = sourceInfo;
-                }
-                
-                console.log('Final combined data:', combinedData);
-                return combinedData;
-            }
-
-            /**
-             * Enhanced OCR with better settings for business cards
-             */
-            async performEnhancedOCR(imageData) {
-                try {
-                    // Create canvas from image data
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const img = new Image();
-                    
-                    return new Promise((resolve) => {
-                        img.onload = async () => {
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                            ctx.drawImage(img, 0, 0);
-                            
-                            // Use Tesseract with enhanced settings for business cards
-                            const worker = await Tesseract.createWorker();
-                            
-                            // Configure for business card text
-                            await worker.loadLanguage('eng');
-                            await worker.initialize('eng');
-                            
-                            // Enhanced settings for business cards
-                            await worker.setParameters({
-                                tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@.-_()[]{}:;,\'\" ',
-                                tessedit_pageseg_mode: Tesseract.PSM.AUTO,
-                                preserve_interword_spaces: '1',
-                            });
-                            
-                            const result = await worker.recognize(canvas);
-                            await worker.terminate();
-                            
-                            resolve({
-                                success: true,
-                                text: result.data.text
-                            });
-                        };
-                        
-                        img.src = imageData;
-                    });
-                    
-                } catch (error) {
-                    console.error('Enhanced OCR failed:', error);
-                    return { success: false, error: error.message };
+                } finally {
+                    this.showProcessing(false);
                 }
             }
 
@@ -1422,16 +1211,16 @@
                         /^[A-Z][a-zA-Z\s&]+(?:Inc\.?|LLC|Corp\.?|Ltd\.?)$/i
                     ];
                     
-                    for (const line of lines) {
+                            for (const line of lines) {
                         const cleanLine = line.trim();
                         for (const pattern of companyPatterns) {
                             const match = cleanLine.match(pattern);
                             if (match && !clientData.company) {
                                 clientData.company = match[0];
                                 console.log('Found company:', clientData.company);
-                                break;
+                                    break;
+                                }
                             }
-                        }
                         if (clientData.company) break;
                     }
                     
