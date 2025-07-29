@@ -957,6 +957,11 @@
                     if (files.length > 0) {
                         this.showStatus('📁 File dropped, processing...', 'info');
                         this.processImageFile(files[0]);
+                        // Clear any file input to ensure fresh state
+                        const fileInput = document.getElementById('fileInput');
+                        if (fileInput) {
+                            fileInput.value = '';
+                        }
                     }
                 }, false);
             }
@@ -964,6 +969,16 @@
             preventDefaults(e) {
                 e.preventDefault();
                 e.stopPropagation();
+            }
+
+            /**
+             * Clear file input to allow re-uploading the same file
+             */
+            clearFileInput() {
+                const fileInput = document.getElementById('fileInput');
+                if (fileInput) {
+                    fileInput.value = '';
+                }
             }
 
             /**
@@ -1182,6 +1197,8 @@
                 const file = event.target.files[0];
                 if (file) {
                     this.processImageFile(file);
+                    // Clear the file input to allow re-uploading the same file
+                    event.target.value = '';
                 }
             }
 
@@ -1193,8 +1210,15 @@
                     return;
                 }
 
+                // Clear file input to allow re-uploading the same file
+                this.clearFileInput();
+
+                // Add timestamp to ensure unique processing
+                const timestamp = Date.now();
+                console.log(`Processing file at timestamp: ${timestamp}`);
+
                 this.showProcessing(true);
-                this.showStatus('🔍 Analyzing image for QR codes and text...', 'info');
+                this.showStatus(`🔍 Analyzing image for QR codes and text... (${timestamp})`, 'info');
                 
                 try {
                     // Try QR scan from file using html5-qrcode
