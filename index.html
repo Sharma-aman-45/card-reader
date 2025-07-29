@@ -535,49 +535,7 @@
                 margin-left: 0;
                 text-align: center;
             }
-        }/* Add to your existing styles */
-.camera-container.business-card-mode {
-    position: relative;
-    border: 2px dashed rgba(255, 255, 255, 0.6);
-}
-
-.camera-container.business-card-mode::before {
-    content: '';
-    position: absolute;
-    top: 20%;
-    left: 10%;
-    right: 10%;
-    bottom: 20%;
-    border: 2px solid rgba(0, 255, 136, 0.5);
-    border-radius: 10px;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.camera-container.business-card-mode::after {
-    content: 'Align business card here';
-    position: absolute;
-    bottom: 15%;
-    left: 0;
-    right: 0;
-    text-align: center;
-    color: rgba(0, 255, 136, 0.8);
-    font-weight: 600;
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-    z-index: 1;
-}
-
-.business-card-tips {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    padding: 10px;
-    margin-top: 15px;
-    font-size: 0.9rem;
-}
-
-.business-card-tips strong {
-    color: #00ff88;
-}
+        }
     </style>
 </head>
 <body>
@@ -1028,34 +986,18 @@
             /**
              * Set the current scan mode and update UI
              */
-             setScanMode(mode) {
-    this.currentScanMode = mode;
-    this.updateScanModeUI();
-    
-    const cameraPlaceholder = document.getElementById('cameraPlaceholder');
-    
-    if (mode === 'qr') {
-        cameraPlaceholder.innerHTML = `
-            <div class="icon">🔲</div>
-            <div>Point camera at QR code to scan</div>
-        `;
-        this.showStatus('🔄 Switched to QR Code scanning mode', 'info');
-    } else {
-        cameraPlaceholder.innerHTML = `
-            <div class="icon">📇</div>
-            <div>Align business card within frame</div>
-            <div style="margin-top: 15px; font-size: 0.9rem; opacity: 0.8;">
-                <strong>Tips:</strong> Ensure good lighting and hold steady
-            </div>
-        `;
-        this.showStatus('🔄 Switched to Business Card scanning mode', 'info');
-    }
-    
-    // Stop camera if running to apply new mode
-    if (this.cameraStarted) {
-        this.stopCamera();
-    }
-}
+            setScanMode(mode) {
+                this.currentScanMode = mode;
+                this.updateScanModeUI();
+                
+                const modeText = mode === 'qr' ? 'QR Code' : 'Business Card';
+                this.showStatus(`🔄 Switched to ${modeText} scanning mode`, 'info');
+                
+                // Stop camera if running to apply new mode
+                if (this.cameraStarted) {
+                    this.stopCamera();
+                }
+            }
 
             /**
              * Update the scan mode UI buttons
@@ -1083,269 +1025,87 @@
             /**
              * Capture and analyze image for business card scanning
              */
-             async captureAndAnalyzeImage() {
-    console.log('Business card capture initiated');
-    
-    // Prevent multiple captures
-    if (this.isCapturing) {
-        this.showStatus('⏳ Already capturing, please wait...', 'warning');
-        return;
-    }
-    
-    // Check if camera is started
-    if (!this.cameraStarted) {
-        this.showStatus('❌ Camera not started. Please start camera first.', 'error');
-        return;
-    }
-    
-    this.isCapturing = true;
-    
-    try {
-        // Show countdown with visual feedback
-        for (let i = 3; i > 0; i--) {
-            this.showStatus(`📸 Capturing in ${i}...`, 'info');
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        
-        this.showStatus('📸 Capturing business card...', 'info');
-        
-        // Get the video element
-        const videoElement = document.querySelector('#qr-reader video');
-        if (!videoElement) {
-            throw new Error('Camera not ready');
-        }
-        
-        // Create canvas and capture frame
-        const canvas = document.createElement('canvas');
-        canvas.width = videoElement.videoWidth;
-        canvas.height = videoElement.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-        
-        // Apply image processing for better OCR
-        this.applyImagePreprocessing(ctx);
-        
-        // Convert to blob and process
-        canvas.toBlob(async (blob) => {
-            if (blob) {
-                await this.processBusinessCardImage(blob);
-            } else {
-                this.showStatus('❌ Failed to capture image', 'error');
-            }
-            this.isCapturing = false;
-        }, 'image/jpeg', 0.9);
-        
-    } catch (error) {
-        this.showStatus(`❌ Error: ${error.message}`, 'error');
-        this.isCapturing = false;
-    }
-}applyImagePreprocessing(ctx) {
-    const canvas = ctx.canvas;
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    
-    // Convert to grayscale
-    for (let i = 0; i < data.length; i += 4) {
-        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-        data[i] = data[i + 1] = data[i + 2] = avg;
-    }
-    
-    // Increase contrast
-    const contrast = 1.5;
-    for (let i = 0; i < data.length; i += 4) {
-        data[i] = ((data[i] / 255 - 0.5) * contrast + 0.5) * 255;
-        data[i + 1] = ((data[i + 1] / 255 - 0.5) * contrast + 0.5) * 255;
-        data[i + 2] = ((data[i + 2] / 255 - 0.5) * contrast + 0.5) * 255;
-    }
-    
-    ctx.putImageData(imageData, 0, 0);
-}
-
-/**
- * Process business card image with optimized OCR
- */
-async processBusinessCardImage(blob) {
-    this.showProcessing(true);
-    this.showStatus('🔍 Analyzing business card...', 'info');
-    
-    try {
-        // First try to find QR code
-        const html5QrCodeFile = new Html5Qrcode();
-        const qrText = await html5QrCodeFile.scanFile(blob, true);
-        
-        if (qrText) {
-            const contactFound = await this.processQRResult(qrText, 'Business Card QR');
-            if (contactFound) {
-                this.stopCamera();
-                return;
-            }
-        }
-        
-        // If no QR or no contact info in QR, run OCR
-        const imageUrl = URL.createObjectURL(blob);
-        const { data: { text } } = await Tesseract.recognize(imageUrl, 'eng', {
-            logger: m => {
-                if (m.status === 'recognizing text') {
-                    this.showStatus(`🔍 OCR Progress: ${Math.round(m.progress * 100)}%`, 'info');
+            async captureAndAnalyzeImage() {
+                console.log('captureAndAnalyzeImage called');
+                
+                // Prevent multiple captures
+                if (this.isCapturing) {
+                    this.showStatus('⏳ Already capturing, please wait...', 'warning');
+                    return;
+                }
+                
+                // Check if camera is started
+                if (!this.cameraStarted) {
+                    this.showStatus('❌ Camera not started. Please start camera first.', 'error');
+                    return;
+                }
+                
+                this.isCapturing = true;
+                
+                try {
+                    this.showStatus('📸 Preparing to capture business card image...', 'info');
+                    
+                    // Show countdown for user feedback
+                    for (let i = 2; i > 0; i--) {
+                        this.showStatus(`📸 Capturing in ${i} seconds...`, 'info');
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                    
+                    this.showStatus('📸 Capturing business card image...', 'info');
+                    
+                    // Get the video element from html5-qrcode
+                    const videoElement = document.querySelector('#qr-reader video');
+                    console.log('Video element found:', videoElement);
+                    
+                    if (!videoElement) {
+                        this.showStatus('❌ Camera not ready for capture - no video element found', 'error');
+                        this.isCapturing = false;
+                        return;
+                    }
+                    
+                    // Additional check to ensure video is playing
+                    if (videoElement.readyState < 2) {
+                        this.showStatus('⏳ Camera still initializing, please wait...', 'info');
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                    
+                    // Create canvas and capture frame
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = videoElement.videoWidth;
+                    canvas.height = videoElement.videoHeight;
+                    
+                    console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+                    console.log('Video dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
+                    
+                    if (canvas.width === 0 || canvas.height === 0) {
+                        this.showStatus('❌ Video not ready - dimensions are zero', 'error');
+                        this.isCapturing = false;
+                        return;
+                    }
+                    
+                    ctx.drawImage(videoElement, 0, 0);
+                    console.log('Frame captured successfully');
+                    
+                    // Convert to blob and process
+                    canvas.toBlob(async (blob) => {
+                        console.log('Blob created:', blob);
+                        if (blob) {
+                            console.log('Blob size:', blob.size, 'bytes');
+                            await this.processImageFile(blob);
+                            this.stopCamera();
+                        } else {
+                            console.error('Failed to create blob from canvas');
+                            this.showStatus('❌ Failed to create image from camera', 'error');
+                        }
+                        this.isCapturing = false; // Reset capture flag
+                    }, 'image/jpeg', 0.9);
+                    
+                } catch (error) {
+                    this.showStatus('❌ Failed to capture image: ' + error.message, 'error');
+                    this.isCapturing = false; // Reset capture flag on error
                 }
             }
-        });
-        
-        URL.revokeObjectURL(imageUrl);
-        
-        // Enhanced business card text parsing
-        const clientData = this.parseBusinessCardText(text);
-        
-        if (clientData.name || clientData.email || clientData.phone) {
-            await this.addClientWithLinkedInSearch(clientData, 'Business Card OCR');
-            this.showStatus('✅ Contact extracted from business card!', 'success');
-        } else {
-            this.showStatus('❌ No contact info found. Try manual entry.', 'error');
-        }
-        
-    } catch (error) {
-        this.showStatus(`❌ Processing failed: ${error.message}`, 'error');
-    } finally {
-        this.showProcessing(false);
-    }
-}
-
-/**
- * Enhanced business card text parser
- */
-parseBusinessCardText(text) {
-    console.log('Raw OCR text:', text);
-    const clientData = { name: '', email: '', phone: '', company: '' };
-    
-    // Split into lines and clean
-    const lines = text.split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 2);
-    
-    // Extract emails and phones first
-    clientData.email = this.extractBestEmail(text);
-    clientData.phone = this.extractBestPhone(text);
-    
-    // Extract name - look for the most name-like text near contact info
-    clientData.name = this.extractNameFromCard(lines, clientData.email, clientData.phone);
-    
-    // Extract company - usually the largest text that's not the name
-    clientData.company = this.extractCompanyFromCard(lines, clientData.name);
-    
-    console.log('Parsed business card data:', clientData);
-    return clientData;
-}
-
-/**
- * Extract the most likely name from business card text
- */
-extractNameFromCard(lines, email, phone) {
-    const nameExtractor = new EfficientNameExtractor();
-    let bestName = { name: '', confidence: 0 };
-    
-    // If we have email, check the part before @ as potential name
-    if (email) {
-        const emailPrefix = email.split('@')[0];
-        const nameFromEmail = nameExtractor.extractName(emailPrefix.replace(/[^a-zA-Z]/g, ' '));
-        if (nameFromEmail.confidence > bestName.confidence) {
-            bestName = nameFromEmail;
-        }
-    }
-    
-    // Check lines near phone/email
-    const referencePoints = [];
-    if (email) referencePoints.push(...lines.filter(line => line.includes(email)));
-    if (phone) referencePoints.push(...lines.filter(line => line.includes(phone)));
-    
-    for (const refLine of referencePoints) {
-        const refIndex = lines.indexOf(refLine);
-        if (refIndex === -1) continue;
-        
-        // Check 2 lines above and below reference
-        for (let i = Math.max(0, refIndex - 2); i <= Math.min(lines.length - 1, refIndex + 2); i++) {
-            const line = lines[i];
-            const nameCheck = nameExtractor.extractName(line);
-            
-            // Prefer longer names with higher confidence
-            if (nameCheck.confidence > bestName.confidence || 
-                (nameCheck.confidence === bestName.confidence && nameCheck.name.length > bestName.name.length)) {
-                bestName = nameCheck;
-            }
-        }
-    }
-    
-    // Fallback: Check all lines for best name match
-    if (!bestName.name) {
-        for (const line of lines) {
-            const nameCheck = nameExtractor.extractName(line);
-            if (nameCheck.confidence > bestName.confidence) {
-                bestName = nameCheck;
-            }
-        }
-    }
-    
-    return bestName.name;
-}
-
-/**
- * Extract the most likely company name
- */
-extractCompanyFromCard(lines, excludeName) {
-    // Filter out lines that contain name, email patterns, or phone patterns
-    const companyLines = lines.filter(line => {
-        if (excludeName && line.includes(excludeName.split(' ')[0])) return false;
-        if (this.extractEmails(line).length > 0) return false;
-        if (this.extractPhoneNumbers(line).length > 0) return false;
-        return true;
-    });
-    
-    // Find the longest line that looks like a company name
-    let bestCompany = '';
-    for (const line of companyLines) {
-        // Basic company name pattern matching
-        if (line.length > 3 && 
-            line === line.toUpperCase() || 
-            /(LLC|Inc|Corp|Ltd|Co)$/i.test(line) ||
-            line.split(' ').length <= 4) {
-            
-            if (line.length > bestCompany.length) {
-                bestCompany = line;
-            }
-        }
-    }
-    
-    return bestCompany;
-}
-
-/**
- * Get the best email from text (prioritizing personal-looking emails)
- */
-extractBestEmail(text) {
-    const emails = this.extractEmails(text);
-    if (emails.length === 0) return '';
-    
-    // Prefer emails that look personal (not info/noreply/etc)
-    const personalEmails = emails.filter(e => 
-        !e.includes('noreply') && 
-        !e.includes('info') && 
-        !e.includes('contact') &&
-        !e.includes('support')
-    );
-    
-    return personalEmails.length > 0 ? personalEmails[0] : emails[0];
-}
-
-/**
- * Get the best phone number from text
- */
-extractBestPhone(text) {
-    const phones = this.extractPhoneNumbers(text);
-    if (phones.length === 0) return '';
-    
-    // Prefer numbers with country code
-    const intlNumbers = phones.filter(p => p.startsWith('+'));
-    return intlNumbers.length > 0 ? intlNumbers[0] : phones[0];
-}
 
             async startCamera() {
                 if (this.cameraStarted) return;
