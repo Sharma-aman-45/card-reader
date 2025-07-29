@@ -1764,33 +1764,29 @@
 
             // Enhanced OCR text extraction using the new optimized methods
             extractClientDataFromText(text) {
-                console.log('Processing OCR text:', text);
                 const clientData = { name: '', email: '', phone: '', company: '', notes: '' };
                 
-                // Clean and normalize text for better processing
-                const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-                const lines = cleanText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+                // Extract all possible emails and phones using optimized methods
+                const allEmails = this.extractEmails(text);
+                const allPhones = this.extractPhoneNumbers(text);
                 
-                console.log('Processed lines:', lines);
-                
-                // Enhanced email extraction with better patterns
-                const allEmails = this.extractEmails(cleanText);
+                // Select the best email and phone
                 if (allEmails.length > 0) {
                     clientData.email = allEmails[0];
                     console.log('OCR found primary email:', clientData.email);
                     
+                    // If we have multiple emails, add secondary to notes
                     if (allEmails.length > 1) {
                         clientData.notes = `Additional emails: ${allEmails.slice(1).join(', ')}`;
                         console.log('OCR found additional emails:', allEmails.slice(1));
                     }
                 }
                 
-                // Enhanced phone extraction with better patterns
-                const allPhones = this.extractPhoneNumbers(cleanText);
                 if (allPhones.length > 0) {
                     clientData.phone = allPhones[0];
                     console.log('OCR found primary phone:', clientData.phone);
                     
+                    // If we have multiple phones, add secondary to notes
                     if (allPhones.length > 1) {
                         const phoneNote = `Additional phones: ${allPhones.slice(1).join(', ')}`;
                         clientData.notes = clientData.notes 
@@ -1800,19 +1796,41 @@
                     }
                 }
                 
-                // Enhanced name extraction for business cards
-                clientData.name = this.extractNameFromBusinessCard(lines, cleanText);
-                if (clientData.name) {
-                    console.log('OCR found name:', clientData.name);
+                // Extract name with context awareness (lower threshold for OCR)
+                const nameExtractor = new EfficientNameExtractor();
+                const nameResult = nameExtractor.extractName(text);
+                if (nameResult.name && nameResult.confidence >= 4) { // Lower threshold for OCR
+                    clientData.name = nameResult.name;
+                    console.log(`OCR name extraction: ${clientData.name} (confidence: ${nameResult.confidence})`);
+                } else {
+                    // Try context-based extraction for OCR
+                    clientData.name = this.extractNameWithContext(text);
+                    if (clientData.name) {
+                        console.log('OCR found name with context:', clientData.name);
+                    }
                 }
                 
-                // Enhanced company extraction for business cards
-                clientData.company = this.extractCompanyFromBusinessCard(lines, cleanText);
-                if (clientData.company) {
-                    console.log('OCR found company:', clientData.company);
+                // Extract company (existing logic)
+                const lines = text.split('\n').filter(line => line.trim().length > 2);
+                const companyPatterns = [
+                    /(.*?)\s+(Inc\.?|LLC|Corp\.?|Ltd\.?|Company|Co\.?|Corporation|Group|Solutions|Services|Technologies|Tech)(?!\w)/i,
+                    /^[A-Z][a-zA-Z\s&]+(?:Inc\.?|LLC|Corp\.?|Ltd\.?)$/i
+                ];
+                
+                for (const line of lines) {
+                    const cleanLine = line.trim();
+                    for (const pattern of companyPatterns) {
+                        const match = cleanLine.match(pattern);
+                        if (match && !clientData.company) {
+                            clientData.company = match[0];
+                            console.log('OCR found company:', clientData.company);
+                            break;
+                        }
+                    }
+                    if (clientData.company) break;
                 }
                 
-                // Fallback: Extract name from email if not found
+                // If we have email but no name, try to extract name from email prefix
                 if (clientData.email && !clientData.name) {
                     const emailPrefix = clientData.email.split('@')[0];
                     const nameFromEmail = emailPrefix
@@ -1821,16 +1839,14 @@
                         .trim();
                     
                     if (nameFromEmail.split(' ').length <= 3) {
-                        const nameExtractor = new EfficientNameExtractor();
                         const nameCheck = nameExtractor.extractName(nameFromEmail);
-                        if (nameCheck.confidence >= 3) {
+                        if (nameCheck.confidence >= 3) { // Lower threshold for OCR
                             clientData.name = nameCheck.name;
                             console.log('OCR extracted name from email:', clientData.name);
                         }
                     }
                 }
                 
-                console.log('Final extracted data:', clientData);
                 return clientData;
             }
 
@@ -1857,100 +1873,6 @@
                 } catch (error) {
                     this.showStatus('❌ OCR processing failed: ' + error.message, 'error');
                 }
-            }
-
-            /**
-             * Extract name specifically from business card format
-             */
-            extractNameFromBusinessCard(lines, fullText) {
-                const nameExtractor = new EfficientNameExtractor();
-                
-                // Try multiple extraction methods in order of reliability
-                
-                // Method 1: Look for prominent names (usually first few lines)
-                for (let i = 0; i < Math.min(5, lines.length); i++) {
-                    const line = lines[i];
-                    // Skip lines that are clearly not names
-                    if (line.includes('@') || /\d{7,}/.test(line) || line.includes('www.') || 
-                        line.toLowerCase().includes('email') || line.toLowerCase().includes('phone')) {
-                        continue;
-                    }
-                    
-                    const nameResult = nameExtractor.extractName(line);
-                    if (nameResult.name && nameResult.confidence >= 6) {
-                        return nameResult.name;
-                    }
-                }
-                
-                // Method 2: Look for title patterns (Name - Title)
-                for (const line of lines) {
-                    const titleMatch = line.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s*[-–—]\s*(.+)/);
-                    if (titleMatch) {
-                        const nameResult = nameExtractor.extractName(titleMatch[1]);
-                        if (nameResult.name && nameResult.confidence >= 5) {
-                            return nameResult.name;
-                        }
-                    }
-                }
-                
-                // Method 3: Context-based extraction
-                const contextName = this.extractNameWithContext(fullText);
-                if (contextName) {
-                    const nameResult = nameExtractor.extractName(contextName);
-                    if (nameResult.name && nameResult.confidence >= 4) {
-                        return nameResult.name;
-                    }
-                }
-                
-                return '';
-            }
-
-            /**
-             * Extract company specifically from business card format
-             */
-            extractCompanyFromBusinessCard(lines, fullText) {
-                // Enhanced company patterns for business cards
-                const companyPatterns = [
-                    // vCard ORG field
-                    /^ORG:(.+)$/i,
-                    // Company with common suffixes
-                    /(.*?)\s+(Inc\.?|LLC|Corp\.?|Ltd\.?|Company|Co\.?|Corporation|Group|Solutions|Services|Technologies|Tech|Systems|Associates|Partners|Consulting|Infotech|Software|Digital|Media|Marketing|Design|Studio|Agency)(?!\w)/i,
-                    // Standalone company names
-                    /^[A-Z][a-zA-Z\s&]+(?:Inc\.?|LLC|Corp\.?|Ltd\.?|Infotech|Tech|Solutions|Services)$/i,
-                    // Lines that look like company names (no email/phone patterns)
-                    /^[A-Z][a-zA-Z\s&]{3,}$/i
-                ];
-                
-                // Method 1: Look for company patterns in lines
-                for (const line of lines) {
-                    // Skip if line contains email or phone patterns
-                    if (line.includes('@') || /\d{7,}/.test(line) || line.toLowerCase().includes('email') || 
-                        line.toLowerCase().includes('phone') || line.toLowerCase().includes('tel')) {
-                        continue;
-                    }
-                    
-                    for (const pattern of companyPatterns) {
-                        const match = line.match(pattern);
-                        if (match) {
-                            let companyName = match[1] || match[0];
-                            companyName = companyName.replace(/^ORG:\s*/i, '').trim();
-                            if (companyName.length > 2 && companyName.length < 50) {
-                                return companyName;
-                            }
-                        }
-                    }
-                }
-                
-                // Method 2: Look for domain-based company names
-                const domainMatch = fullText.match(/www\.([^\/\s]+)/i);
-                if (domainMatch) {
-                    const domain = domainMatch[1].replace('www.', '');
-                    if (domain.length > 3) {
-                        return domain.split('.')[0].replace(/[^a-zA-Z]/g, '');
-                    }
-                }
-                
-                return '';
             }
 
             async addClientWithLinkedInSearch(clientData, source) {
