@@ -659,6 +659,7 @@
                             <th>🔍 Source</th>
                             <th>⏰ Added</th>
                             <th>🖊️ Edit</th>
+                            <th>🗑️ Delete</th>
                         </tr>
                     </thead>
                     <tbody id="clientsTableBody">
@@ -1101,10 +1102,9 @@
                                         this.processQRResult(decodedText, 'QR Camera');
                                         this.stopCamera();
                                     }
-                                } else {
-                                    // Image Mode: Capture and analyze business card
-                                    this.captureAndAnalyzeImage();
                                 }
+                                // Business Card Mode: Wait for manual capture button
+                                // No auto-capture to prevent blur/wrong frame issues
                             },
                             (errorMessage) => {
                                 // Handle scan errors
@@ -1114,10 +1114,10 @@
                         const modeText = this.currentScanMode === 'qr' ? 'QR codes' : 'business cards';
                         this.showStatus(`📷 Camera started! Point at ${modeText} for scanning.`, 'success');
                         
-                        // For business card mode, add extra stabilization time
+                        // For business card mode, add extra stabilization time and manual capture instruction
                         if (this.currentScanMode === 'image') {
                             setTimeout(() => {
-                                this.showStatus('✅ Camera stabilized and ready for business card capture!', 'success');
+                                this.showStatus('✅ Camera ready! Click "Capture & Analyze" when card is positioned.', 'success');
                             }, 3000);
                         }
                     } else {
@@ -1378,23 +1378,40 @@
                         console.log('Found name with context:', clientData.name);
                     }
                     
-                    // Extract company (existing logic)
+                    // Enhanced company extraction for QR codes
                     const lines = qrText.split('\n').filter(line => line.trim().length > 0);
                     const companyPatterns = [
-                        /(.*?)\s+(Inc\.?|LLC|Corp\.?|Ltd\.?|Company|Co\.?|Corporation|Group|Solutions|Services|Technologies|Tech)(?!\w)/i,
-                        /^[A-Z][a-zA-Z\s&]+(?:Inc\.?|LLC|Corp\.?|Ltd\.?)$/i
+                        // vCard ORG field (highest priority)
+                        /^ORG:(.+)$/i,
+                        // Company patterns with suffixes
+                        /(.*?)\s+(Inc\.?|LLC|Corp\.?|Ltd\.?|Company|Co\.?|Corporation|Group|Solutions|Services|Technologies|Tech|Systems|Associates|Partners|Consulting)(?!\w)/i,
+                        // Standalone company names
+                        /^[A-Z][a-zA-Z\s&]+(?:Inc\.?|LLC|Corp\.?|Ltd\.?)$/i,
+                        // Lines that look like company names (no email/phone patterns)
+                        /^[A-Z][a-zA-Z\s&]{2,}$/i
                     ];
                     
-                            for (const line of lines) {
+                    for (const line of lines) {
                         const cleanLine = line.trim();
+                        
+                        // Skip if line contains email or phone patterns
+                        if (cleanLine.includes('@') || /\d{7,}/.test(cleanLine)) {
+                            continue;
+                        }
+                        
                         for (const pattern of companyPatterns) {
                             const match = cleanLine.match(pattern);
                             if (match && !clientData.company) {
-                                clientData.company = match[0];
-                                console.log('Found company:', clientData.company);
+                                let companyName = match[1] || match[0];
+                                // Clean up the company name
+                                companyName = companyName.replace(/^ORG:\s*/i, '').trim();
+                                if (companyName.length > 2) {
+                                    clientData.company = companyName;
+                                    console.log('Found company:', clientData.company);
                                     break;
                                 }
                             }
+                        }
                         if (clientData.company) break;
                     }
                     
@@ -1918,7 +1935,7 @@
                 if (this.clients.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="8" style="text-align: center; padding: 40px; opacity: 0.7;">
+                            <td colspan="9" style="text-align: center; padding: 40px; opacity: 0.7;">
                                 📭 No clients added yet. Start scanning or add manually!
                             </td>
                         </tr>
@@ -1941,6 +1958,11 @@
                             <td>
                                 <button class="btn btn-sm btn-primary edit-btn" data-index="${index}">
                                     <i class="fas fa-edit"></i> Edit
+                                </button>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-danger delete-btn" data-index="${index}" title="Delete this record">
+                                    ❌ Delete
                                 </button>
                             </td>
                         `;
@@ -1967,6 +1989,15 @@
                         const index = parseInt(e.target.closest('.edit-btn').dataset.index);
                         console.log('Edit button clicked for index:', index);
                         this.editClient(index);
+                    });
+                });
+
+                // Add event listeners for delete buttons
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = parseInt(e.target.closest('.delete-btn').dataset.index);
+                        console.log('Delete button clicked for index:', index);
+                        this.deleteClient(index);
                     });
                 });
             }
@@ -2002,6 +2033,23 @@
                 window.URL.revokeObjectURL(url);
                 
                 this.showStatus('📊 Data exported successfully!', 'success');
+            }
+
+            deleteClient(index) {
+                if (index < 0 || index >= this.clients.length) {
+                    this.showStatus('❌ Invalid client index', 'error');
+                    return;
+                }
+
+                const client = this.clients[index];
+                const confirmDelete = confirm(`Are you sure you want to delete ${client.name || 'this client'}?`);
+                
+                if (confirmDelete) {
+                    this.clients.splice(index, 1);
+                    this.saveClients();
+                    this.updateClientsTable();
+                    this.showStatus(`🗑️ Deleted client: ${client.name || 'Unknown'}`, 'success');
+                }
             }
 
             clearAllData() {
