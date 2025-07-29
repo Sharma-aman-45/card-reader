@@ -675,1870 +675,1894 @@
     <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
 
-    <script>
-        // Helper class for the efficient name extraction
-        class EfficientNameExtractor {
-            constructor() {
-                // Define name patterns with scoring weights
-                this.namePatterns = [
-                    // High confidence patterns (score: 10)
-                    { pattern: /^[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/, score: 10, description: "Standard First Last" },
-                    { pattern: /^[A-Z][a-z]{2,}\s+[A-Z]\.\s+[A-Z][a-z]{2,}$/, score: 10, description: "First M. Last" },
-                    { pattern: /^[A-Z]\.\s+[A-Z][a-z]{2,}$/, score: 9, description: "F. Last" },
-                    
-                    // Medium confidence patterns (score: 7-8)
-                    { pattern: /^[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/, score: 8, description: "First Middle Last" },
-                    { pattern: /^[A-Z][a-z]{2,}\s+[A-Z][a-z]+-[A-Z][a-z]{2,}$/, score: 7, description: "First Hyphen-Last" },
-                    { pattern: /^[A-Z][a-z]{2,}\s+[A-Z][a-z]+'[A-Z][a-z]{2,}$/, score: 7, description: "First O'Last" },
-                    
-                    // Title patterns (score: 8-9)
-                    { pattern: /^Dr\.\s+[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/i, score: 9, description: "Dr. First Last" },
-                    { pattern: /^Mr\.\s+[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/i, score: 9, description: "Mr. First Last" },
-                    { pattern: /^Ms\.\s+[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/i, score: 9, description: "Ms. First Last" },
-                    { pattern: /^Mrs\.\s+[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/i, score: 9, description: "Mrs. First Last" },
-                    
-                    // Lower confidence patterns (score: 5-6)
-                    { pattern: /^[A-Z]{2,}\s+[A-Z]{2,}$/, score: 6, description: "FIRST LAST" },
-                    { pattern: /^[A-Z][a-z]{1,}\s+[A-Z][a-z]{1,}$/, score: 5, description: "Short names" },
-                    { pattern: /^[A-Z][a-z]{2,}$/, score: 4, description: "Single name" },
-                    
-                    // Initials patterns (score: 6-7)
-                    { pattern: /^[A-Z]\.\s+[A-Z]\.\s+[A-Z][a-z]{2,}$/, score: 7, description: "A.B. Last" },
-                    { pattern: /^[A-Z][a-z]{2,}\s+[A-Z]\.\s+[A-Z]\.$/, score: 6, description: "First A.B." }
-                ];
-                
-                // Common words that should be excluded from names
-                this.excludeWords = new Set([
-                    'the', 'and', 'or', 'for', 'with', 'from', 'to', 'in', 'on', 'at', 'by', 'of', 'a', 'an',
-                    'inc', 'llc', 'corp', 'ltd', 'company', 'co', 'corporation', 'group', 'solutions', 
-                    'services', 'technologies', 'tech', 'systems', 'associates', 'partners', 'consulting',
-                    'email', 'phone', 'tel', 'fax', 'mobile', 'cell', 'office', 'home', 'work',
-                    'address', 'street', 'avenue', 'road', 'drive', 'lane', 'blvd', 'suite', 'apt',
-                    'www', 'http', 'https', 'com', 'org', 'net', 'edu', 'gov'
-                ]);
-                
-                // Common first names for additional validation
-                this.commonFirstNames = new Set([
-                    'james', 'john', 'robert', 'michael', 'william', 'david', 'richard', 'joseph', 'thomas', 'christopher',
-                    'charles', 'daniel', 'matthew', 'anthony', 'mark', 'donald', 'steven', 'paul', 'andrew', 'joshua',
-                    'mary', 'patricia', 'jennifer', 'linda', 'elizabeth', 'barbara', 'susan', 'jessica', 'sarah', 'karen',
-                    'nancy', 'lisa', 'betty', 'helen', 'sandra', 'donna', 'carol', 'ruth', 'sharon', 'michelle'
-                ]);
-            }
-            
-            /**
-             * Extract name with scoring system - main method
-             */
-            extractName(text) {
-                if (!text || typeof text !== 'string') {
-                    return { name: '', confidence: 0, method: 'invalid_input' };
-                }
-                
-                // Clean and prepare text
-                const lines = this.preprocessText(text);
-                if (lines.length === 0) {
-                    return { name: '', confidence: 0, method: 'no_lines' };
-                }
-                
-                // Try different extraction methods in order of reliability
-                const methods = [
-                    () => this.extractWithPatternMatching(lines),
-                    () => this.extractWithPositionalLogic(lines),
-                    () => this.extractWithHeuristics(lines)
-                ];
-                
-                for (let i = 0; i < methods.length; i++) {
-                    const result = methods[i]();
-                    if (result.confidence >= 5) { // Minimum confidence threshold
-                        return result;
-                    }
-                }
-                
-                return { name: '', confidence: 0, method: 'no_match' };
-            }
-            
-            /**
-             * Preprocess text into clean lines
-             */
-            preprocessText(text) {
-                return text
-                    .split(/[\n\r]+/)
-                    .map(line => line.trim())
-                    .filter(line => {
-                        if (line.length < 2) return false;
-                        if (line.includes('@')) return false;
-                        if (/https?:\/\//.test(line)) return false;
-                        if (/^\+?\d[\d\s\-\(\)]{7,}/.test(line)) return false;
-                        if (/^\d+/.test(line)) return false;
-                        return true;
-                    })
-                    .slice(0, 8);
-            }
-            
-            /**
-             * Method 1: Pattern matching with scoring
-             */
-            extractWithPatternMatching(lines) {
-                let bestMatch = { name: '', confidence: 0, method: 'pattern_matching' };
-                
-                for (const line of lines) {
-                    for (const { pattern, score, description } of this.namePatterns) {
-                        if (pattern.test(line)) {
-                            let adjustedScore = score;
-                            
-                            // Boost score if first name is common
-                            const firstWord = line.split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, '');
-                            if (this.commonFirstNames.has(firstWord)) {
-                                adjustedScore += 2;
-                            }
-                            
-                            // Boost score if it's in the first few lines
-                            const lineIndex = lines.indexOf(line);
-                            if (lineIndex === 0) adjustedScore += 3;
-                            else if (lineIndex === 1) adjustedScore += 2;
-                            else if (lineIndex === 2) adjustedScore += 1;
-                            
-                            // Penalty for very long lines
-                            if (line.length > 40) adjustedScore -= 2;
-                            
-                            // Penalty if line contains excluded words
-                            const words = line.toLowerCase().split(/\s+/);
-                            const hasExcludedWords = words.some(word => this.excludeWords.has(word));
-                            if (hasExcludedWords) adjustedScore -= 3;
-                            
-                            if (adjustedScore > bestMatch.confidence) {
-                                bestMatch = {
-                                    name: line.trim(),
-                                    confidence: adjustedScore,
-                                    method: `pattern_matching_${description}`
-                                };
-                            }
-                        }
-                    }
-                }
-                
-                return bestMatch;
-            }
-            
-            /**
-             * Method 2: Positional logic
-             */
-            extractWithPositionalLogic(lines) {
-                for (let i = 0; i < Math.min(lines.length, 3); i++) {
-                    const line = lines[i];
-                    
-                    if (this.isLikelyName(line)) {
-                        let confidence = 6 - i;
-                        
-                        if (/^[A-Z][a-z]+\s+[A-Z][a-z]+$/.test(line)) {
-                            confidence += 3;
-                        }
-                        
-                        return {
-                            name: line.trim(),
-                            confidence: confidence,
-                            method: `positional_logic_line_${i + 1}`
-                        };
-                    }
-                }
-                
-                return { name: '', confidence: 0, method: 'positional_logic' };
-            }
-            
-            /**
-             * Method 3: Heuristic-based extraction
-             */
-            extractWithHeuristics(lines) {
-                const candidates = [];
-                
-                for (const line of lines) {
-                    if (this.isLikelyName(line)) {
-                        let score = 0;
-                        
-                        const wordCount = line.split(/\s+/).length;
-                        if (wordCount === 2) score += 4;
-                        else if (wordCount === 3) score += 3;
-                        else if (wordCount === 1) score += 1;
-                        else score -= 1;
-                        
-                        const words = line.split(/\s+/);
-                        const properlyCapitalized = words.every(word => 
-                            /^[A-Z][a-z]*$/.test(word) || /^[A-Z]\.$/.test(word)
-                        );
-                        if (properlyCapitalized) score += 3;
-                        
-                        if (line.length >= 4 && line.length <= 30) score += 2;
-                        if (line.length > 40) score -= 3;
-                        
-                        const letterRatio = (line.match(/[a-zA-Z]/g) || []).length / line.length;
-                        if (letterRatio > 0.85) score += 2;
-                        
-                        candidates.push({
-                            name: line.trim(),
-                            confidence: Math.max(0, score),
-                            method: 'heuristic_analysis'
-                        });
-                    }
-                }
-                
-                candidates.sort((a, b) => b.confidence - a.confidence);
-                return candidates[0] || { name: '', confidence: 0, method: 'heuristics' };
-            }
-            
-            /**
-             * Check if a line is likely to be a name
-             */
-            isLikelyName(line) {
-                if (!line || line.length < 2 || line.length > 50) return false;
-                
-                if (!/^[A-Za-z\s\.\-']+$/.test(line)) return false;
-                
-                if (line === line.toUpperCase()) {
-                    const words = line.split(/\s+/);
-                    if (words.length > 3 || words.some(word => word.length > 8)) return false;
-                }
-                
-                const words = line.toLowerCase().split(/\s+/);
-                if (words.some(word => this.excludeWords.has(word))) return false;
-                
-                if (words.length > 5) return false;
-                
-                if (words.some(word => word.length > 20)) return false;
-                
-                return true;
+   <script>
+    class EfficientNameExtractor {
+    constructor() {
+        // Define name patterns with scoring weights
+        this.namePatterns = [
+            // High confidence patterns (score: 10)
+            { pattern: /^[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/, score: 10, description: "Standard First Last" },
+            { pattern: /^[A-Z][a-z]{2,}\s+[A-Z]\.\s+[A-Z][a-z]{2,}$/, score: 10, description: "First M. Last" },
+            { pattern: /^[A-Z]\.\s+[A-Z][a-z]{2,}$/, score: 9, description: "F. Last" },
+
+            // Medium confidence patterns (score: 7-8)
+            { pattern: /^[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/, score: 8, description: "First Middle Last" },
+            { pattern: /^[A-Z][a-z]{2,}\s+[A-Z][a-z]+-[A-Z][a-z]{2,}$/, score: 7, description: "First Hyphen-Last" },
+            { pattern: /^[A-Z][a-z]{2,}\s+[A-Z][a-z]+'[A-Z][a-z]{2,}$/, score: 7, description: "First O'Last" },
+
+            // Title patterns (score: 8-9)
+            { pattern: /^Dr\.\s+[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/i, score: 9, description: "Dr. First Last" },
+            { pattern: /^Mr\.\s+[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/i, score: 9, description: "Mr. First Last" },
+            { pattern: /^Ms\.\s+[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/i, score: 9, description: "Ms. First Last" },
+            { pattern: /^Mrs\.\s+[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/i, score: 9, description: "Mrs. First Last" },
+
+            // Lower confidence patterns (score: 5-6)
+            { pattern: /^[A-Z]{2,}\s+[A-Z]{2,}$/, score: 6, description: "FIRST LAST" },
+            { pattern: /^[A-Z][a-z]{1,}\s+[A-Z][a-z]{1,}$/, score: 5, description: "Short names" },
+            { pattern: /^[A-Z][a-z]{2,}$/, score: 4, description: "Single name" },
+
+            // Initials patterns (score: 6-7)
+            { pattern: /^[A-Z]\.\s+[A-Z]\.\s+[A-Z][a-z]{2,}$/, score: 7, description: "A.B. Last" },
+            { pattern: /^[A-Z][a-z]{2,}\s+[A-Z]\.\s+[A-Z]\.$/, score: 6, description: "First A.B." }
+        ];
+
+        // Common words that should be excluded from names
+        this.excludeWords = new Set([
+            'the', 'and', 'or', 'for', 'with', 'from', 'to', 'in', 'on', 'at', 'by', 'of', 'a', 'an',
+            'inc', 'llc', 'corp', 'ltd', 'company', 'co', 'corporation', 'group', 'solutions',
+            'services', 'technologies', 'tech', 'systems', 'associates', 'partners', 'consulting',
+            'email', 'phone', 'tel', 'fax', 'mobile', 'cell', 'office', 'home', 'work',
+            'address', 'street', 'avenue', 'road', 'drive', 'lane', 'blvd', 'suite', 'apt',
+            'www', 'http', 'https', 'com', 'org', 'net', 'edu', 'gov', 'pvt', 'limited' // Added common company terms
+        ]);
+
+        // Common first names for additional validation (kept for context, can be expanded)
+        this.commonFirstNames = new Set([
+            'james', 'john', 'robert', 'michael', 'william', 'david', 'richard', 'joseph', 'thomas', 'christopher',
+            'charles', 'daniel', 'matthew', 'anthony', 'mark', 'donald', 'steven', 'paul', 'andrew', 'joshua',
+            'mary', 'patricia', 'jennifer', 'linda', 'elizabeth', 'barbara', 'susan', 'jessica', 'sarah', 'karen',
+            'nancy', 'lisa', 'betty', 'helen', 'sandra', 'donna', 'carol', 'ruth', 'sharon', 'michelle'
+        ]);
+    }
+
+    /**
+     * Extract name with scoring system - main method
+     */
+    extractName(text) {
+        if (!text || typeof text !== 'string') {
+            return { name: '', confidence: 0, method: 'invalid_input' };
+        }
+
+        // Clean and prepare text
+        const lines = this.preprocessText(text);
+        if (lines.length === 0) {
+            return { name: '', confidence: 0, method: 'no_lines' };
+        }
+
+        // Try different extraction methods in order of reliability
+        const methods = [
+            () => this.extractWithPatternMatching(lines),
+            () => this.extractWithPositionalLogic(lines),
+            () => this.extractWithHeuristics(lines)
+        ];
+
+        for (let i = 0; i < methods.length; i++) {
+            const result = methods[i]();
+            if (result.confidence >= 5) { // Minimum confidence threshold
+                return result;
             }
         }
 
-        class ExhibitionCardReaderPro {
-            constructor() {
-                this.clients = this.loadClients();
-                this.html5QrCode = null;
-                this.cameraStarted = false;
-                this.lastScanResult = null;
-                this.currentScanMode = 'qr'; // 'qr' or 'image'
-                this.isCapturing = false; // Prevent multiple captures
-                
-                this.initializeEventListeners();
-                this.updateClientsTable();
-                this.setupDragAndDrop();
-                this.updateScanModeUI();
-            }
+        return { name: '', confidence: 0, method: 'no_match' };
+    }
 
-            initializeEventListeners() {
-                document.getElementById('startCamera').addEventListener('click', () => this.startCamera());
-                document.getElementById('captureImage').addEventListener('click', () => this.captureAndAnalyzeImage());
-                document.getElementById('fileInput').addEventListener('change', (e) => this.handleFileUpload(e));
-                document.getElementById('manualForm').addEventListener('submit', (e) => this.handleManualEntry(e));
-                document.getElementById('searchLinkedIn').addEventListener('click', () => this.searchLinkedIn());
-                document.getElementById('exportData').addEventListener('click', () => this.exportToCSV());
-                document.getElementById('clearData').addEventListener('click', () => this.clearAllData());
-                
-                // Add scan mode toggle listeners
-                document.getElementById('qrModeBtn').addEventListener('click', () => this.setScanMode('qr'));
-                document.getElementById('imageModeBtn').addEventListener('click', () => this.setScanMode('image'));
-            }
+    /**
+     * Preprocess text into clean lines
+     */
+    preprocessText(text) {
+        return text
+            .split(/[\n\r]+/)
+            .map(line => line.trim())
+            .filter(line => {
+                if (line.length < 2) return false;
+                // Exclude lines that are clearly not names (e.g., contain @, URL, or start with digits)
+                if (line.includes('@')) return false;
+                if (/https?:\/\//.test(line)) return false;
+                if (/^\+?\d[\d\s\-\(\)]{7,}/.test(line)) return false;
+                if (/^\d+/.test(line)) return false;
+                // Exclude lines with common business/contact terms that are not names
+                const lowerLine = line.toLowerCase();
+                if (this.excludeWords.has(lowerLine) || this.excludeWords.has(lowerLine.split(' ')[0])) return false;
+                return true;
+            })
+            .slice(0, 8); // Consider only the first few lines for names
+    }
 
-            setupDragAndDrop() {
-                const uploadArea = document.getElementById('uploadArea');
-                
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    uploadArea.addEventListener(eventName, this.preventDefaults, false);
-                });
+    /**
+     * Method 1: Pattern matching with scoring
+     */
+    extractWithPatternMatching(lines) {
+        let bestMatch = { name: '', confidence: 0, method: 'pattern_matching' };
 
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'), false);
-                });
+        for (const line of lines) {
+            for (const { pattern, score, description } of this.namePatterns) {
+                if (pattern.test(line)) {
+                    let adjustedScore = score;
 
-                ['dragleave', 'drop'].forEach(eventName => {
-                    uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('dragover'), false);
-                });
-
-                uploadArea.addEventListener('drop', (e) => {
-                    const files = e.dataTransfer.files;
-                    console.log('Drop event triggered, files:', files);
-                    if (files.length > 0) {
-                        this.showStatus('📁 File dropped, processing...', 'info');
-                        this.processImageFile(files[0]);
-                        // Clear any file input to ensure fresh state
-                        const fileInput = document.getElementById('fileInput');
-                        if (fileInput) {
-                            fileInput.value = '';
-                        }
+                    // Boost score if first name is common
+                    const firstWord = line.split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, '');
+                    if (this.commonFirstNames.has(firstWord)) {
+                        adjustedScore += 2;
                     }
-                }, false);
-            }
 
-            preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
+                    // Boost score if it's in the first few lines
+                    const lineIndex = lines.indexOf(line);
+                    if (lineIndex === 0) adjustedScore += 3;
+                    else if (lineIndex === 1) adjustedScore += 2;
+                    else if (lineIndex === 2) adjustedScore += 1;
 
-            /**
-             * Clear file input to allow re-uploading the same file
-             */
-            clearFileInput() {
+                    // Penalty for very long lines
+                    if (line.length > 40) adjustedScore -= 2;
+
+                    // Penalty if line contains excluded words
+                    const words = line.toLowerCase().split(/\s+/);
+                    const hasExcludedWords = words.some(word => this.excludeWords.has(word));
+                    if (hasExcludedWords) adjustedScore -= 3;
+
+                    if (adjustedScore > bestMatch.confidence) {
+                        bestMatch = {
+                            name: line.trim(),
+                            confidence: adjustedScore,
+                            method: `pattern_matching_${description}`
+                        };
+                    }
+                }
+            }
+        }
+
+        return bestMatch;
+    }
+
+    /**
+     * Method 2: Positional logic
+     */
+    extractWithPositionalLogic(lines) {
+        for (let i = 0; i < Math.min(lines.length, 3); i++) {
+            const line = lines[i];
+
+            if (this.isLikelyName(line)) {
+                let confidence = 6 - i;
+
+                if (/^[A-Z][a-z]+\s+[A-Z][a-z]+$/.test(line)) {
+                    confidence += 3;
+                }
+
+                return {
+                    name: line.trim(),
+                    confidence: confidence,
+                    method: `positional_logic_line_${i + 1}`
+                };
+            }
+        }
+
+        return { name: '', confidence: 0, method: 'positional_logic' };
+    }
+
+    /**
+     * Method 3: Heuristic-based extraction
+     */
+    extractWithHeuristics(lines) {
+        const candidates = [];
+
+        for (const line of lines) {
+            if (this.isLikelyName(line)) {
+                let score = 0;
+
+                const wordCount = line.split(/\s+/).length;
+                if (wordCount === 2) score += 4;
+                else if (wordCount === 3) score += 3;
+                else if (wordCount === 1) score += 1;
+                else score -= 1;
+
+                const words = line.split(/\s+/);
+                const properlyCapitalized = words.every(word =>
+                    /^[A-Z][a-z]*$/.test(word) || /^[A-Z]\.$/.test(word)
+                );
+                if (properlyCapitalized) score += 3;
+
+                if (line.length >= 4 && line.length <= 30) score += 2;
+                if (line.length > 40) score -= 3;
+
+                const letterRatio = (line.match(/[a-zA-Z]/g) || []).length / line.length;
+                if (letterRatio > 0.85) score += 2;
+
+                candidates.push({
+                    name: line.trim(),
+                    confidence: Math.max(0, score),
+                    method: 'heuristic_analysis'
+                });
+            }
+        }
+
+        candidates.sort((a, b) => b.confidence - a.confidence);
+        return candidates[0] || { name: '', confidence: 0, method: 'heuristics' };
+    }
+
+    /**
+     * Check if a line is likely to be a name
+     */
+    isLikelyName(line) {
+        if (!line || line.length < 2 || line.length > 50) return false;
+
+        // Allow common name characters and spaces, hyphens, apostrophes, dots for initials
+        if (!/^[A-Za-z\s\.\-']+$/.test(line)) return false;
+
+        // If line is all caps, it's less likely to be a name unless very short
+        if (line === line.toUpperCase()) {
+            const words = line.split(/\s+/);
+            if (words.length > 3 || words.some(word => word.length > 8)) return false;
+        }
+
+        const words = line.toLowerCase().split(/\s+/);
+        // Check if any word is in the exclude list
+        if (words.some(word => this.excludeWords.has(word))) return false;
+
+        // Too many words or very long words are less likely to be names
+        if (words.length > 5 || words.some(word => word.length > 20)) return false;
+
+        return true;
+    }
+}
+
+class ExhibitionCardReaderPro {
+    constructor() {
+        this.clients = this.loadClients();
+        this.html5QrCode = null;
+        this.cameraStarted = false;
+        this.lastScanResult = null; // To prevent duplicate QR scans from camera
+        this.currentScanMode = 'qr'; // 'qr' or 'image'
+        this.isCapturing = false; // Prevent multiple captures
+        this.tesseractWorker = null; // Tesseract.js worker instance
+
+        this.initializeEventListeners();
+        this.updateClientsTable();
+        this.setupDragAndDrop();
+        this.updateScanModeUI();
+        this.initTesseractWorker(); // Initialize Tesseract worker on startup
+    }
+
+    initializeEventListeners() {
+        document.getElementById('startCamera').addEventListener('click', () => this.startCamera());
+        document.getElementById('captureImage').addEventListener('click', () => this.captureAndAnalyzeImage());
+        document.getElementById('fileInput').addEventListener('change', (e) => this.handleFileUpload(e));
+        document.getElementById('manualForm').addEventListener('submit', (e) => this.handleManualEntry(e));
+        document.getElementById('searchLinkedIn').addEventListener('click', () => this.searchLinkedIn());
+        document.getElementById('exportData').addEventListener('click', () => this.exportToCSV());
+        document.getElementById('clearData').addEventListener('click', () => this.clearAllData());
+
+        // Add scan mode toggle listeners
+        document.getElementById('qrModeBtn').addEventListener('click', () => this.setScanMode('qr'));
+        document.getElementById('imageModeBtn').addEventListener('click', () => this.setScanMode('image'));
+    }
+
+    setupDragAndDrop() {
+        const uploadArea = document.getElementById('uploadArea');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, this.preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('dragover'), false);
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            console.log('Drop event triggered, files:', files);
+            if (files.length > 0) {
+                this.showStatus('📁 File dropped, processing...', 'info');
+                this.processImageFile(files[0]);
+                // Clear any file input to ensure fresh state
                 const fileInput = document.getElementById('fileInput');
                 if (fileInput) {
                     fileInput.value = '';
                 }
             }
+        }, false);
+    }
 
-            /**
-             * Set the current scan mode and update UI
-             */
-            setScanMode(mode) {
-                this.currentScanMode = mode;
-                this.updateScanModeUI();
-                
-                const modeText = mode === 'qr' ? 'QR Code' : 'Business Card';
-                this.showStatus(`🔄 Switched to ${modeText} scanning mode`, 'info');
-                
-                // Stop camera if running to apply new mode
-                if (this.cameraStarted) {
-                    this.stopCamera();
+    preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    /**
+     * Initialize Tesseract.js worker
+     */
+    async initTesseractWorker() {
+        if (!this.tesseractWorker) {
+            try {
+                this.tesseractWorker = Tesseract.createWorker({
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            this.showStatus(`🔍 OCR Progress: ${Math.round(m.progress * 100)}%`, 'info');
+                        }
+                    }
+                });
+                await this.tesseractWorker.load();
+                await this.tesseractWorker.loadLanguage('eng');
+                await this.tesseractWorker.initialize('eng');
+                console.log('Tesseract.js worker initialized successfully.');
+            } catch (error) {
+                console.error('Failed to initialize Tesseract.js worker:', error);
+                this.showStatus('❌ Failed to load OCR engine. Please check your internet connection or try again.', 'error');
+            }
+        }
+    }
+
+    /**
+     * Clear file input to allow re-uploading the same file
+     */
+    clearFileInput() {
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+    }
+
+    /**
+     * Set the current scan mode and update UI
+     */
+    setScanMode(mode) {
+        this.currentScanMode = mode;
+        this.updateScanModeUI();
+
+        const modeText = mode === 'qr' ? 'QR Code' : 'Business Card';
+        this.showStatus(`🔄 Switched to ${modeText} scanning mode`, 'info');
+
+        // Stop camera if running to apply new mode
+        if (this.cameraStarted) {
+            this.stopCamera();
+        }
+    }
+
+    /**
+     * Update the scan mode UI buttons
+     */
+    updateScanModeUI() {
+        const qrBtn = document.getElementById('qrModeBtn');
+        const imageBtn = document.getElementById('imageModeBtn');
+        const captureBtn = document.getElementById('captureImage');
+
+        if (this.currentScanMode === 'qr') {
+            qrBtn.classList.add('active');
+            imageBtn.classList.remove('active');
+            // Disable capture button in QR mode, it's auto-scan
+            captureBtn.disabled = true;
+        } else {
+            imageBtn.classList.add('active');
+            qrBtn.classList.remove('active');
+            // Enable capture button only if camera is started and in image mode
+            captureBtn.disabled = !this.cameraStarted;
+        }
+
+        console.log('Mode updated:', this.currentScanMode, 'Capture enabled:', !captureBtn.disabled);
+    }
+
+    /**
+     * Capture and analyze image for business card scanning
+     */
+    async captureAndAnalyzeImage() {
+        console.log('captureAndAnalyzeImage called');
+
+        // Prevent multiple captures
+        if (this.isCapturing) {
+            this.showStatus('⏳ Already capturing, please wait...', 'warning');
+            return;
+        }
+
+        // Check if camera is started
+        if (!this.cameraStarted) {
+            this.showStatus('❌ Camera not started. Please start camera first.', 'error');
+            return;
+        }
+
+        this.isCapturing = true; // Set capturing flag
+
+        try {
+            this.showStatus('📸 Preparing to capture business card image...', 'info');
+
+            // Show countdown for user feedback
+            for (let i = 2; i > 0; i--) {
+                this.showStatus(`📸 Capturing in ${i} seconds...`, 'info');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            this.showStatus('📸 Capturing business card image...', 'info');
+
+            // Get the video element from html5-qrcode
+            const videoElement = document.querySelector('#qr-reader video');
+            console.log('Video element found:', videoElement);
+
+            if (!videoElement) {
+                this.showStatus('❌ Camera not ready for capture - no video element found', 'error');
+                this.isCapturing = false;
+                return;
+            }
+
+            // Ensure video is playing and ready
+            if (videoElement.readyState < 2) {
+                this.showStatus('⏳ Camera still initializing, please wait...', 'info');
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait a bit longer
+                if (videoElement.readyState < 2) { // Check again
+                    this.showStatus('❌ Camera not ready for capture - video stream not playing.', 'error');
+                    this.isCapturing = false;
+                    return;
                 }
             }
 
-            /**
-             * Update the scan mode UI buttons
-             */
-            updateScanModeUI() {
-                const qrBtn = document.getElementById('qrModeBtn');
-                const imageBtn = document.getElementById('imageModeBtn');
-                const captureBtn = document.getElementById('captureImage');
-                
-                if (this.currentScanMode === 'qr') {
-                    qrBtn.classList.add('active');
-                    imageBtn.classList.remove('active');
-                    // Disable capture button in QR mode
-                    captureBtn.disabled = true;
+            // Create canvas and capture frame
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas dimensions to video feed dimensions for accurate capture
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+
+            if (canvas.width === 0 || canvas.height === 0) {
+                this.showStatus('❌ Video not ready - dimensions are zero. Try restarting camera.', 'error');
+                this.isCapturing = false;
+                return;
+            }
+
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            console.log('Frame captured successfully. Canvas dimensions:', canvas.width, 'x', canvas.height);
+
+            // Convert to blob and process
+            canvas.toBlob(async (blob) => {
+                console.log('Blob created:', blob);
+                if (blob) {
+                    console.log('Blob size:', blob.size, 'bytes');
+                    await this.processImageFile(blob); // Process the captured image
+                    this.stopCamera(); // Stop camera after successful capture and processing
                 } else {
-                    imageBtn.classList.add('active');
-                    qrBtn.classList.remove('active');
-                    // Enable capture button only if camera is started
-                    captureBtn.disabled = !this.cameraStarted;
+                    console.error('Failed to create blob from canvas');
+                    this.showStatus('❌ Failed to create image from camera', 'error');
                 }
-                
-                console.log('Mode updated:', this.currentScanMode, 'Capture enabled:', !captureBtn.disabled);
-            }
+                this.isCapturing = false; // Reset capture flag
+            }, 'image/jpeg', 0.9); // Use JPEG for smaller size, 0.9 quality
+        } catch (error) {
+            this.showStatus('❌ Failed to capture image: ' + error.message, 'error');
+            console.error('Capture error:', error);
+            this.isCapturing = false; // Reset capture flag on error
+        }
+    }
 
-            /**
-             * Capture and analyze image for business card scanning
-             */
-            async captureAndAnalyzeImage() {
-                console.log('captureAndAnalyzeImage called');
-                
-                // Prevent multiple captures
-                if (this.isCapturing) {
-                    this.showStatus('⏳ Already capturing, please wait...', 'warning');
-                    return;
+    async startCamera() {
+        if (this.cameraStarted) return;
+
+        if (!this.html5QrCode) {
+            this.html5QrCode = new Html5Qrcode("qr-reader");
+        }
+
+        document.getElementById('cameraPlaceholder').style.display = 'none';
+        document.getElementById('startCamera').disabled = true;
+
+        // Only enable capture button in business card mode
+        const captureBtn = document.getElementById('captureImage');
+        captureBtn.disabled = this.currentScanMode !== 'image';
+        console.log('Capture button enabled:', !captureBtn.disabled, 'Mode:', this.currentScanMode);
+
+        try {
+            const devices = await Html5Qrcode.getCameras();
+            if (devices && devices.length) {
+                const config = this.currentScanMode === 'qr'
+                    ? { fps: 10, qrbox: 250 }
+                    : { fps: 10, qrbox: { width: 400, height: 300 } }; // Adjusted qrbox for image mode to be visible
+
+                await this.html5QrCode.start(
+                    { facingMode: "environment" }, // Prefer rear camera
+                    config,
+                    (decodedText, decodedResult) => {
+                        if (this.currentScanMode === 'qr') {
+                            // QR Mode: Process QR code immediately
+                            if (this.lastScanResult !== decodedText) { // Avoid processing same QR multiple times
+                                this.lastScanResult = decodedText;
+                                this.processQRResult(decodedText, 'QR Camera');
+                                this.stopCamera(); // Stop camera after a successful QR scan
+                            }
+                        }
+                        // Business Card Mode: No auto-capture here, waiting for manual button click
+                    },
+                    (errorMessage) => {
+                        // Handle scan errors (e.g., no QR code found in QR mode)
+                        // console.warn('QR scan error:', errorMessage);
+                    }
+                );
+                this.cameraStarted = true;
+                const modeText = this.currentScanMode === 'qr' ? 'QR codes' : 'business cards';
+                this.showStatus(`📷 Camera started! Point at ${modeText} for scanning.`, 'success');
+
+                // For business card mode, add extra stabilization time and manual capture instruction
+                if (this.currentScanMode === 'image') {
+                    setTimeout(() => {
+                        this.showStatus('✅ Camera ready! Position the business card and click "Capture & Analyze".', 'success');
+                    }, 2000); // Give camera more time to stabilize
                 }
-                
-                // Check if camera is started
-                if (!this.cameraStarted) {
-                    this.showStatus('❌ Camera not started. Please start camera first.', 'error');
-                    return;
-                }
-                
-                this.isCapturing = true;
-                
-                try {
-                    this.showStatus('📸 Preparing to capture business card image...', 'info');
-                    
-                    // Show countdown for user feedback
-                    for (let i = 2; i > 0; i--) {
-                        this.showStatus(`📸 Capturing in ${i} seconds...`, 'info');
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                    }
-                    
-                    this.showStatus('📸 Capturing business card image...', 'info');
-                    
-                    // Get the video element from html5-qrcode
-                    const videoElement = document.querySelector('#qr-reader video');
-                    console.log('Video element found:', videoElement);
-                    
-                    if (!videoElement) {
-                        this.showStatus('❌ Camera not ready for capture - no video element found', 'error');
-                        this.isCapturing = false;
-                        return;
-                    }
-                    
-                    // Additional check to ensure video is playing
-                    if (videoElement.readyState < 2) {
-                        this.showStatus('⏳ Camera still initializing, please wait...', 'info');
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                    }
-                    
-                    // Create canvas and capture frame
+            } else {
+                this.showStatus('❌ No camera found.', 'error');
+            }
+        } catch (err) {
+            this.showStatus('❌ Camera error: ' + err.message, 'error');
+            console.error('Camera start error:', err);
+        }
+    }
+
+    async stopCamera() {
+        if (this.html5QrCode && this.cameraStarted) {
+            try {
+                await this.html5QrCode.stop();
+                this.cameraStarted = false;
+                document.getElementById('cameraPlaceholder').style.display = 'flex';
+                document.getElementById('startCamera').disabled = false;
+                document.getElementById('captureImage').disabled = true; // Disable capture button when camera stops
+                this.showStatus('⏹️ Camera stopped', 'info');
+                this.lastScanResult = null; // Reset last scan result
+            } catch (err) {
+                console.error('Error stopping camera:', err);
+                this.showStatus('⚠️ Error stopping camera, it might already be off.', 'warning');
+            }
+        }
+    }
+
+    // Removed the redundant `captureAndAnalyze` method as its logic is now within `captureAndAnalyzeImage`
+
+    async scanQRCodeFromImage(imageDataUrl) {
+        try {
+            // Try html5-qrcode first for robust QR detection
+            const html5QrCodeFile = new Html5Qrcode();
+            const blob = await (await fetch(imageDataUrl)).blob();
+            const qrText = await html5QrCodeFile.scanFile(blob, false); // Use false for disable worker
+            return qrText;
+        } catch (e) {
+            console.log('html5-qrcode file scan failed, trying jsQR fallback:', e);
+            // Fallback to jsQR for file scanning if html5-qrcode fails
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    canvas.width = videoElement.videoWidth;
-                    canvas.height = videoElement.videoHeight;
-                    
-                    console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
-                    console.log('Video dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
-                    
-                    if (canvas.width === 0 || canvas.height === 0) {
-                        this.showStatus('❌ Video not ready - dimensions are zero', 'error');
-                        this.isCapturing = false;
-                        return;
-                    }
-                    
-                    ctx.drawImage(videoElement, 0, 0);
-                    console.log('Frame captured successfully');
-                    
-                    // Convert to blob and process
-                    canvas.toBlob(async (blob) => {
-                        console.log('Blob created:', blob);
-                        if (blob) {
-                            console.log('Blob size:', blob.size, 'bytes');
-                            await this.processImageFile(blob);
-                            this.stopCamera();
-                        } else {
-                            console.error('Failed to create blob from canvas');
-                            this.showStatus('❌ Failed to create image from camera', 'error');
-                        }
-                        this.isCapturing = false; // Reset capture flag
-                    }, 'image/jpeg', 0.9);
-                    
-                } catch (error) {
-                    this.showStatus('❌ Failed to capture image: ' + error.message, 'error');
-                    this.isCapturing = false; // Reset capture flag on error
-                }
-            }
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
 
-            async startCamera() {
-                if (this.cameraStarted) return;
-                
-                if (!this.html5QrCode) {
-                    this.html5QrCode = new Html5Qrcode("qr-reader");
-                }
-
-                document.getElementById('cameraPlaceholder').style.display = 'none';
-                document.getElementById('startCamera').disabled = true;
-                
-                // Only enable capture button in business card mode
-                const captureBtn = document.getElementById('captureImage');
-                captureBtn.disabled = this.currentScanMode !== 'image';
-                console.log('Capture button enabled:', !captureBtn.disabled, 'Mode:', this.currentScanMode);
-                    
-                try {
-                    const devices = await Html5Qrcode.getCameras();
-                    if (devices && devices.length) {
-                        const config = this.currentScanMode === 'qr' 
-                            ? { fps: 10, qrbox: 250 }
-                            : { fps: 10, qrbox: { width: 400, height: 300 } };
-                            
-                        await this.html5QrCode.start(
-                            { facingMode: "environment" },
-                            config,
-                            (decodedText, decodedResult) => {
-                                if (this.currentScanMode === 'qr') {
-                                    // QR Mode: Process QR code immediately
-                                    if (this.lastScanResult !== decodedText) {
-                                        this.lastScanResult = decodedText;
-                                        this.processQRResult(decodedText, 'QR Camera');
-                                        this.stopCamera();
-                                    }
-                                }
-                                // Business Card Mode: Wait for manual capture button
-                                // No auto-capture to prevent blur/wrong frame issues
-                            },
-                            (errorMessage) => {
-                                // Handle scan errors
-                            }
-                        );
-                        this.cameraStarted = true;
-                        const modeText = this.currentScanMode === 'qr' ? 'QR codes' : 'business cards';
-                        this.showStatus(`📷 Camera started! Point at ${modeText} for scanning.`, 'success');
-                        
-                        // For business card mode, add extra stabilization time and manual capture instruction
-                        if (this.currentScanMode === 'image') {
-                            setTimeout(() => {
-                                this.showStatus('✅ Camera ready! Click "Capture & Analyze" when card is positioned.', 'success');
-                            }, 3000);
-                        }
-                    } else {
-                        this.showStatus('❌ No camera found.', 'error');
-                    }
-                } catch (err) {
-                    this.showStatus('❌ Camera error: ' + err.message, 'error');
-                }
-            }
-
-            async stopCamera() {
-                if (this.html5QrCode && this.cameraStarted) {
-                    await this.html5QrCode.stop();
-                    this.cameraStarted = false;
-                    document.getElementById('cameraPlaceholder').style.display = 'flex';
-                    document.getElementById('startCamera').disabled = false;
-                    document.getElementById('captureImage').disabled = true;
-                    this.showStatus('⏹️ Camera stopped', 'info');
-                }
-            }
-
-            async captureAndAnalyze() {
-                if (!this.cameraStarted) {
-                    this.showStatus('❌ Camera not started.', 'error');
-                    return;
-                }
-                
-                this.showProcessing(true);
-                try {
-                    // Get the video element from html5-qrcode
-                    const video = document.querySelector('#qr-reader video');
-                    if (!video) {
-                        this.showStatus('❌ Video stream not found.', 'error');
-                        this.showProcessing(false);
-                        return;
-                    }
-                    
-                    // Create canvas and capture frame
-                    const canvas = document.createElement('canvas');
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    canvas.getContext('2d').drawImage(video, 0, 0);
-                    const imageDataUrl = canvas.toDataURL('image/png');
-                    
-                    // Try QR scan from image
-                    const qrResult = await this.scanQRCodeFromImage(imageDataUrl);
-                    if (qrResult) {
-                        await this.processQRResult(qrResult, 'Camera QR');
-                } else {
-                        this.showStatus('🔄 No QR found, running OCR...', 'info');
-                        await this.analyzeImageWithOCR(imageDataUrl, 'Camera OCR');
-                    }
-                } catch (err) {
-                    this.showStatus('❌ Error during capture: ' + err.message, 'error');
-                } finally {
-                    this.showProcessing(false);
-                    this.stopCamera();
-                }
-            }
-
-            async scanQRCodeFromImage(imageDataUrl) {
-                try {
-                    // Try html5-qrcode first
-                    const html5QrCodeFile = new Html5Qrcode();
-                    const blob = await (await fetch(imageDataUrl)).blob();
-                    const qrText = await html5QrCodeFile.scanFile(blob, true);
-                    return qrText;
-                } catch (e) {
-                    console.log('html5-qrcode failed, trying jsQR fallback:', e);
-                    // Fallback to jsQR
-                    return new Promise((resolve) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            const ctx = canvas.getContext('2d');
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                            ctx.drawImage(img, 0, 0);
-                            
-                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                            const code = jsQR(imageData.data, imageData.width, imageData.height);
-                            
-                            resolve(code ? code.data : null);
-                        };
-                        img.onerror = () => resolve(null);
-                        img.src = imageDataUrl;
-                    });
-                }
-            }
-
-            async processQRResult(qrText, source) {
-                console.log('Processing QR result:', qrText);
-                const clientData = this.parseQRData(qrText);
-                console.log('Extracted client data:', clientData);
-                
-                if (clientData.name || clientData.email || clientData.phone) {
-                    await this.addClientWithLinkedInSearch(clientData, source);
-                    this.showStatus('✅ Client data extracted and added successfully! Source: ' + source, 'success');
-                } else {
-                    this.showStatus('🔄 QR found but no contact info, running OCR...', 'info');
-                    // For file uploads, we need to get the original image data for OCR
-                    // This will be handled in the calling method
-                    return false; // Indicate no contact info found
-                }
-                return true; // Indicate contact info was found
-            }
-
-            handleFileUpload(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    this.processImageFile(file);
-                    // Clear the file input to allow re-uploading the same file
-                    event.target.value = '';
-                }
-            }
-
-            async processImageFile(file) {
-                console.log('Processing file:', file.name, file.type);
-                
-                if (!file.type.startsWith('image/')) {
-                    this.showStatus('❌ Please upload a valid image file.', 'error');
-                    return;
-                }
-
-                // Clear file input to allow re-uploading the same file
-                this.clearFileInput();
-
-                // Add timestamp to ensure unique processing
-                const timestamp = Date.now();
-                console.log(`Processing file at timestamp: ${timestamp}`);
-
-                this.showProcessing(true);
-                this.showStatus(`🔍 Analyzing image for QR codes and text... (${timestamp})`, 'info');
-                
-                try {
-                    // Try QR scan from file using html5-qrcode
-                    const html5QrCodeFile = new Html5Qrcode();
-                    const qrText = await html5QrCodeFile.scanFile(file, true);
-                    
-                    if (qrText) {
-                        console.log('QR found:', qrText);
-                        const contactFound = await this.processQRResult(qrText, 'File QR');
-                        if (!contactFound) {
-                            // QR found but no contact info, run OCR on the file
-                            console.log('No contact info in QR, running OCR on file');
-                const reader = new FileReader();
-                            reader.onload = async (ev) => {
-                                await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
-                };
-                reader.readAsDataURL(file);
-                        }
-                    } else {
-                        console.log('No QR found, trying OCR');
-                        this.showStatus('🔄 No QR found, running OCR...', 'info');
-                        const reader = new FileReader();
-                        reader.onload = async (ev) => {
-                            await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                } catch (err) {
-                    console.log('html5-qrcode file scan failed, trying jsQR fallback:', err);
-                    // Fallback to jsQR for file scanning
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     try {
-                        const reader = new FileReader();
-                        reader.onload = async (ev) => {
-                            const qrResult = await this.scanQRCodeFromImage(ev.target.result);
-                    if (qrResult) {
-                                console.log('QR found with jsQR fallback:', qrResult);
-                                const contactFound = await this.processQRResult(qrResult, 'File QR (jsQR)');
-                                if (!contactFound) {
-                                    // QR found but no contact info, run OCR
-                                    console.log('No contact info in QR, running OCR');
-                                    await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
-                                }
-                        } else {
-                                console.log('No QR found with jsQR, trying OCR');
-                                this.showStatus('🔄 No QR found, running OCR...', 'info');
-                                await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
-                            }
-                        };
-                        reader.readAsDataURL(file);
-                    } catch (fallbackErr) {
-                        console.error('Both QR methods failed:', fallbackErr);
-                        this.showStatus('❌ Error analyzing file: ' + (fallbackErr.message || 'Unknown error'), 'error');
+                        const code = jsQR(imageData.data, imageData.width, imageData.height);
+                        resolve(code ? code.data : null);
+                    } catch (jsqrError) {
+                        console.error('jsQR processing error:', jsqrError);
+                        resolve(null);
                     }
-                } finally {
-                    this.showProcessing(false);
-                }
-            }
+                };
+                img.onerror = () => {
+                    console.error('Image loading error for jsQR fallback.');
+                    resolve(null);
+                };
+                img.src = imageDataUrl;
+            });
+        }
+    }
 
-            parseQRData(qrText) {
-                const clientData = { name: '', email: '', phone: '', company: '', notes: '' };
-                console.log('Parsing QR text:', qrText);
-                
-                // Initialize the efficient name extractor
-                const nameExtractor = new EfficientNameExtractor();
-                
-                // Check if it's a vCard format
-                if (qrText.startsWith('BEGIN:VCARD')) {
-                    console.log('Detected vCard format');
-                    const lines = qrText.split('\n');
-                    lines.forEach(line => {
-                        const cleanLine = line.trim();
-                        if (cleanLine.startsWith('FN:')) clientData.name = cleanLine.substring(3);
-                        if (cleanLine.startsWith('N:')) {
-                            const nameParts = cleanLine.substring(2).split(';');
-                            if (!clientData.name && nameParts.length >= 2) {
-                                clientData.name = `${nameParts[1]} ${nameParts[0]}`.trim();
-                            }
-                        }
-                        if (cleanLine.startsWith('EMAIL:') || cleanLine.includes('EMAIL:')) {
-                            const emailMatch = cleanLine.match(/EMAIL[^:]*:(.*)/i);
-                            if (emailMatch) clientData.email = emailMatch[1].trim();
-                        }
-                        if (cleanLine.startsWith('TEL:') || cleanLine.includes('TEL:')) {
-                            const telMatch = cleanLine.match(/TEL[^:]*:(.*)/i);
-                            if (telMatch) clientData.phone = telMatch[1].trim();
-                        }
-                        if (cleanLine.startsWith('ORG:')) clientData.company = cleanLine.substring(4);
-                    });
+    async processQRResult(qrText, source) {
+        console.log('Processing QR result:', qrText);
+        const clientData = this.parseQRData(qrText);
+        console.log('Extracted client data:', clientData);
+
+        // A QR code often contains a URL or other non-contact data.
+        // If it's a URL and we haven't extracted any contact info,
+        // then try OCR on the original image (if available and needed).
+        if (!clientData.name && !clientData.email && !clientData.phone) {
+            this.showStatus('🔄 QR found but no standard contact info, attempting OCR fallback...', 'info');
+            return false; // Indicate that contact info was not found via QR for potential OCR fallback
+        } else {
+            await this.addClientWithLinkedInSearch(clientData, source);
+            this.showStatus('✅ Client data extracted and added successfully! Source: ' + source, 'success');
+            return true; // Indicate contact info was found
+        }
+    }
+
+    handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (file) {
+            this.processImageFile(file);
+            // Clear the file input to allow re-uploading the same file
+            event.target.value = '';
+        }
+    }
+
+    async processImageFile(file) {
+        console.log('Processing file:', file.name, file.type);
+
+        if (!file.type.startsWith('image/')) {
+            this.showStatus('❌ Please upload a valid image file.', 'error');
+            return;
+        }
+
+        this.clearFileInput(); // Clear input value for subsequent uploads
+
+        this.showProcessing(true);
+        this.showStatus(`🔍 Analyzing image for QR codes and text...`, 'info');
+
+        try {
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                const imageDataUrl = ev.target.result;
+                let contactFoundViaQR = false;
+
+                // 1. Try QR scan first
+                const qrText = await this.scanQRCodeFromImage(imageDataUrl);
+                if (qrText) {
+                    console.log('QR found:', qrText);
+                    contactFoundViaQR = await this.processQRResult(qrText, 'File QR');
                 } else {
-                    console.log('Parsing as plain text with enhanced extraction');
-                    
-                    // Extract all possible emails and phones
-                    const allEmails = this.extractEmails(qrText);
-                    const allPhones = this.extractPhoneNumbers(qrText);
-                    
-                    // Select the best email and phone
-                    if (allEmails.length > 0) {
-                        clientData.email = allEmails[0];
-                        console.log('Found primary email:', clientData.email);
-                        
-                        // If we have multiple emails, consider adding secondary to notes
-                        if (allEmails.length > 1) {
-                            clientData.notes = `Additional emails: ${allEmails.slice(1).join(', ')}`;
-                            console.log('Found additional emails:', allEmails.slice(1));
-                        }
-                    }
-                    
-                    if (allPhones.length > 0) {
-                        clientData.phone = allPhones[0];
-                        console.log('Found primary phone:', clientData.phone);
-                        
-                        // If we have multiple phones, consider adding secondary to notes
-                        if (allPhones.length > 1) {
-                            const phoneNote = `Additional phones: ${allPhones.slice(1).join(', ')}`;
-                            clientData.notes = clientData.notes 
-                                ? `${clientData.notes}; ${phoneNote}`
-                                : phoneNote;
-                            console.log('Found additional phones:', allPhones.slice(1));
-                        }
-                    }
-                    
-                    // Extract name with context awareness
-                    clientData.name = this.extractNameWithContext(qrText);
-                    if (clientData.name) {
-                        console.log('Found name with context:', clientData.name);
-                    }
-                    
-                    // Enhanced company extraction for QR codes
-                    const lines = qrText.split('\n').filter(line => line.trim().length > 0);
-                    const companyPatterns = [
-                        // vCard ORG field (highest priority)
-                        /^ORG:(.+)$/i,
-                        // Company patterns with suffixes
-                        /(.*?)\s+(Inc\.?|LLC|Corp\.?|Ltd\.?|Company|Co\.?|Corporation|Group|Solutions|Services|Technologies|Tech|Systems|Associates|Partners|Consulting)(?!\w)/i,
-                        // Standalone company names
-                        /^[A-Z][a-zA-Z\s&]+(?:Inc\.?|LLC|Corp\.?|Ltd\.?)$/i,
-                        // Lines that look like company names (no email/phone patterns)
-                        /^[A-Z][a-zA-Z\s&]{2,}$/i
-                    ];
-                    
-                    for (const line of lines) {
-                        const cleanLine = line.trim();
-                        
-                        // Skip if line contains email or phone patterns
-                        if (cleanLine.includes('@') || /\d{7,}/.test(cleanLine)) {
-                            continue;
-                        }
-                        
-                        for (const pattern of companyPatterns) {
-                            const match = cleanLine.match(pattern);
-                            if (match && !clientData.company) {
-                                let companyName = match[1] || match[0];
-                                // Clean up the company name
-                                companyName = companyName.replace(/^ORG:\s*/i, '').trim();
-                                if (companyName.length > 2) {
-                                    clientData.company = companyName;
-                                    console.log('Found company:', clientData.company);
-                                    break;
-                                }
-                            }
-                        }
-                        if (clientData.company) break;
-                    }
-                    
-                    // If we have email but no name, try to extract name from email prefix
-                    if (clientData.email && !clientData.name) {
-                        const emailPrefix = clientData.email.split('@')[0];
-                        const nameFromEmail = emailPrefix
-                            .replace(/[^a-zA-Z]/g, ' ')
-                            .replace(/\s+/g, ' ')
-                            .trim();
-                        
-                        if (nameFromEmail.split(' ').length <= 3) {
-                            const nameCheck = nameExtractor.extractName(nameFromEmail);
-                            if (nameCheck.confidence >= 4) {
-                                clientData.name = nameCheck.name;
-                                console.log('Extracted name from email:', clientData.name);
-                            }
-                        }
-                    }
-                    
-                    // Check if it's just a URL or error code (no contact info)
-                    const isUrl = qrText.match(/^https?:\/\//);
-                    const isErrorCode = qrText.match(/^(ERROR|FAIL|INVALID)/i);
-                    
-                    if (isUrl && !clientData.name && !clientData.email && !clientData.phone) {
-                        // If it's just a URL, try to extract domain as company
-                        const domainMatch = qrText.match(/https?:\/\/([^\/]+)/);
-                        if (domainMatch) {
-                            clientData.company = domainMatch[1].replace('www.', '');
-                            console.log('Extracted company from URL:', clientData.company);
-                        }
-                    }
-                }
-                
-                console.log('Final extracted data:', clientData);
-                return clientData;
-            }
-
-            /**
-             * Optimized phone number extraction with multiple number handling
-             */
-            extractPhoneNumbers(text) {
-                // Enhanced phone regex patterns
-                const phonePatterns = [
-                    // Standard formats (highest priority)
-                    /(?:\+?91[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g,
-                    /(?:\+?[0-9]{1,3}[-.\s]?)?\(?[0-9]{2,4}\)?[-.\s]?[0-9]{2,4}[-.\s]?[0-9]{2,4}[-.\s]?[0-9]{2,4}/g,
-                    
-                    // International formats
-                    /\+[\d\s\-\(\)]{10,20}/g,
-                    
-                    // Special cases (lower priority)
-                    /tel:([+\d\s\-\(\)]+)/gi,
-                    /phone:([+\d\s\-\(\)]+)/gi,
-                    /mobile:([+\d\s\-\(\)]+)/gi
-                ];
-
-                const foundNumbers = new Set();
-                
-                // Try each pattern in order of priority
-                for (const pattern of phonePatterns) {
-                    const matches = text.match(pattern);
-                    if (matches) {
-                        matches.forEach(num => {
-                            // Clean the number
-                            let cleanNum = num.replace(/[^\d+]/g, '');
-                            
-                            // Remove tel: or phone: prefixes if present
-                            if (cleanNum.startsWith('tel') || cleanNum.startsWith('phone')) {
-                                cleanNum = cleanNum.replace(/^[a-z]+/i, '');
-                            }
-                            
-                            // Validate length (minimum 7 digits for local numbers, 10 for full numbers)
-                            if ((cleanNum.startsWith('+') && cleanNum.length >= 8) || 
-                                (!cleanNum.startsWith('+') && cleanNum.length >= 7)) {
-                                foundNumbers.add(cleanNum);
-                            }
-                        });
-                        
-                        // If we found numbers with high confidence pattern, stop searching
-                        if (foundNumbers.size > 0 && pattern === phonePatterns[0]) break;
-                    }
+                    console.log('No QR found in file.');
                 }
 
-                // Convert to array and prioritize numbers
-                const numbers = Array.from(foundNumbers);
-                
-                // Prioritization logic:
-                // 1. Numbers with + prefix (international)
-                // 2. Longer numbers (more likely to be complete)
-                // 3. Numbers that appear earlier in the text
-                numbers.sort((a, b) => {
-                    const aIsIntl = a.startsWith('+');
-                    const bIsIntl = b.startsWith('+');
-                    
-                    if (aIsIntl && !bIsIntl) return -1;
-                    if (!aIsIntl && bIsIntl) return 1;
-                    
-                    if (a.length !== b.length) return b.length - a.length;
-                    
-                    return text.indexOf(a) - text.indexOf(b);
-                });
+                // 2. If no QR or QR didn't yield contact info, proceed with OCR
+                if (!contactFoundViaQR) {
+                    this.showStatus('🔄 No contact data from QR or QR was not found. Running OCR...', 'info');
+                    await this.analyzeImageWithOCR(imageDataUrl, 'File OCR');
+                }
+            };
+            reader.readAsDataURL(file); // Read file as Data URL for Tesseract.js
+        } catch (err) {
+            console.error('Error processing image file:', err);
+            this.showStatus('❌ Error processing image file: ' + (err.message || 'Unknown error'), 'error');
+        } finally {
+            this.showProcessing(false);
+        }
+    }
 
-                return numbers;
-            }
+    parseQRData(qrText) {
+        const clientData = { name: '', email: '', phone: '', company: '', linkedIn: '', notes: '' };
+        console.log('Parsing QR text:', qrText);
 
-            /**
-             * Enhanced email extraction with multiple email handling
-             */
-            extractEmails(text) {
-                // Multiple email patterns for better accuracy
-                const emailPatterns = [
-                    // Standard email pattern
-                    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
-                    // Email with common prefixes
-                    /(?:email|e-mail|mail|contact)[\s:]*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi,
-                    // Email in parentheses or brackets
-                    /[\(\[][^\)\]]*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})[^\(\[\]]*[\)\]]/g
-                ];
-                
-                const foundEmails = new Set();
-                
-                for (const pattern of emailPatterns) {
-                    const matches = text.match(pattern);
-                    if (matches && matches.length > 0) {
-                        matches.forEach(email => {
-                            // Clean up the email (remove prefixes, parentheses, etc.)
-                            let cleanEmail = email;
-                            
-                            // Extract email from patterns with prefixes
-                            if (pattern.source.includes('email|e-mail|mail|contact')) {
-                                const emailMatch = email.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
-                                if (emailMatch) cleanEmail = emailMatch[1];
-                            }
-                            
-                            // Remove parentheses/brackets if present
-                            cleanEmail = cleanEmail.replace(/[\(\)\[\]]/g, '');
-                            
-                            // Validate email format
-                            if (this.isValidEmail(cleanEmail)) {
-                                foundEmails.add(cleanEmail.toLowerCase());
-                            }
-                        });
-                    }
-                }
-                
-                // Convert to array and prioritize emails
-                const emails = Array.from(foundEmails);
-                
-                // Prioritization logic:
-                // 1. Personal emails (not business domains like noreply, info, etc.)
-                // 2. Shorter emails (more likely to be personal)
-                // 3. Emails that appear earlier in the text
-                emails.sort((a, b) => {
-                    const aIsPersonal = !a.includes('noreply') && !a.includes('info') && !a.includes('contact');
-                    const bIsPersonal = !b.includes('noreply') && !b.includes('info') && !b.includes('contact');
-                    
-                    if (aIsPersonal && !bIsPersonal) return -1;
-                    if (!aIsPersonal && bIsPersonal) return 1;
-                    
-                    if (a.length !== b.length) return a.length - b.length;
-                    
-                    return text.indexOf(a) - text.indexOf(b);
-                });
-                
-                return emails;
-            }
+        // Initialize the efficient name extractor
+        const nameExtractor = new EfficientNameExtractor();
 
-            /**
-             * Enhanced name extraction considering surrounding context with name dataset validation
-             */
-            extractNameWithContext(text) {
-                const nameExtractor = new EfficientNameExtractor();
-                const nameResult = nameExtractor.extractName(text);
-                
-                // If we found a high confidence name, validate with dataset
-                if (nameResult.confidence >= 7) {
-                    const validatedName = this.validateNameWithDataset(nameResult.name);
-                    if (validatedName) {
-                        return validatedName;
-                    }
-                    return nameResult.name;
-                }
-                
-                // Fallback to context-based extraction
-                const lines = text.split('\n').filter(line => line.trim().length > 2);
-                
-                // Try to find name near email or phone
-                const emails = this.extractEmails(text);
-                const phones = this.extractPhoneNumbers(text);
-                
-                // If we have email or phone, look for name in nearby lines
-                if (emails.length > 0 || phones.length > 0) {
-                    const referencePoints = [...emails, ...phones];
-                    
-                    for (const point of referencePoints) {
-                        const pointIndex = text.indexOf(point);
-                        if (pointIndex === -1) continue;
-                        
-                        // Get the line containing the reference point
-                        let lineIndex = 0;
-                        let currentPos = 0;
-                        for (let i = 0; i < lines.length; i++) {
-                            currentPos += lines[i].length + 1; // +1 for newline
-                            if (currentPos > pointIndex) {
-                                lineIndex = i;
-                                break;
-                            }
-                        }
-                        
-                        // Check previous lines for name
-                        for (let i = Math.max(0, lineIndex - 2); i <= Math.min(lines.length - 1, lineIndex + 1); i++) {
-                            const line = lines[i];
-                            const check = nameExtractor.extractName(line);
-                            if (check.confidence >= 5) {
-                                const validatedName = this.validateNameWithDataset(check.name);
-                                if (validatedName) {
-                                    return validatedName;
-                                }
-                                return check.name;
-                            }
-                        }
+        // Check if it's a vCard format
+        if (qrText.startsWith('BEGIN:VCARD')) {
+            console.log('Detected vCard format');
+            const lines = qrText.split('\n');
+            lines.forEach(line => {
+                const cleanLine = line.trim();
+                // Prioritize FN (Formatted Name)
+                if (cleanLine.startsWith('FN:')) clientData.name = cleanLine.substring(3).trim();
+                // Fallback to N (Name) if FN is not present or empty
+                if (cleanLine.startsWith('N:') && !clientData.name) {
+                    const nameParts = cleanLine.substring(2).split(';');
+                    // vCard N format: N:family-name;given-name;additional-names;honorific-prefixes;honorific-suffixes
+                    // Reconstruct as "GivenName FamilyName"
+                    if (nameParts.length > 0) {
+                        const givenName = nameParts[1] ? nameParts[1].trim() : '';
+                        const familyName = nameParts[0] ? nameParts[0].trim() : '';
+                        clientData.name = `${givenName} ${familyName}`.trim();
                     }
                 }
-                
-                // Final fallback to the best name we found (even if low confidence)
-                if (nameResult.name) {
-                    const validatedName = this.validateNameWithDataset(nameResult.name);
-                    if (validatedName) {
-                        return validatedName;
+                if (cleanLine.startsWith('EMAIL:') || cleanLine.includes('EMAIL;')) {
+                    const emailMatch = cleanLine.match(/EMAIL(?:;TYPE=[^:]+)*:(.*)/i);
+                    if (emailMatch) clientData.email = emailMatch[1].trim();
+                }
+                if (cleanLine.startsWith('TEL:') || cleanLine.includes('TEL;')) {
+                    const telMatch = cleanLine.match(/TEL(?:;TYPE=[^:]+)*:(.*)/i);
+                    if (telMatch) clientData.phone = telMatch[1].trim();
+                }
+                if (cleanLine.startsWith('ORG:')) clientData.company = cleanLine.substring(4).trim();
+                if (cleanLine.startsWith('URL:')) {
+                    // Check if it's a LinkedIn URL
+                    if (cleanLine.includes('linkedin.com/in/') || cleanLine.includes('linkedin.com/pub/')) {
+                        clientData.linkedIn = cleanLine.substring(4).trim();
                     }
                 }
-                return nameResult.name || '';
-            }
+            });
+        } else {
+            console.log('Parsing as plain text with enhanced extraction');
 
-            /**
-             * Validate and correct name using the name dataset
-             */
-            validateNameWithDataset(extractedName) {
-                if (!extractedName || extractedName.length < 2) return null;
-                
-                // Clean the extracted name
-                const cleanName = extractedName.trim().toLowerCase();
-                const nameParts = cleanName.split(/\s+/);
-                
-                // Name dataset (common Indian names)
-                const nameDataset = [
-                    'aaban', 'aabharan', 'aabhas', 'aabhat', 'aabheer', 'aabir', 'aabishan', 'aacharya', 'aachman', 'aadarsh', 'aadarshan', 'aadavan', 'aadesh', 'aadhan', 'aadhar', 'aadhav', 'aadhi', 'aadhidev', 'aadhil', 'aadhiraj', 'aadhiran', 'aadhish', 'aadhishankar', 'aadhithan', 'aadhithya', 'aaditya', 'aadvay', 'aadvik', 'aadyant', 'aafiya', 'aafreen', 'aaftab', 'aagash', 'aahaan', 'aahan', 'aahil', 'aahlaad', 'aahnik', 'aahvan', 'aajeevan', 'aakaar', 'aakaash', 'aakarsh', 'aakash', 'aakashi', 'aakshat', 'aalam', 'aalan', 'aalap', 'aalok', 'aamil', 'aamir', 'aamish', 'aamod', 'aamodh', 'aanand', 'aanandit', 'aananth', 'aansh', 'aapt', 'aapu', 'aaqib', 'aaqil', 'aaradhak', 'aaran', 'aarav', 'aarif', 'aarish', 'aarit', 'aarnab', 'aarnav', 'aarsh', 'aarth', 'aaryan', 'aaryav', 'aashang', 'aashank', 'aashay', 'aashir', 'aashish', 'aashlesh', 'aashman', 'aashray', 'aashresh', 'aashrith', 'aashrut', 'aashu', 'aashutosh', 'aasif', 'aasim', 'aasit', 'aastha', 'aastik', 'aasvi', 'aathan', 'aathavan', 'aathees', 'aathijeyan', 'aathikan', 'aathipan', 'aathiran', 'aathish', 'aathith', 'aathithan', 'aathrav', 'aatif', 'aatish', 'aatma', 'aatmaj', 'aatman', 'aatmanand', 'aatmaram', 'aatmay', 'aatmik', 'aatrey', 'aatreya', 'aavansh', 'aavanyan', 'aavarthan', 'aaveg', 'aavesh', 'aavi', 'aavish', 'aayam', 'aayan', 'aayansh', 'aayu', 'aayush', 'aayudh', 'aayus', 'aayushmaan', 'aazim', 'abaan', 'abadhya', 'abay', 'abayan', 'abbas', 'abbhinav', 'abbir', 'abbott', 'abbud', 'abdul', 'abdullah', 'abdus', 'abed', 'abedin', 'abeer', 'abel', 'abenayan', 'abezag', 'abhaidev', 'abhaijeet', 'abharajithan', 'abhas', 'abhav', 'abhay', 'abhayan', 'abhayananda', 'abhayanankar', 'abheek', 'abheesht', 'abheet', 'abhey', 'abhibhava', 'abhicandra', 'abhidharm', 'abhidhi', 'abhigyaan', 'abhiijaat', 'abhijan', 'abhijat', 'abhijay', 'abhijaya', 'abhijeet', 'abhijit', 'abhijith', 'abhijun', 'abhik', 'abhikam', 'abhilash', 'abhilesh', 'abhim', 'abhiman', 'abhimand', 'abhimani', 'abhimanyu', 'abhimath', 'abhimoda', 'abhinabhas', 'abhinand', 'abhinanda', 'abhinandan', 'abhinandana', 'abhinash', 'abhinatha', 'abhinav', 'abhinava', 'abhinay', 'abhineet', 'abhinesh', 'abhinit', 'abhinivesh', 'abhinuj', 'abhipuj', 'abhir', 'abhiraam', 'abhiraj', 'abhiral', 'abhiram', 'abhirath', 'abhiroop', 'abhirup', 'abhisar', 'abhisek', 'abhisheik', 'abhishek', 'abhishekita', 'abhishrey', 'abhisoka', 'abhisumat', 'abhisumath', 'abhisyanta', 'abhith', 'abhivaadan', 'abhivadan', 'abhivanth', 'abhivira', 'abhjeet', 'abhoy', 'abhra', 'abhrakasin', 'abhram', 'abhranila', 'abhu', 'abhya', 'abhyagni', 'abhyan', 'abhyank', 'abhypsit', 'abhyuday', 'abhyudaya', 'abhyudev', 'abhyudita', 'abid', 'abidin', 'abijith', 'abimanyu', 'abinash', 'abinav', 'abinay', 'abinayan', 'abinesh', 'abinish', 'abiram', 'abisali', 'abishek', 'abivanth', 'abjayoni', 'abjit', 'abner', 'abninayan', 'abra', 'abrad', 'abraham', 'abrar', 'abrash', 'abrik', 'abu', 'abul', 'acalapati', 'acalendra', 'acalesvara', 'acanda', 'acaryanandana', 'acaryasuta', 'acaryatanaya', 'acchindra', 'acchutan', 'achal', 'achalapati', 'achalendra', 'achalesvara', 'achalraj', 'achanda', 'achapal', 'acharya', 'acharyanandana', 'acharyasuta', 'achindra', 'achint', 'achintya', 'achuthan', 'achyut', 'achyuta', 'achyutam', 'achyutaraya', 'achyuth', 'achyuthan', 'acintya', 'acyutaraya', 'adalarachan', 'adalarasen', 'adalarasu', 'adam', 'adarsh', 'adavan', 'adbhutah', 'addison', 'adedev', 'adeel', 'adeela', 'adeem', 'adeep', 'adel', 'adenya', 'adesh', 'adeshwar', 'adham', 'adharsh', 'adharv', 'adhavan', 'adheer', 'adheesh', 'adhik', 'adhikara', 'adhinath', 'adhinav', 'adhip', 'adhipa', 'adhir', 'adhiraiyan', 'adhiraj', 'adhiratha', 'adhish', 'adhit', 'adhita', 'adhithya', 'adhitya', 'adhrit', 'adhrith', 'adhvait', 'adhvesh', 'adhvik', 'adhyan', 'adhyayan', 'adhyuth', 'adi', 'adib', 'adidev', 'adikavi', 'adikya', 'adil', 'adiman', 'adinath', 'adipurush', 'adipurusha', 'adisesh', 'adit', 'aditeya', 'adith', 'adithiya', 'adithya', 'aditiya', 'aditraj', 'aditya', 'adityaharicharan', 'adityakiran', 'adityanandan', 'adityanandana', 'adityavardhana', 'adiv', 'adiyaman', 'adler', 'adley', 'adlin', 'adnan', 'adotka', 'adrav', 'adrian', 'adrien', 'adrik', 'adripathi', 'adrish', 'adriyan', 'adrush', 'adtiya', 'advait', 'advaith', 'advay', 'advaya', 'advik', 'advit', 'adviteeya', 'advith', 'advitya', 'adwaid', 'adwait', 'adwaita', 'advaitha', 'adwaith', 'adway', 'adwaya', 'adwik', 'adwin', 'adyant', 'aedan', 'aiden', 'aekansh', 'aeshan', 'aeyush', 'afeef', 'aftab', 'aftaab', 'afzal', 'agam', 'agamiya', 'agampreet', 'aganit', 'aganveer', 'agarv', 'agarvin', 'agasthya', 'agasti', 'agathiyan', 'agavoli', 'agendra', 'agha', 'aghartha', 'aghat', 'aghor', 'aghornath', 'aghosh', 'agilan', 'agnello', 'agnes', 'agneya', 'aagneya', 'agnibahu', 'agnihotra', 'agnikumara', 'agnimitra', 'agniprava', 'agniras', 'agniv', 'agnivesh', 'agnivo', 'agraj', 'agrani', 'agrim', 'agrima', 'agriya', 'agustya', 'agyeya', 'ahaan', 'ahachcudar', 'ahad', 'ahaliyan', 'ahalyan', 'ahamathi', 'ahamynthan', 'ahan', 'ahanaeyan', 'ahankar', 'ahanyan', 'ahar', 'aharan', 'aharathan', 'aharihan', 'aharijan', 'aharshi', 'aharsi', 'ahaventhan', 'ahi', 'ahijit', 'ahil', 'ahilan', 'ahim', 'ahin', 'ahir', 'ahlad', 'ahmad', 'ahnay', 'ahren', 'ahrooran', 'ahruran', 'ahsan', 'ahti', 'aiden', 'aifa', 'aijaz', 'aiken', 'ail', 'aiman', 'ainesh', 'ainitosh', 'airaawat', 'airawat', 'eirawat', 'erawat', 'irawat', 'airavath', 'airawat', 'aishwa', 'aiyan', 'aiyappa', 'aiyyapa', 'ajaat', 'ajaatshatru', 'ajatshatru', 'ajah', 'ajahni', 'ajai', 'ajaipal', 'ajamil', 'ajan', 'ajanma', 'ajanthan', 'ajanya', 'ajat', 'ajatashatru', 'ajathasathru', 'ajatshatru', 'ajay', 'ajayan', 'ajeesh', 'ajeet', 'ajendra', 'ajesh', 'ajinkya', 'ajish', 'ajisth', 'ajit', 'ajitaabh', 'ajitabh', 'ajitesh', 'ajith', 'ajithabh', 'ajithesh', 'ajkhyat', 'ajmal', 'ajmil', 'ajneesh', 'ajoy', 'akal', 'akaldeep', 'akalin', 'akaljot', 'akalmash', 'akalnivas', 'akalpa', 'akalpreet', 'akalroop', 'akalsharan', 'akalsimar', 'akalsukh', 'akand', 'akansh', 'akanshit', 'akarsh', 'akash', 'akashdeep', 'akashini', 'akathiyan', 'akbar', 'akeem', 'akendra', 'akhalesh', 'akhand', 'akharsh', 'akhas', 'akhil', 'akhilash', 'akhilesh', 'akhileshwar', 'akhileswar', 'akhsaj', 'akhtar', 'akhurath', 'akhyath', 'akif', 'akil', 'akilan', 'akilesh', 'akira', 'akkamma', 'akkrum', 'akmal', 'akram', 'akaram', 'akrash', 'akrish', 'akrit', 'akroor', 'akruti', 'aksh', 'akshad', 'akshagna', 'akshahantre', 'akshaj', 'akshan', 'akshansh', 'akshant', 'akshar', 'aksharan', 'akshat', 'akshath', 'akshay', 'akshaya', 'akshayan', 'akshaykeerti', 'akshey', 'akshit', 'akshith', 'akshobhya', 'akshu', 'akshun', 'akshyan', 'akshyat', 'akul', 'ala', 'alaa', 'alaap', 'alabhya', 'alagan', 'alagappan', 'alagarasu', 'alagen', 'alaginiyan', 'alagiri', 'alahan', 'alakeshan', 'alakeshwaran', 'alakshendra', 'alamgir', 'alampata', 'alan', 'allan', 'alankar', 'alankrit', 'alarka', 'alastair', 'albern', 'albert', 'albion', 'alden', 'aldis', 'aldrich', 'alec', 'aleem', 'alek', 'alexander', 'alfie', 'alfred', 'algernon', 'alhad', 'alhasan', 'alhusain', 'alhusayn', 'ali', 'alice', 'alif', 'alin', 'alipta', 'allah', 'allaiyamuthan', 'allappariyan', 'alman', 'almir', 'alok', 'alok', 'aalok', 'aloke', 'alokendra', 'alolupan', 'alop', 'alpesh', 'alpha', 'alpit', 'alston', 'altaf', 'altair', 'alton', 'alvin', 'amaan', 'amaanat', 'amaar', 'amaay', 'amad', 'amadhya', 'amain', 'amaithipriyan', 'amaiyaran', 'amal', 'amalendu', 'amalesh', 'amam', 'aman', 'amanat', 'amanath', 'amanbir', 'amandeep', 'amandev', 'amaneesh', 'amanjeet', 'amanpal', 'amanpreet', 'amapramaadhy', 'amar', 'amaradhevan', 'amaran', 'amaranaath', 'amarnath', 'amaranayagan', 'amardeep', 'amardev', 'amarender', 'amarendra', 'amaresh', 'amarinder', 'amaris', 'amarjeet', 'amarjot', 'amarleen', 'amarnath', 'amarpreet', 'amarshayan', 'amarthevan', 'amartya', 'amav', 'amay', 'ambadi', 'ambak', 'ambalavan', 'ambar', 'ambareesh', 'ambarish', 'ambav', 'amber', 'amberish', 'ambesh', 'ambhoj', 'ambikanath', 'ambikapathi', 'ambikeya', 'ambili', 'ambrose', 'ambud', 'ambuj', 'ambujakshan', 'ambunath', 'ameer', 'ameet', 'amer', 'amery', 'amet', 'amey', 'ameyaatmaa', 'ameyatma', 'amid', 'amil', 'amildhiniyan', 'amileigh', 'amin', 'ameen', 'amir', 'amirathan', 'amirtha', 'amirtharasan', 'amish', 'amit', 'amitab', 'amitabh', 'amitaabh', 'amitabha', 'amitav', 'amitava', 'amitay', 'amitbikram', 'amitesh', 'amith', 'amithran', 'amitiyoti', 'amitrasudan', 'amiy', 'amjad', 'amlan', 'amlangusum', 'amod', 'amogh', 'amoghah', 'amoghraj', 'amol', 'amolak', 'amolik', 'amoorta', 'amos', 'ampulli', 'amrik', 'amrinder', 'amrish', 'amrit', 'amritambu', 'amritaya', 'amrith', 'amrithash', 'amritpal', 'amrut', 'amruth', 'amrutheswar', 'amsan', 'amshu', 'amshul', 'amshuman', 'amuda', 'amudan', 'amudhan', 'amuk', 'amul', 'amuthan', 'amuthiniyan', 'amuthithan', 'amzad', 'an', 'anaad', 'anaadhrushya', 'anaadi', 'anaadih', 'anaan', 'anaathi', 'anadh', 'anadhi', 'anadi', 'anagh', 'anahath', 'anak', 'anakh', 'anakul', 'anal', 'anam', 'anamay', 'anamaya', 'anami', 'anamitra', 'anan', 'ananay', 'anand', 'aanand', 'ananda', 'anandaganesh', 'anandamay', 'anandan', 'anandh', 'anandhamurugan', 'anandhan', 'anandhu', 'anandsagar', 'anang', 'ananinay', 'ananmay', 'ananmaya', 'anant', 'anantachidrupamayam', 'anantadrishti', 'anantaguna', 'anantajeet', 'anantajit', 'ananth', 'anant', 'ananthaa', 'ananthan', 'ananthu', 'anantim', 'anantram', 'anany', 'ananye', 'ananyo', 'anash', 'anashay', 'anashin', 'anashwar', 'anashya', 'anathikan', 'anav', 'anaye', 'anbaenthi', 'anbalagan', 'anbarasan', 'anbarasu', 'anbazhagan', 'anbu', 'anbuchelvan', 'anbumadi', 'anbuselvan', 'anbushelvan', 'anchit', 'andeep', 'andrew', 'aneek', 'aneeq', 'anees', 'aneesh', 'aneeth', 'anek', 'anesh', 'angad', 'angada', 'angadan', 'angaj', 'angak', 'angamuthu', 'angara', 'angaran', 'angayapriyan', 'angiras', 'angith', 'angleen', 'angus', 'anhar', 'anidev', 'aniesh', 'aniij', 'anik', 'anikait', 'anikanchan', 'anikant', 'aniket', 'aniketh', 'anikt', 'anil', 'anilaabh', 'anilabh', 'anilan', 'anilesh', 'animan', 'animash', 'animesh', 'anindith', 'anindo', 'anindya', 'aniq', 'anirban', 'aniroodh', 'aniruddh', 'aniruddha', 'aniruddhan', 'anirudh', 'anirudhha', 'anirudra', 'anirudu', 'aniruth', 'anirvan', 'anirved', 'anirvin', 'anirvinya', 'anis', 'anish', 'anishk', 'anishvar', 'aniswar', 'anit', 'aniteja', 'aniv', 'anivardh', 'anjaan', 'anjak', 'anjal', 'anjan', 'anjanappa', 'anjaneya', 'anjas', 'anjasa', 'anjay', 'anjesh', 'anjik', 'anjish', 'anjor', 'anjum', 'anjuman', 'ankal', 'ankesh', 'ankit', 'ankith', 'ankolit', 'ankur', 'ankush', 'anmay', 'anmesh', 'anmol', 'anna', 'annanathan', 'anniruddha', 'annsh', 'annuabhuj', 'annul', 'anokha', 'anoob', 'anoop', 'anoor', 'anosh', 'anoush', 'anpalagan', 'anpalahan', 'anpalakan', 'anpan', 'anpukiniyan', 'anram', 'ansal', 'ansel', 'ansh', 'anshaan', 'anshak', 'anshal', 'anshin', 'anshit', 'anshrith', 'anshu', 'anshuk', 'anshul', 'anshum', 'anshuman', 'anshumaan', 'anshumat', 'ansil', 'ansu', 'ansuman', 'antam', 'antar', 'antarang', 'antareeksh', 'antariksh', 'anthamaan', 'anthaman', 'anthikan', 'anthony', 'anthudaran', 'antim', 'antrix', 'anubhab', 'anubhaj', 'anubhav', 'anubodh', 'anuchan', 'anuchana', 'anudarshan', 'anudeep', 'anudev', 'anugrah', 'anugya', 'anuh', 'anuha', 'anuj', 'anukash', 'anukrit', 'anukul', 'anul', 'anumit', 'anumodith', 'anunay', 'anup', 'anupam', 'anupreet', 'anuprit', 'anuraag', 'anurag', 'anuraag', 'anuraj', 'anuritha', 'anurodh', 'anuroop', 'anurup', 'anuroop', 'anush', 'anushahan', 'anushan', 'anushivan', 'anuthaman', 'anutharshan', 'anutosh', 'anuttam', 'anuvindha', 'anuyog', 'anvay', 'anveer', 'anvesh', 'anveshan', 'anvit', 'anvith', 'anwar', 'anwesh', 'anwit', 'anyah', 'anyang', 'anzan', 'apar', 'aparajeet', 'aparajit', 'aparant', 'aparichit', 'apasyu', 'apij', 'apoorv', 'appaji', 'apparajito', 'appu', 'apsaran', 'apure', 'apurti', 'apurv', 'apurva', 'apoorva', 'ara', 'araahan', 'arab', 'aradhy', 'araha', 'arahan', 'arakhsan', 'aralan', 'aram', 'arambhi', 'aranab', 'aranamuthan', 'aranmakan', 'aranyak', 'araon', 'arasu', 'arav', 'aravali', 'aravan', 'aravin', 'aravind', 'aravindan', 'aravindhan', 'aravinth', 'arawo', 'archak', 'archan', 'archat', 'archer', 'archibald', 'archin', 'archish', 'archishman', 'archit', 'archith', 'archuna', 'ardashir', 'ardhendu', 'arean', 'areehah', 'areen', 'aref', 'arif', 'arekh', 'aresh', 'arganesh', 'argha', 'arghya', 'arha', 'arhaan', 'arhan', 'arhant', 'arhat', 'ariez', 'arihaan', 'arihan', 'arihant', 'ariharan', 'arijeet', 'arijit', 'arin', 'arindam', 'arindham', 'arine', 'arinjay', 'arinjoy', 'arish', 'arishwaran', 'arit', 'arivahan', 'arivalagan', 'arivali', 'arivarasan', 'arivarasu', 'arivoli', 'arivolli', 'arivozhi', 'arivuchelvan', 'arivukumaran', 'arivumadhi', 'arivumani', 'arivunambi', 'arivuselvan', 'arivuththamil', 'ariyan', 'arjan', 'arjav', 'arjeeth', 'arjit', 'arju', 'arjun', 'arjuna', 'arjunan', 'arjune', 'arjunna', 'arjunnan', 'arjunnen', 'ark', 'arka', 'arkaj', 'arkash', 'arkesh', 'arkin', 'arkish', 'arksh', 'arlen', 'arman', 'arnab', 'arnad', 'arnav', 'arnesh', 'arnik', 'arnish', 'arnit', 'arnoh', 'arnold', 'arnon', 'arnrit', 'aroha', 'arohan', 'aroop', 'aroush', 'arpan', 'arpil', 'arpit', 'arravind', 'arravinth', 'arsalan', 'arsha', 'arshad', 'arshan', 'artabandhu', 'artagnan', 'artatrana', 'arth', 'artham', 'arthav', 'arthikan', 'arthin', 'arthish', 'arthit', 'arthur', 'arudhra', 'aruj', 'arujas', 'arul', 'arulan', 'arulchelvan', 'arulganeshan', 'arulkumar', 'arulmozhiselvan', 'arulmozhivarman', 'arulnithi', 'arumai', 'arumbu', 'arumin', 'arumugam', 'arumugan', 'arumugathamudhu', 'arumughan', 'arumukhan', 'arun', 'arunabh', 'arunachaleshwara', 'arunageethayan', 'arunan', 'arunesh', 'arungedan', 'arunkannan', 'arunmozhithevan', 'arunmozhivarman', 'arunoday', 'arunothayan', 'arunthavan', 'aruran', 'arush', 'arushan', 'arushanan', 'aruth', 'arva', 'arvalan', 'arvel', 'arvin', 'arvind', 'arvinda', 'arvindswamy', 'ary', 'arya', 'aryaa', 'aryaan', 'aryadit', 'aryadita', 'aryamaan', 'aryaman', 'aryan', 'aryaraj', 'aryasb', 'aryash', 'aryav', 'aryavan', 'aryaveer', 'asad', 'asaja', 'asas', 'asav', 'aseelah', 'aseem', 'asees', 'asgar', 'ashakiran', 'ashan', 'ashank', 'ashankit', 'ashanko', 'ashcharya', 'asheem', 'ashesh', 'ashik', 'ashimat', 'ashirvad', 'ashis', 'ashish', 'ashit', 'ashith', 'ashitosh', 'ashkan', 'ashkaran', 'ashlesh', 'ashman', 'ashmik', 'ashmit', 'ashmith', 'ashneel', 'asho', 'ashok', 'ashokan', 'ashooja', 'ashpan', 'ashraf', 'asraf', 'ashrav', 'ashravya', 'ashray', 'ashrit', 'ashrith', 'ashrut', 'ashsri', 'ashtavakra', 'ashu', 'ashuthosh', 'ashutosh', 'aashutosh', 'ashva', 'ashvad', 'ashvanth', 'ashvarya', 'ashvat', 'ashvath', 'ashvik', 'ashvin', 'ashvind', 'ashwaghosh', 'ashwant', 'ashwanth', 'ashwarth', 'ashwath', 'ashwatham', 'ashwathama', 'ashwatthama', 'ashwathama', 'ashwesh', 'ashwin', 'ashwinraj', 'asidhan', 'asim', 'asish', 'asit', 'asitvaran', 'aslam', 'aslan', 'aslesh', 'aslun', 'aslunak', 'aslunit', 'asmit', 'asmith', 'asner', 'asok', 'asokan', 'asotosa', 'aashutosh', 'asrith', 'astik', 'astitva', 'astitya', 'astrit', 'asuman', 'asvin', 'aswanth', 'aswantha', 'aswapn', 'aswathaama', 'aswin', 'aswinikumar', 'atal', 'atambhu', 'atanu', 'atas', 'atash', 'ateeksh', 'ateet', 'atharav', 'atharv', 'atharva', 'atharvan', 'atheesh', 'athi', 'athiban', 'athighashen', 'athikaya', 'athikunan', 'athinarayanan', 'athiraiyan', 'athirayan', 'athish', 'athishan', 'athishay', 'athishen', 'athithan', 'athitya', 'athiyen', 'athrava', 'athreya', 'athrv', 'athul', 'athyajat', 'ati', 'atikish', 'atiksh', 'atim', 'atimanav', 'atin', 'atish', 'atishay', 'atit', 'atiya', 'atma', 'atmadeep', 'atmaj', 'atmajyothi', 'atmakanth', 'atman', 'atmanand', 'atmananda', 'atmaprakash', 'atmaram', 'atmik', 'atraiu', 'atralarasu', 'atreya', 'atri', 'atul', 'atultejas', 'atulya', 'atun', 'atvar', 'atvi', 'atwater', 'atwood', 'aubrey', 'audvik', 'augadh', 'auniket', 'aurel', 'austin', 'avadh', 'avadhesh', 'avadhoot', 'avalok', 'avan', 'avaneesh', 'avanish', 'avaneeth', 'avanesh', 'avanindra', 'avanish', 'avanithan', 'avaraj', 'avas', 'avashesh', 'avasyu', 'avatar', 'avaya', 'avdhoot', 'avdhut', 'aveekshith', 'aveen', 'avery', 'avhimanyu', 'avi', 'avichal', 'avigyan', 'avijit', 'avik', 'avikalp', 'avikam', 'avikrish', 'avikrut', 'avikshit', 'avilash', 'avin', 'avinash', 'avinay', 'avinesh', 'avingha', 'avir', 'aviraaj', 'aviraj', 'aviral', 'avirat', 'avirbhav', 'avirup', 'avish', 'avishkar', 'aviyukta', 'avkash', 'avneesh', 'avnendra', 'avnesh', 'avniel', 'avtar', 'avya', 'avyaansh', 'avyan', 'avyaya', 'avyayaprabhu', 'avyukt', 'avyukta', 'avyukth', 'awadhesh', 'awan', 'awas', 'awdhesh', 'awesh', 'axel', 'ayaan', 'ayaansh', 'ayan', 'ayank', 'ayansh', 'ayavanth', 'ayilyam', 'ayngaran', 'ayobaahu', 'ayodhya', 'ayog', 'ayub', 'ayudh', 'ayushmaan', 'ayushman', 'ayyan', 'ayyapan', 'ayyappa', 'ayyappadas', 'ayyappan', 'azad', 'azar', 'azeez', 'aziz', 'azhaar', 'azhagan', 'azhagar', 'azhagu', 'azhar'
-                ];
-                
-                // Check if any part of the extracted name matches the dataset
-                for (const namePart of nameParts) {
-                    if (namePart.length < 2) continue;
-                    
-                    // Direct match
-                    if (nameDataset.includes(namePart)) {
-                        console.log(`Name validated with dataset: ${namePart} -> ${extractedName}`);
-                        return extractedName;
-                    }
-                    
-                    // Fuzzy match for common variations
-                    const variations = this.generateNameVariations(namePart);
-                    for (const variation of variations) {
-                        if (nameDataset.includes(variation)) {
-                            console.log(`Name corrected with dataset: ${namePart} -> ${variation}`);
-                            return extractedName.replace(namePart, variation);
-                        }
-                    }
-                }
-                
-                return null;
-            }
+            // Extract all possible emails and phones
+            const allEmails = this.extractEmails(qrText);
+            const allPhones = this.extractPhoneNumbers(qrText);
 
-            /**
-             * Generate common name variations for fuzzy matching
-             */
-            generateNameVariations(name) {
-                const variations = [];
-                
-                // Common spelling variations
-                if (name.includes('aa')) variations.push(name.replace(/aa/g, 'a'));
-                if (name.includes('a')) variations.push(name.replace(/a/g, 'aa'));
-                if (name.includes('ee')) variations.push(name.replace(/ee/g, 'i'));
-                if (name.includes('i')) variations.push(name.replace(/i/g, 'ee'));
-                if (name.includes('oo')) variations.push(name.replace(/oo/g, 'u'));
-                if (name.includes('u')) variations.push(name.replace(/u/g, 'oo'));
-                
-                // Common letter substitutions
-                if (name.includes('c')) variations.push(name.replace(/c/g, 'k'));
-                if (name.includes('k')) variations.push(name.push(name.replace(/k/g, 'c')));
-                if (name.includes('ph')) variations.push(name.replace(/ph/g, 'f'));
-                if (name.includes('f')) variations.push(name.replace(/f/g, 'ph'));
-                
-                // Remove common suffixes
-                if (name.endsWith('an')) variations.push(name.slice(0, -2));
-                if (name.endsWith('esh')) variations.push(name.slice(0, -3));
-                if (name.endsWith('ish')) variations.push(name.slice(0, -3));
-                
-                return variations;
-            }
-
-            // EMAIL VALIDATION HELPER
-            isValidEmail(email) {
-                const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-                return emailRegex.test(email) && 
-                       email.length >= 5 && 
-                       email.length <= 254 &&
-                       !email.includes('..') &&
-                       !email.startsWith('.') &&
-                       !email.endsWith('.');
-            }
-
-            // Enhanced OCR text extraction using the new optimized methods
-            extractClientDataFromText(text) {
-                console.log('Processing OCR text:', text);
-                const clientData = { name: '', email: '', phone: '', company: '', notes: '' };
-                
-                // Clean and normalize text for better processing
-                const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-                const lines = cleanText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-                
-                console.log('Processed lines:', lines);
-                
-                // Enhanced email extraction with better patterns
-                const allEmails = this.extractEmails(cleanText);
-                if (allEmails.length > 0) {
-                    clientData.email = allEmails[0];
-                    console.log('OCR found primary email:', clientData.email);
-                    
-                    if (allEmails.length > 1) {
-                        clientData.notes = `Additional emails: ${allEmails.slice(1).join(', ')}`;
-                        console.log('OCR found additional emails:', allEmails.slice(1));
-                    }
-                }
-                
-                // Enhanced phone extraction with better patterns
-                const allPhones = this.extractPhoneNumbers(cleanText);
-                if (allPhones.length > 0) {
-                    clientData.phone = allPhones[0];
-                    console.log('OCR found primary phone:', clientData.phone);
-                    
-                    if (allPhones.length > 1) {
-                        const phoneNote = `Additional phones: ${allPhones.slice(1).join(', ')}`;
-                        clientData.notes = clientData.notes 
-                            ? `${clientData.notes}; ${phoneNote}`
-                            : phoneNote;
-                        console.log('OCR found additional phones:', allPhones.slice(1));
-                    }
-                }
-                
-                // Enhanced name extraction for business cards
-                clientData.name = this.extractNameFromBusinessCard(lines, cleanText);
-                if (clientData.name) {
-                    console.log('OCR found name:', clientData.name);
-                }
-                
-                // Enhanced company extraction for business cards
-                clientData.company = this.extractCompanyFromBusinessCard(lines, cleanText);
-                if (clientData.company) {
-                    console.log('OCR found company:', clientData.company);
-                }
-                
-                // Fallback: Extract name from email if not found
-                if (clientData.email && !clientData.name) {
-                    const emailPrefix = clientData.email.split('@')[0];
-                    const nameFromEmail = emailPrefix
-                        .replace(/[^a-zA-Z]/g, ' ')
-                        .replace(/\s+/g, ' ')
-                        .trim();
-                    
-                    if (nameFromEmail.split(' ').length <= 3) {
-                        const nameExtractor = new EfficientNameExtractor();
-                        const nameCheck = nameExtractor.extractName(nameFromEmail);
-                        if (nameCheck.confidence >= 3) {
-                            clientData.name = nameCheck.name;
-                            console.log('OCR extracted name from email:', clientData.name);
-                        }
-                    }
-                }
-                
-                console.log('Final extracted data:', clientData);
-                return clientData;
-            }
-
-            async analyzeImageWithOCR(imageData, source) {
-                try {
-                    this.showStatus('🤖 Performing text recognition...', 'info');
-                    
-                    const { data: { text } } = await Tesseract.recognize(imageData, 'eng', {
-                        logger: m => {
-                            if (m.status === 'recognizing text') {
-                                this.showStatus(`🔍 OCR Progress: ${Math.round(m.progress * 100)}%`, 'info');
-                            }
-                        }
-                    });
-                    
-                    const clientData = this.extractClientDataFromText(text);
-                    
-                    // Allow adding if at least email, name, or phone is found
-                    if (clientData.email || clientData.name || clientData.phone) {
-                        await this.addClientWithLinkedInSearch(clientData, source);
-                    } else {
-                        this.showStatus('❌ No contact information found in the image. Please try manual entry.', 'error');
-                    }
-                } catch (error) {
-                    this.showStatus('❌ OCR processing failed: ' + error.message, 'error');
+            if (allEmails.length > 0) {
+                clientData.email = allEmails[0];
+                if (allEmails.length > 1) {
+                    clientData.notes = `Additional emails: ${allEmails.slice(1).join(', ')}`;
                 }
             }
 
-            /**
-             * Extract name specifically from business card format
-             */
-            extractNameFromBusinessCard(lines, fullText) {
-                const nameExtractor = new EfficientNameExtractor();
-                
-                // Try multiple extraction methods in order of reliability
-                
-                // Method 1: Look for prominent names (usually first few lines)
-                for (let i = 0; i < Math.min(5, lines.length); i++) {
-                    const line = lines[i];
-                    // Skip lines that are clearly not names
-                    if (line.includes('@') || /\d{7,}/.test(line) || line.includes('www.') || 
-                        line.toLowerCase().includes('email') || line.toLowerCase().includes('phone')) {
-                        continue;
-                    }
-                    
-                    const nameResult = nameExtractor.extractName(line);
-                    if (nameResult.name && nameResult.confidence >= 6) {
-                        return nameResult.name;
-                    }
+            if (allPhones.length > 0) {
+                clientData.phone = allPhones[0];
+                if (allPhones.length > 1) {
+                    const phoneNote = `Additional phones: ${allPhones.slice(1).join(', ')}`;
+                    clientData.notes = clientData.notes
+                        ? `${clientData.notes}; ${phoneNote}`
+                        : phoneNote;
                 }
-                
-                // Method 2: Look for title patterns (Name - Title)
-                for (const line of lines) {
-                    const titleMatch = line.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s*[-–—]\s*(.+)/);
-                    if (titleMatch) {
-                        const nameResult = nameExtractor.extractName(titleMatch[1]);
-                        if (nameResult.name && nameResult.confidence >= 5) {
-                            return nameResult.name;
-                        }
-                    }
-                }
-                
-                // Method 3: Context-based extraction
-                const contextName = this.extractNameWithContext(fullText);
-                if (contextName) {
-                    const nameResult = nameExtractor.extractName(contextName);
-                    if (nameResult.name && nameResult.confidence >= 4) {
-                        return nameResult.name;
-                    }
-                }
-                
-                return '';
             }
 
-            /**
-             * Extract company specifically from business card format
-             */
-            extractCompanyFromBusinessCard(lines, fullText) {
-                // Enhanced company patterns for business cards
-                const companyPatterns = [
-                    // vCard ORG field
-                    /^ORG:(.+)$/i,
-                    // Company with common suffixes
-                    /(.*?)\s+(Inc\.?|LLC|Corp\.?|Ltd\.?|Company|Co\.?|Corporation|Group|Solutions|Services|Technologies|Tech|Systems|Associates|Partners|Consulting|Infotech|Software|Digital|Media|Marketing|Design|Studio|Agency)(?!\w)/i,
-                    // Standalone company names
-                    /^[A-Z][a-zA-Z\s&]+(?:Inc\.?|LLC|Corp\.?|Ltd\.?|Infotech|Tech|Solutions|Services)$/i,
-                    // Lines that look like company names (no email/phone patterns)
-                    /^[A-Z][a-zA-Z\s&]{3,}$/i
-                ];
-                
-                // Method 1: Look for company patterns in lines
-                for (const line of lines) {
-                    // Skip if line contains email or phone patterns
-                    if (line.includes('@') || /\d{7,}/.test(line) || line.toLowerCase().includes('email') || 
-                        line.toLowerCase().includes('phone') || line.toLowerCase().includes('tel')) {
-                        continue;
-                    }
-                    
-                    for (const pattern of companyPatterns) {
-                        const match = line.match(pattern);
-                        if (match) {
-                            let companyName = match[1] || match[0];
-                            companyName = companyName.replace(/^ORG:\s*/i, '').trim();
-                            if (companyName.length > 2 && companyName.length < 50) {
-                                return companyName;
-                            }
-                        }
-                    }
-                }
-                
-                // Method 2: Look for domain-based company names
-                const domainMatch = fullText.match(/www\.([^\/\s]+)/i);
+            // Enhanced name extraction for QR codes (context-aware)
+            clientData.name = this.extractNameWithContext(qrText);
+
+            // Enhanced company extraction for QR codes
+            const companyMatch = this.extractCompanyFromText(qrText);
+            if (companyMatch) clientData.company = companyMatch;
+
+            // Check for LinkedIn URLs in plain text QR
+            const linkedInMatch = qrText.match(/(https?:\/\/(?:www\.)?linkedin\.com\/(?:in|pub)\/[^/\s]+)/i);
+            if (linkedInMatch) {
+                clientData.linkedIn = linkedInMatch[1].trim();
+            }
+
+            // If it's just a URL and no other contact info, extract domain as company
+            const isUrlOnly = qrText.match(/^https?:\/\/[^\s]+$/) && !clientData.name && !clientData.email && !clientData.phone;
+            if (isUrlOnly) {
+                const domainMatch = qrText.match(/https?:\/\/([^\/]+)/);
                 if (domainMatch) {
-                    const domain = domainMatch[1].replace('www.', '');
-                    if (domain.length > 3) {
-                        return domain.split('.')[0].replace(/[^a-zA-Z]/g, '');
-                    }
+                    clientData.company = domainMatch[1].replace('www.', '').split('.')[0].trim();
+                    console.log('Extracted company from URL:', clientData.company);
                 }
-                
-                return '';
-            }
-
-            async addClientWithLinkedInSearch(clientData, source) {
-                if (clientData.name) {
-                    this.showStatus('🔍 Searching for LinkedIn profile...', 'info');
-                    clientData.linkedIn = await this.findLinkedInProfile(clientData.name, clientData.company);
-                }
-                
-                this.addClient({...clientData, source});
-                this.showStatus(`✅ Client data extracted and added successfully! Source: ${source}`, 'success');
-            }
-
-            async findLinkedInProfile(name, company = '') {
-                try {
-                    // Create LinkedIn search URL
-                    const searchQuery = `${name} ${company}`.trim().replace(/\s+/g, '+');
-                    const linkedInSearchURL = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(searchQuery)}`;
-                    
-                    return linkedInSearchURL;
-                } catch (error) {
-                    console.log('LinkedIn search failed:', error);
-                    return '';
-                }
-            }
-
-            searchLinkedIn() {
-                const name = document.getElementById('manualName').value;
-                const company = document.getElementById('manualCompany').value;
-                
-                if (!name.trim()) {
-                    this.showStatus('❌ Please enter a name to search LinkedIn', 'error');
-                    return;
-                }
-                
-                const searchQuery = `${name} ${company}`.trim().replace(/\s+/g, '+');
-                const linkedInURL = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(searchQuery)}`;
-                
-                document.getElementById('manualLinkedIn').value = linkedInURL;
-                this.showStatus('🔗 LinkedIn search URL generated!', 'success');
-                
-                // Open LinkedIn search in new tab
-                window.open(linkedInURL, '_blank');
-            }
-
-            handleManualEntry(event) {
-                event.preventDefault();
-                
-                const clientData = {
-                    name: document.getElementById('manualName').value.trim(),
-                    email: document.getElementById('manualEmail').value.trim(),
-                    phone: document.getElementById('manualPhone').value.trim(),
-                    company: document.getElementById('manualCompany').value.trim(),
-                    linkedIn: document.getElementById('manualLinkedIn').value.trim(),
-                    source: 'Manual Entry'
-                };
-                
-                if (!clientData.name && !clientData.email && !clientData.phone) {
-                    this.showStatus('❌ Please fill in at least name, email, or phone number', 'error');
-                    return;
-                }
-                
-                // Validate email format
-                if (clientData.email && !this.isValidEmail(clientData.email)) {
-                    this.showStatus('❌ Please enter a valid email address', 'error');
-                    return;
-                }
-                
-                this.addClient(clientData);
-                this.showStatus('✅ Client added successfully via manual entry!', 'success');
-                
-                // Clear form
-                document.getElementById('manualForm').reset();
-            }
-
-            isValidEmail(email) {
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                return emailRegex.test(email);
-            }
-
-            addClient(clientData) {
-                const client = {
-                    id: Date.now(),
-                    ...clientData,
-                    timestamp: new Date().toLocaleString()
-                };
-                
-                this.clients.push(client);
-                this.saveClients();
-                this.updateClientsTable();
-            }
-
-            updateClientsTable() {
-                const tbody = document.getElementById('clientsTableBody');
-                const stats = document.getElementById('clientStats');
-                
-                tbody.innerHTML = '';
-                
-                if (this.clients.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="9" style="text-align: center; padding: 40px; opacity: 0.7;">
-                                📭 No clients added yet. Start scanning or add manually!
-                            </td>
-                        </tr>
-                    `;
-                } else {
-                    this.clients.forEach((client, index) => {
-                        const row = tbody.insertRow();
-                        const sourceClass = client.source.toLowerCase().includes('qr') ? 'source-qr' : 
-                                          client.source.toLowerCase().includes('ocr') ? 'source-ocr' : 'source-manual';
-                        
-                        row.innerHTML = `
-                            <td><strong>${index + 1}</strong></td>
-                            <td>${client.name || '<em>N/A</em>'}</td>
-                            <td>${client.email || '<em>N/A</em>'}</td>
-                            <td>${client.phone || '<em>N/A</em>'}</td>
-                            <td>${client.company || '<em>N/A</em>'}</td>
-                            <td>${client.linkedIn ? `<a href="${client.linkedIn}" target="_blank" class="linkedin-link">🔗 LinkedIn</a>` : '<em>N/A</em>'}</td>
-                            <td><span class="source-badge ${sourceClass}">${client.source}</span></td>
-                            <td>${client.timestamp}</td>
-                            <td>
-                                <button class="btn btn-sm btn-primary edit-btn" data-index="${index}">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-danger delete-btn" data-index="${index}" title="Delete this record">
-                                    ❌ Delete
-                                </button>
-                            </td>
-                        `;
-                        
-                        row.style.animation = 'fadeInUp 0.5s ease-out';
-                    });
-                }
-                
-                // Update stats
-                const qrCount = this.clients.filter(c => c.source.toLowerCase().includes('qr')).length;
-                const ocrCount = this.clients.filter(c => c.source.toLowerCase().includes('ocr')).length;
-                const manualCount = this.clients.filter(c => c.source === 'Manual Entry').length;
-                
-                stats.innerHTML = `
-                    📊 Total: ${this.clients.length} | 
-                    📱 QR: ${qrCount} | 
-                    🤖 OCR: ${ocrCount} | 
-                    ✍️ Manual: ${manualCount}
-                `;
-                
-                // Add event listeners for edit buttons
-                document.querySelectorAll('.edit-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const index = parseInt(e.target.closest('.edit-btn').dataset.index);
-                        console.log('Edit button clicked for index:', index);
-                        this.editClient(index);
-                    });
-                });
-
-                // Add event listeners for delete buttons
-                document.querySelectorAll('.delete-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const index = parseInt(e.target.closest('.delete-btn').dataset.index);
-                        console.log('Delete button clicked for index:', index);
-                        this.deleteClient(index);
-                    });
-                });
-            }
-
-            exportToCSV() {
-                if (this.clients.length === 0) {
-                    this.showStatus('❌ No data to export', 'error');
-                    return;
-                }
-                
-                const headers = ['Name', 'Email', 'Phone', 'Company', 'LinkedIn', 'Source', 'Timestamp'];
-                const csvContent = [
-                    headers.join(','),
-                    ...this.clients.map(client => [
-                        `"${(client.name || '').replace(/"/g, '""')}"`,
-                        `"${(client.email || '').replace(/"/g, '""')}"`,
-                        `"${(client.phone || '').replace(/"/g, '""')}"`,
-                        `"${(client.company || '').replace(/"/g, '""')}"`,
-                        `"${(client.linkedIn || '').replace(/"/g, '""')}"`,
-                        `"${client.source.replace(/"/g, '""')}"`,
-                        `"${client.timestamp.replace(/"/g, '""')}"`
-                    ].join(','))
-                ].join('\n');
-                
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `exhibition-clients-${new Date().toISOString().split('T')[0]}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-                
-                this.showStatus('📊 Data exported successfully!', 'success');
-            }
-
-            deleteClient(index) {
-                if (index < 0 || index >= this.clients.length) {
-                    this.showStatus('❌ Invalid client index', 'error');
-                    return;
-                }
-
-                const client = this.clients[index];
-                const confirmDelete = confirm(`Are you sure you want to delete ${client.name || 'this client'}?`);
-                
-                if (confirmDelete) {
-                    this.clients.splice(index, 1);
-                    this.saveClients();
-                    this.updateClientsTable();
-                    this.showStatus(`🗑️ Deleted client: ${client.name || 'Unknown'}`, 'success');
-                }
-            }
-
-            clearAllData() {
-                if (this.clients.length === 0) {
-                    this.showStatus('❌ No data to clear', 'error');
-                    return;
-                }
-                
-                if (confirm(`🗑️ Are you sure you want to clear all ${this.clients.length} client records? This action cannot be undone.`)) {
-                    this.clients = [];
-                    this.saveClients();
-                    this.updateClientsTable();
-                    this.showStatus('🗑️ All client data cleared', 'info');
-                }
-            }
-
-            loadClients() {
-                try {
-                    const stored = localStorage.getItem('exhibitionCardReaderClients');
-                    return stored ? JSON.parse(stored) : [];
-                } catch (error) {
-                    console.error('Error loading clients:', error);
-                    return [];
-                }
-            }
-
-            saveClients() {
-                try {
-                    localStorage.setItem('exhibitionCardReaderClients', JSON.stringify(this.clients));
-                    console.log('Clients saved to localStorage:', this.clients.length);
-                } catch (error) {
-                    console.error('Error saving clients:', error);
-                }
-            }
-
-            showStatus(message, type) {
-                const statusEl = document.getElementById('statusMessage');
-                statusEl.innerHTML = `<div class="status-message ${type}">${message}</div>`;
-                
-                // Auto-hide success and info messages after 5 seconds
-                if (type === 'success' || type === 'info') {
-                    setTimeout(() => {
-                        if (statusEl.innerHTML.includes(message)) {
-                            statusEl.innerHTML = '';
-                        }
-                    }, 5000);
-                }
-            }
-
-            showProcessing(show) {
-                document.getElementById('processing').style.display = show ? 'block' : 'none';
-            }
-
-            editClient(index) {
-                const client = this.clients[index];
-                if (!client) return;
-                
-                // Create and show edit modal with better styling
-                const modal = document.createElement('div');
-                modal.className = 'edit-modal';
-                modal.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0,0,0,0.8);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 9999;
-                    backdrop-filter: blur(5px);
-                `;
-                
-                modal.innerHTML = `
-                    <div class="edit-modal-content" style="
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        border-radius: 20px;
-                        padding: 0;
-                        width: 90%;
-                        max-width: 500px;
-                        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                        border: 2px solid rgba(255,255,255,0.1);
-                        backdrop-filter: blur(10px);
-                    ">
-                        <div style="
-                            background: rgba(255,255,255,0.1);
-                            padding: 25px 30px;
-                            border-radius: 18px 18px 0 0;
-                            border-bottom: 1px solid rgba(255,255,255,0.2);
-                        ">
-                            <h3 style="
-                                color: white;
-                                margin: 0;
-                                font-size: 1.5rem;
-                                font-weight: 600;
-                                display: flex;
-                                align-items: center;
-                                gap: 10px;
-                            ">
-                                ✏️ Edit Client
-                            </h3>
-                        </div>
-                        
-                        <div style="padding: 30px;">
-                            <form id="editClientForm">
-                                <div style="margin-bottom: 20px;">
-                                    <label style="
-                                        color: white;
-                                        font-weight: 600;
-                                        margin-bottom: 8px;
-                                        display: block;
-                                        font-size: 0.9rem;
-                                    ">👤 Name *</label>
-                                    <input type="text" class="edit-input" id="editName" value="${client.name || ''}" required style="
-                                        width: 100%;
-                                        padding: 12px 15px;
-                                        border: 2px solid rgba(255,255,255,0.2);
-                                        border-radius: 10px;
-                                        background: rgba(255,255,255,0.1);
-                                        color: white;
-                                        font-size: 1rem;
-                                        transition: all 0.3s ease;
-                                    " placeholder="Enter full name">
-                                </div>
-                                
-                                <div style="margin-bottom: 20px;">
-                                    <label style="
-                                        color: white;
-                                        font-weight: 600;
-                                        margin-bottom: 8px;
-                                        display: block;
-                                        font-size: 0.9rem;
-                                    ">📧 Email</label>
-                                    <input type="email" class="edit-input" id="editEmail" value="${client.email || ''}" style="
-                                        width: 100%;
-                                        padding: 12px 15px;
-                                        border: 2px solid rgba(255,255,255,0.2);
-                                        border-radius: 10px;
-                                        background: rgba(255,255,255,0.1);
-                                        color: white;
-                                        font-size: 1rem;
-                                        transition: all 0.3s ease;
-                                    " placeholder="Enter email address">
-                                </div>
-                                
-                                <div style="margin-bottom: 20px;">
-                                    <label style="
-                                        color: white;
-                                        font-weight: 600;
-                                        margin-bottom: 8px;
-                                        display: block;
-                                        font-size: 0.9rem;
-                                    ">📞 Phone</label>
-                                    <input type="tel" class="edit-input" id="editPhone" value="${client.phone || ''}" style="
-                                        width: 100%;
-                                        padding: 12px 15px;
-                                        border: 2px solid rgba(255,255,255,0.2);
-                                        border-radius: 10px;
-                                        background: rgba(255,255,255,0.1);
-                                        color: white;
-                                        font-size: 1rem;
-                                        transition: all 0.3s ease;
-                                    " placeholder="Enter phone number">
-                                </div>
-                                
-                                <div style="margin-bottom: 20px;">
-                                    <label style="
-                                        color: white;
-                                        font-weight: 600;
-                                        margin-bottom: 8px;
-                                        display: block;
-                                        font-size: 0.9rem;
-                                    ">🏢 Company</label>
-                                    <input type="text" class="edit-input" id="editCompany" value="${client.company || ''}" style="
-                                        width: 100%;
-                                        padding: 12px 15px;
-                                        border: 2px solid rgba(255,255,255,0.2);
-                                        border-radius: 10px;
-                                        background: rgba(255,255,255,0.1);
-                                        color: white;
-                                        font-size: 1rem;
-                                        transition: all 0.3s ease;
-                                    " placeholder="Enter company name">
-                                </div>
-                                
-                                <div style="margin-bottom: 25px;">
-                                    <label style="
-                                        color: white;
-                                        font-weight: 600;
-                                        margin-bottom: 8px;
-                                        display: block;
-                                        font-size: 0.9rem;
-                                    ">🔗 LinkedIn</label>
-                                    <input type="url" class="edit-input" id="editLinkedin" value="${client.linkedIn || ''}" style="
-                                        width: 100%;
-                                        padding: 12px 15px;
-                                        border: 2px solid rgba(255,255,255,0.2);
-                                        border-radius: 10px;
-                                        background: rgba(255,255,255,0.1);
-                                        color: white;
-                                        font-size: 1rem;
-                                        transition: all 0.3s ease;
-                                    " placeholder="Enter LinkedIn URL">
-                                </div>
-                            </form>
-                        </div>
-                        
-                        <div style="
-                            padding: 20px 30px 30px;
-                            display: flex;
-                            gap: 15px;
-                            justify-content: flex-end;
-                        ">
-                            <button type="button" class="edit-cancel-btn" onclick="this.closest('.edit-modal').remove()" style="
-                                padding: 12px 25px;
-                                border: 2px solid rgba(255,255,255,0.3);
-                                border-radius: 10px;
-                                background: rgba(255,255,255,0.1);
-                                color: white;
-                                font-weight: 600;
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                font-size: 0.9rem;
-                            ">❌ Cancel</button>
-                            <button type="button" class="edit-update-btn" style="
-                                padding: 12px 25px;
-                                border: none;
-                                border-radius: 10px;
-                                background: linear-gradient(135deg, #00c851, #007e33);
-                                color: white;
-                                font-weight: 600;
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                font-size: 0.9rem;
-                                box-shadow: 0 4px 15px rgba(0,200,81,0.3);
-                            ">✅ Update Client</button>
-                            <button type="button" class="update-btn" data-index="${index}" style="display: none;"></button>
-                        </div>
-                    </div>
-                `;
-                
-                document.body.appendChild(modal);
-                
-                // Add hover effects for inputs
-                const inputs = modal.querySelectorAll('.edit-input');
-                inputs.forEach(input => {
-                    input.addEventListener('focus', () => {
-                        input.style.borderColor = 'rgba(255,255,255,0.5)';
-                        input.style.background = 'rgba(255,255,255,0.15)';
-                    });
-                    input.addEventListener('blur', () => {
-                        input.style.borderColor = 'rgba(255,255,255,0.2)';
-                        input.style.background = 'rgba(255,255,255,0.1)';
-                    });
-                });
-                
-                // Add hover effects for buttons
-                const cancelBtn = modal.querySelector('.edit-cancel-btn');
-                const updateBtn = modal.querySelector('.edit-update-btn');
-                const hiddenUpdateBtn = modal.querySelector('.update-btn');
-                
-                // Add click event for update button
-                updateBtn.addEventListener('click', () => {
-                    const index = parseInt(hiddenUpdateBtn.dataset.index);
-                    console.log('Update button clicked for index:', index);
-                    this.updateClient(index);
-                });
-                
-                cancelBtn.addEventListener('mouseenter', () => {
-                    cancelBtn.style.background = 'rgba(255,255,255,0.2)';
-                    cancelBtn.style.borderColor = 'rgba(255,255,255,0.5)';
-                });
-                cancelBtn.addEventListener('mouseleave', () => {
-                    cancelBtn.style.background = 'rgba(255,255,255,0.1)';
-                    cancelBtn.style.borderColor = 'rgba(255,255,255,0.3)';
-                });
-                
-                updateBtn.addEventListener('mouseenter', () => {
-                    updateBtn.style.transform = 'translateY(-2px)';
-                    updateBtn.style.boxShadow = '0 6px 20px rgba(0,200,81,0.4)';
-                });
-                updateBtn.addEventListener('mouseleave', () => {
-                    updateBtn.style.transform = 'translateY(0)';
-                    updateBtn.style.boxShadow = '0 4px 15px rgba(0,200,81,0.3)';
-                });
-                
-                // Focus on first input
-                setTimeout(() => {
-                    document.getElementById('editName').focus();
-                }, 100);
-                
-                // Close modal when clicking outside
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        modal.remove();
-                    }
-                });
-            }
-            
-            updateClient(index) {
-                const name = document.getElementById('editName').value.trim();
-                const email = document.getElementById('editEmail').value.trim();
-                const phone = document.getElementById('editPhone').value.trim();
-                const company = document.getElementById('editCompany').value.trim();
-                const linkedin = document.getElementById('editLinkedin').value.trim();
-                
-                if (!name) {
-                    alert('Name is required!');
-                    return;
-                }
-                
-                // Update client data with all existing fields preserved
-                const updatedClient = {
-                    ...this.clients[index], // Preserve existing fields like source, timestamp, etc.
-                    name: name,
-                    email: email,
-                    phone: phone,
-                    company: company,
-                    linkedIn: linkedin
-                };
-                
-                // Update the client in the array
-                this.clients[index] = updatedClient;
-                
-                // Save to localStorage
-                this.saveClients();
-                
-                // Update display
-                this.updateClientsTable();
-                
-                // Close modal
-                document.querySelector('.modal').remove();
-                
-                // Show success message
-                this.showStatus('✅ Client updated successfully!', 'success');
-                
-                console.log('Client updated:', updatedClient);
             }
         }
 
-        // Initialize the application when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            try {
-                new ExhibitionCardReaderPro();
-                console.log('🚀 Exhibition Card Reader Pro initialized successfully!');
-            } catch (error) {
-                console.error('❌ Error initializing application:', error);
-                document.body.innerHTML = `
-                    <div style="text-align: center; padding: 50px; color: white;">
-                        <h1>❌ Application Error</h1>
-                        <p>Failed to initialize the card reader. Please refresh the page.</p>
-                        <p style="font-size: 0.9rem; opacity: 0.8;">Error: ${error.message}</p>
-                    </div>
+        console.log('Final extracted data:', clientData);
+        return clientData;
+    }
+
+    /**
+     * Optimized phone number extraction with multiple number handling
+     */
+    extractPhoneNumbers(text) {
+        // Enhanced phone regex patterns covering various global and Indian formats
+        const phonePatterns = [
+            // International with '+' prefix, allowing spaces, dashes, parentheses
+            /\+\d{1,4}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}(?:x\d+)?/g,
+            // Standard 10-digit Indian mobile/landline numbers (starting with 6,7,8,9,0)
+            /[67890]\d{9}/g,
+            // 7 to 12 digit numbers, allowing spaces, dashes, parentheses, dots
+            /\(?\d{3}\)?[-.\s]?\d{3,4}[-.\s]?\d{4}/g,
+            // Explicit 'tel:' or 'phone:' prefixes
+            /(?:tel|phone):?\s*([+\d\s\-\(\).]{7,})/gi
+        ];
+
+        const foundNumbers = new Set();
+
+        for (const pattern of phonePatterns) {
+            let match;
+            while ((match = pattern.exec(text)) !== null) {
+                let num = match[1] || match[0]; // Take captured group if available, else full match
+                let cleanNum = num.replace(/[^\d+]/g, '').trim();
+
+                // Simple validation: must have at least 7 digits (after cleaning)
+                if (cleanNum.length >= 7) {
+                    foundNumbers.add(cleanNum);
+                }
+            }
+        }
+
+        // Convert to array and prioritize numbers
+        const numbers = Array.from(foundNumbers);
+
+        // Prioritization logic:
+        // 1. Numbers with '+' prefix (international)
+        // 2. Longer numbers (more likely to be complete)
+        // 3. Numbers that appear earlier in the text
+        numbers.sort((a, b) => {
+            const aIsIntl = a.startsWith('+');
+            const bIsIntl = b.startsWith('+');
+
+            if (aIsIntl && !bIsIntl) return -1;
+            if (!aIsIntl && bIsIntl) return 1;
+
+            if (a.length !== b.length) return b.length - a.length;
+
+            return text.indexOf(a) - text.indexOf(b); // Keep original order if lengths are same
+        });
+
+        return numbers;
+    }
+
+    /**
+     * Enhanced email extraction with multiple email handling
+     */
+    extractEmails(text) {
+        // More robust email patterns
+        const emailPatterns = [
+            // Standard email pattern
+            /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}/g, // Expanded TLD length
+            // Email with common prefixes like 'email:', 'e-mail:', 'mail:'
+            /(?:email|e-mail|mail|contact)\s*:\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63})/gi,
+            // Email surrounded by parentheses or brackets, without explicit prefix
+            /[\(<\[{] ?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}) ?[}>\)\]]/g
+        ];
+
+        const foundEmails = new Set();
+
+        for (const pattern of emailPatterns) {
+            let match;
+            while ((match = pattern.exec(text)) !== null) {
+                let email = match[1] || match[0]; // Take captured group if available, else full match
+                let cleanEmail = email.replace(/[\(\)\[\]{}<>]/g, '').trim(); // Remove common delimiters
+
+                if (this.isValidEmail(cleanEmail)) {
+                    foundEmails.add(cleanEmail.toLowerCase());
+                }
+            }
+        }
+
+        const emails = Array.from(foundEmails);
+
+        // Prioritization logic:
+        // 1. Emails that appear to be personal (not info@, sales@ etc.)
+        // 2. Shorter emails (sometimes more direct)
+        // 3. Emails appearing earlier in the text
+        emails.sort((a, b) => {
+            const aIsPersonal = !/(info|sales|support|admin|contact|help|webmaster)@/i.test(a);
+            const bIsPersonal = !/(info|sales|support|admin|contact|help|webmaster)@/i.test(b);
+
+            if (aIsPersonal && !bIsPersonal) return -1;
+            if (!aIsPersonal && bIsPersonal) return 1;
+
+            if (a.length !== b.length) return a.length - b.length;
+
+            return text.indexOf(a) - text.indexOf(b);
+        });
+
+        return emails;
+    }
+
+
+    /**
+     * Enhanced name extraction considering surrounding context with name dataset validation
+     */
+    extractNameWithContext(text) {
+        const nameExtractor = new EfficientNameExtractor();
+        let bestName = { name: '', confidence: 0 };
+
+        // 1. Try direct pattern matching on full text
+        const directMatch = nameExtractor.extractName(text);
+        if (directMatch.confidence > bestName.confidence) {
+            bestName = directMatch;
+        }
+
+        const lines = text.split('\n').filter(line => line.trim().length > 2);
+
+        // 2. Try to find name near email or phone
+        const emails = this.extractEmails(text);
+        const phones = this.extractPhoneNumbers(text);
+        const contactPoints = [...emails, ...phones];
+
+        for (const point of contactPoints) {
+            const pointIndex = text.indexOf(point);
+            if (pointIndex === -1) continue;
+
+            // Search in lines immediately before and after the contact point
+            for (let i = 0; i < lines.length; i++) {
+                if (text.indexOf(lines[i]) <= pointIndex + lines[i].length && text.indexOf(lines[i]) >= pointIndex - 50) {
+                    const line = lines[i];
+                    const nameResult = nameExtractor.extractName(line);
+                    if (nameResult.confidence > bestName.confidence) {
+                        bestName = nameResult;
+                    }
+                }
+            }
+        }
+
+        // 3. Prioritize lines that are capitalized like names and not obviously company/email/phone
+        for (const line of lines) {
+            if (line.includes('@') || /\d/.test(line) || line.toLowerCase().includes('http')) continue;
+            const words = line.split(/\s+/);
+            if (words.every(word => /^[A-Z][a-z]*$/.test(word) || /^[A-Z]\.$/.test(word))) {
+                const nameResult = nameExtractor.extractName(line);
+                if (nameResult.confidence > bestName.confidence) {
+                    bestName = nameResult;
+                }
+            }
+        }
+
+        // Apply dataset validation to the best found name
+        if (bestName.name) {
+            const validatedName = this.validateNameWithDataset(bestName.name);
+            if (validatedName) {
+                return validatedName;
+            }
+        }
+        return bestName.name || '';
+    }
+
+    /**
+     * Validate and correct name using a common Indian names dataset
+     * This dataset is limited and could be greatly expanded for better accuracy.
+     */
+    validateNameWithDataset(extractedName) {
+        if (!extractedName || extractedName.length < 2) return null;
+
+        // Convert to title case for better matching against dataset
+        const cleanedExtractedName = extractedName.trim().replace(/\s+/g, ' ').split(' ').map(word =>
+            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        ).join(' ');
+
+        const nameParts = cleanedExtractedName.toLowerCase().split(/\s+/);
+
+        // A small, representative dataset of common Indian names
+        // In a real application, this would be a much larger, external database or API.
+        const nameDataset = [
+            'aaban', 'aabharan', 'aabhas', 'aabhat', 'aabheer', 'aabir', 'aabishan', 'aacharya', 'aachman', 'aadarsh',
+            'aadhav', 'aadhi', 'aadidev', 'aadil', 'aadish', 'aaditya', 'aadvay', 'aadvik', 'aayush', 'abdul',
+            'abhay', 'abheek', 'abhijit', 'abhilash', 'abhimanyu', 'abhinav', 'abhishek', 'achyut', 'adarsh', 'aditya',
+            'ajay', 'ajeet', 'akhil', 'akhilesh', 'akash', 'akshay', 'alok', 'aman', 'amar', 'amit', 'amol',
+            'anand', 'ananta', 'aneesh', 'anil', 'anirudh', 'anish', 'ankit', 'ankur', 'anuj', 'anupam',
+            'anurag', 'arjun', 'arun', 'aryan', 'ashok', 'ashish', 'ashwin', 'atul', 'avinash', 'ayush',
+            // Common Female names (though the current context is male-dominant)
+            'aarohi', 'aisha', 'akanksha', 'akshara', 'alaya', 'amara', 'ananya', 'anjali', 'anjana', 'anjum',
+            'anushka', 'aparna', 'aradhana', 'aroha', 'asha', 'bhumi', 'bindu', 'chhaya', 'damini', 'deepti',
+            'devina', 'disha', 'divya', 'ekta', 'gauri', 'geeta', 'gunjan', 'harini', 'hema', 'ishita',
+            'jaya', 'jyoti', 'kajal', 'kavita', 'khushi', 'kiran', 'lakshmi', 'lata', 'madhuri', 'mahi',
+            'malini', 'meena', 'meera', 'mira', 'monika', 'naina', 'nandini', 'neha', 'nikita', 'nisha',
+            'pallavi', 'pooja', 'priti', 'priya', 'radhika', 'rani', 'rekha', 'rima', 'riya', 'roshni',
+            'rupa', 'sakshi', 'sangeeta', 'sarika', 'seema', 'shanti', 'shikha', 'shruti', 'simran', 'smita',
+            'sneha', 'sonal', 'sonia', 'surbhi', 'swati', 'tanvi', 'usha', 'vandana', 'vidya', 'vini',
+            'yamini', 'zareen'
+        ];
+
+        // Check if any part of the extracted name matches the dataset (case-insensitive)
+        for (const namePart of nameParts) {
+            if (namePart.length < 2) continue; // Skip very short words
+
+            // Direct match
+            if (nameDataset.includes(namePart)) {
+                console.log(`Name validated with dataset: ${namePart} -> ${extractedName}`);
+                return cleanedExtractedName; // Return the cleaned, title-cased name
+            }
+        }
+
+        // If no direct match, consider accepting if it follows naming conventions and isn't a common non-name word.
+        // This is a heuristic and can be improved with a much larger dataset.
+        const firstWordCapitalized = nameParts.length > 0 && nameParts[0].charAt(0) === nameParts[0].charAt(0).toUpperCase();
+        const hasMultipleWords = nameParts.length > 1;
+        const noExcludedWords = !nameParts.some(word => this.nameExtractor.excludeWords.has(word));
+
+        if (firstWordCapitalized && hasMultipleWords && noExcludedWords && extractedName.length >= 4) {
+            console.log(`Name accepted by heuristic: ${extractedName}`);
+            return cleanedExtractedName;
+        }
+
+        return null; // Return null if not confidently a name
+    }
+
+    // Removed `generateNameVariations` as it's less reliable than direct dataset matching for validation.
+
+    // EMAIL VALIDATION HELPER
+    isValidEmail(email) {
+        // More robust email regex
+        const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+        return emailRegex.test(email) &&
+               email.length >= 5 &&
+               email.length <= 254 &&
+               !email.includes('..') &&
+               !email.startsWith('.') &&
+               !email.endsWith('.');
+    }
+
+    // Enhanced OCR text extraction using the new optimized methods
+    extractClientDataFromText(text) {
+        console.log('Processing OCR text:', text);
+        const clientData = { name: '', email: '', phone: '', company: '', linkedIn: '', notes: '' };
+
+        // Clean and normalize text for better processing
+        const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+        const lines = cleanText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+        console.log('Processed lines:', lines);
+
+        // Extract Email
+        const allEmails = this.extractEmails(cleanText);
+        if (allEmails.length > 0) {
+            clientData.email = allEmails[0];
+            if (allEmails.length > 1) {
+                clientData.notes += `Additional emails: ${allEmails.slice(1).join(', ')}. `;
+            }
+        }
+
+        // Extract Phone
+        const allPhones = this.extractPhoneNumbers(cleanText);
+        if (allPhones.length > 0) {
+            clientData.phone = allPhones[0];
+            if (allPhones.length > 1) {
+                clientData.notes += `Additional phones: ${allPhones.slice(1).join(', ')}. `;
+            }
+        }
+
+        // Extract LinkedIn URL
+        const linkedInMatch = cleanText.match(/(https?:\/\/(?:www\.)?linkedin\.com\/(?:in|pub)\/[^/\s]+)/i);
+        if (linkedInMatch) {
+            clientData.linkedIn = linkedInMatch[1].trim();
+        }
+
+        // Extract Name - Crucial for business cards
+        clientData.name = this.extractNameFromBusinessCard(lines, cleanText);
+
+        // Extract Company
+        clientData.company = this.extractCompanyFromBusinessCard(lines, cleanText);
+
+        // Fallback: If no name found, try to extract from email prefix or first plausible line
+        if (!clientData.name && clientData.email) {
+            const emailPrefix = clientData.email.split('@')[0];
+            const nameFromEmail = emailPrefix
+                .replace(/[^a-zA-Z]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            const nameExtractor = new EfficientNameExtractor();
+            const nameCheck = nameExtractor.extractName(nameFromEmail);
+            if (nameCheck.confidence >= 3) { // Lower confidence for email fallback
+                clientData.name = nameCheck.name;
+                console.log('OCR extracted name from email:', clientData.name);
+            }
+        }
+
+        // Clean up notes if empty
+        if (clientData.notes.trim() === '') {
+            clientData.notes = '';
+        }
+
+        console.log('Final extracted data (OCR):', clientData);
+        return clientData;
+    }
+
+    async analyzeImageWithOCR(imageData, source) {
+        if (!this.tesseractWorker) {
+            await this.initTesseractWorker(); // Ensure worker is initialized
+            if (!this.tesseractWorker) {
+                this.showStatus('❌ OCR engine not ready. Please try again.', 'error');
+                this.showProcessing(false);
+                return;
+            }
+        }
+
+        try {
+            this.showStatus('🤖 Performing text recognition...', 'info');
+
+            const { data: { text } } = await this.tesseractWorker.recognize(imageData);
+
+            if (!text || text.trim().length < 10) { // Check for minimal useful text
+                this.showStatus('⚠️ OCR did not find enough readable text. Image might be blurry or too complex.', 'warning');
+                this.showProcessing(false);
+                return;
+            }
+
+            const clientData = this.extractClientDataFromText(text);
+
+            if (clientData.email || clientData.name || clientData.phone) {
+                await this.addClientWithLinkedInSearch(clientData, source);
+                this.showStatus(`✅ Client data extracted and added successfully! Source: ${source}`, 'success');
+            } else {
+                this.showStatus('❌ No valid contact information found in the image after OCR. Please try manual entry or a clearer image.', 'error');
+            }
+        } catch (error) {
+            console.error('OCR processing failed:', error);
+            this.showStatus('❌ OCR processing failed: ' + error.message, 'error');
+        } finally {
+            this.showProcessing(false);
+        }
+    }
+
+    /**
+     * Extract name specifically from business card format
+     */
+    extractNameFromBusinessCard(lines, fullText) {
+        const nameExtractor = new EfficientNameExtractor();
+        let bestCandidate = { name: '', confidence: 0 };
+
+        // 1. Prioritize lines that are most likely to be names (e.g., first few lines, proper capitalization)
+        for (let i = 0; i < Math.min(5, lines.length); i++) {
+            const line = lines[i];
+            if (line.includes('@') || /\d{7,}/.test(line) || line.includes('www.') ||
+                line.toLowerCase().includes('email') || line.toLowerCase().includes('phone') ||
+                line.toLowerCase().includes('fax') || line.toLowerCase().includes('mobile') ||
+                line.toLowerCase().includes('tel') || line.toLowerCase().includes('http')) {
+                continue; // Skip lines containing common contact info or URLs
+            }
+
+            const nameResult = nameExtractor.extractName(line);
+            if (nameResult.name && nameResult.confidence > bestCandidate.confidence) {
+                bestCandidate = nameResult;
+            }
+        }
+
+        // 2. Look for name-like patterns that might be missed by simple line checks
+        // Example: "John Doe - CEO" or "Dr. Jane Smith"
+        const potentialNamesInFullText = fullText.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z.]+){1,4})/g); // Matches 2-5 capitalized words
+        if (potentialNamesInFullText) {
+            for (const pn of potentialNamesInFullText) {
+                const nameResult = nameExtractor.extractName(pn);
+                if (nameResult.name && nameResult.confidence > bestCandidate.confidence) {
+                    // Give a slight boost if found in full text match but not line directly,
+                    // but prefer line-based if confidence is equal
+                    if (nameResult.confidence === bestCandidate.confidence) {
+                        if (fullText.indexOf(pn) < fullText.indexOf(bestCandidate.name)) {
+                            bestCandidate = nameResult;
+                        }
+                    } else {
+                        bestCandidate = nameResult;
+                    }
+                }
+            }
+        }
+
+        // 3. Fallback to context-based extraction (last resort)
+        if (!bestCandidate.name) {
+            const contextName = this.extractNameWithContext(fullText); // This already uses the EfficientNameExtractor
+            if (contextName) {
+                const nameResult = nameExtractor.extractName(contextName);
+                if (nameResult.name && nameResult.confidence > bestCandidate.confidence) {
+                    bestCandidate = nameResult;
+                }
+            }
+        }
+
+        // Final validation using the dataset
+        if (bestCandidate.name) {
+            const validatedName = this.validateNameWithDataset(bestCandidate.name);
+            if (validatedName) {
+                return validatedName;
+            }
+        }
+
+        return bestCandidate.name || '';
+    }
+
+
+    /**
+     * Extract company specifically from business card format
+     */
+    extractCompanyFromBusinessCard(lines, fullText) {
+        // Expanded company patterns for business cards, prioritizing common keywords and capitalization
+        const companyPatterns = [
+            // vCard ORG field (highest priority)
+            /^ORG:(.+)$/i,
+            // Common suffixes (case-insensitive for robust matching)
+            /(.*?)\s*(?:Inc\.?|LLC|Corp\.?|Ltd\.?|Company|Co\.?|Corporation|Group|Solutions|Services|Technologies|Tech|Systems|Associates|Partners|Consulting|Infotech|Software|Digital|Media|Marketing|Design|Studio|Agency|Pvt\.?|Limited|Global|Enterprises)(?!\w)/i,
+            // Standalone company names (often capitalized, may contain '&' or numbers)
+            /^([A-Z0-9][a-zA-Z0-9\s&.\-]+(?:Inc\.?|LLC|Corp\.?|Ltd\.?)?)$/i,
+            // Lines that look like company names (no email/phone/name patterns, often with multiple capitalized words)
+            /^([A-Z][a-zA-Z\s&]{3,})(?:\s+(?:Industries|Group|Corp|Co|Ltd))?$/i
+        ];
+
+        // 1. Look for company patterns in lines
+        for (const line of lines) {
+            // Skip if line contains email, phone, or LinkedIn patterns (likely not company name)
+            if (line.includes('@') || /\d{7,}/.test(line) || line.toLowerCase().includes('email') ||
+                line.toLowerCase().includes('phone') || line.toLowerCase().includes('tel') ||
+                line.toLowerCase().includes('linkedin.com')) {
+                continue;
+            }
+            // Also skip if it's very short or looks like a job title
+            if (line.length < 3 || /(?:manager|director|specialist|engineer|consultant)/i.test(line)) {
+                continue;
+            }
+
+            for (const pattern of companyPatterns) {
+                const match = line.match(pattern);
+                if (match) {
+                    let companyName = match[1] || match[0];
+                    companyName = companyName.replace(/^ORG:\s*/i, '').trim();
+                    // Basic length validation
+                    if (companyName.length > 2 && companyName.length < 70 && !this.nameExtractor.isLikelyName(companyName)) {
+                        return companyName;
+                    }
+                }
+            }
+        }
+
+        // 2. Look for domain-based company names (e.g., from www.example.com)
+        const domainMatch = fullText.match(/www\.([^\/\s]+(?:\.[a-z]{2,63}){1,2})/i);
+        if (domainMatch) {
+            const domain = domainMatch[1].replace('www.', '').split('.')[0].trim();
+            if (domain.length > 3 && !this.nameExtractor.isLikelyName(domain)) {
+                return domain.charAt(0).toUpperCase() + domain.slice(1); // Capitalize first letter
+            }
+        }
+
+        // 3. Fallback: Search for common company keywords in the full text
+        const commonCompanyKeywords = ['Pvt Ltd', 'Inc', 'LLC', 'Corp', 'Ltd', 'Company', 'Group', 'Solutions', 'Services', 'Technologies'];
+        for (const keyword of commonCompanyKeywords) {
+            const regex = new RegExp(`([A-Za-z0-9\\s&.-]+?)\\s*${keyword}`, 'i');
+            const match = fullText.match(regex);
+            if (match && match[1]) {
+                const potentialCompany = match[1].trim();
+                if (potentialCompany.length > 2 && !this.nameExtractor.isLikelyName(potentialCompany)) {
+                    return potentialCompany + ' ' + keyword;
+                }
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Generic company extraction for any text (used by QR data parsing too)
+     */
+    extractCompanyFromText(text) {
+        // Re-use business card logic for robust company extraction
+        const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        return this.extractCompanyFromBusinessCard(lines, text);
+    }
+
+    async addClientWithLinkedInSearch(clientData, source) {
+        if (clientData.name && !clientData.linkedIn) { // Only search if name exists and LinkedIn isn't already found
+            this.showStatus('🔍 Searching for LinkedIn profile...', 'info');
+            clientData.linkedIn = await this.findLinkedInProfile(clientData.name, clientData.company);
+        }
+
+        this.addClient({ ...clientData, source });
+        // Status message already shown inside processQRResult or analyzeImageWithOCR
+    }
+
+    async findLinkedInProfile(name, company = '') {
+        try {
+            // Create LinkedIn search URL
+            const searchQuery = `${name} ${company}`.trim().replace(/\s+/g, '+');
+            const linkedInSearchURL = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(searchQuery)}`;
+
+            // Note: Directly accessing and parsing LinkedIn search results programmatically is often blocked
+            // by LinkedIn's robots.txt and anti-scraping measures. This link just opens the search.
+            return linkedInSearchURL;
+        } catch (error) {
+            console.log('LinkedIn search URL generation failed:', error);
+            return '';
+        }
+    }
+
+    searchLinkedIn() {
+        const name = document.getElementById('manualName').value;
+        const company = document.getElementById('manualCompany').value;
+
+        if (!name.trim()) {
+            this.showStatus('❌ Please enter a name to search LinkedIn', 'error');
+            return;
+        }
+
+        const searchQuery = `${name} ${company}`.trim().replace(/\s+/g, '+');
+        const linkedInURL = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(searchQuery)}`;
+
+        document.getElementById('manualLinkedIn').value = linkedInURL;
+        this.showStatus('🔗 LinkedIn search URL generated!', 'success');
+
+        // Open LinkedIn search in new tab
+        window.open(linkedInURL, '_blank');
+    }
+
+    handleManualEntry(event) {
+        event.preventDefault();
+
+        const clientData = {
+            name: document.getElementById('manualName').value.trim(),
+            email: document.getElementById('manualEmail').value.trim(),
+            phone: document.getElementById('manualPhone').value.trim(),
+            company: document.getElementById('manualCompany').value.trim(),
+            linkedIn: document.getElementById('manualLinkedIn').value.trim(),
+            source: 'Manual Entry'
+        };
+
+        if (!clientData.name && !clientData.email && !clientData.phone) {
+            this.showStatus('❌ Please fill in at least name, email, or phone number', 'error');
+            return;
+        }
+
+        // Validate email format if provided
+        if (clientData.email && !this.isValidEmail(clientData.email)) {
+            this.showStatus('❌ Please enter a valid email address', 'error');
+            return;
+        }
+
+        this.addClient(clientData);
+        this.showStatus('✅ Client added successfully via manual entry!', 'success');
+
+        // Clear form
+        document.getElementById('manualForm').reset();
+    }
+
+    addClient(clientData) {
+        // Ensure all fields are strings or empty strings
+        const client = {
+            id: Date.now(),
+            name: clientData.name || '',
+            email: clientData.email || '',
+            phone: clientData.phone || '',
+            company: clientData.company || '',
+            linkedIn: clientData.linkedIn || '',
+            source: clientData.source || 'Unknown',
+            notes: clientData.notes || '', // Added notes field
+            timestamp: new Date().toLocaleString()
+        };
+
+        this.clients.push(client);
+        this.saveClients();
+        this.updateClientsTable();
+    }
+
+    updateClientsTable() {
+        const tbody = document.getElementById('clientsTableBody');
+        const stats = document.getElementById('clientStats');
+
+        tbody.innerHTML = '';
+
+        if (this.clients.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="10" style="text-align: center; padding: 40px; opacity: 0.7;">
+                        📭 No clients added yet. Start scanning or add manually!
+                    </td>
+                </tr>
+            `;
+        } else {
+            this.clients.forEach((client, index) => {
+                const row = tbody.insertRow();
+                const sourceClass = client.source.toLowerCase().includes('qr') ? 'source-qr' :
+                    client.source.toLowerCase().includes('ocr') ? 'source-ocr' : 'source-manual';
+
+                row.innerHTML = `
+                    <td><strong>${index + 1}</strong></td>
+                    <td>${client.name || '<em>N/A</em>'}</td>
+                    <td>${client.email || '<em>N/A</em>'}</td>
+                    <td>${client.phone || '<em>N/A</em>'}</td>
+                    <td>${client.company || '<em>N/A</em>'}</td>
+                    <td>${client.linkedIn ? `<a href="${client.linkedIn}" target="_blank" class="linkedin-link">🔗 LinkedIn</a>` : '<em>N/A</em>'}</td>
+                    <td><span class="source-badge ${sourceClass}">${client.source}</span></td>
+                    <td>${client.timestamp}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary edit-btn" data-index="${index}">
+                            ✏️ Edit
+                        </button>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-danger delete-btn" data-index="${index}" title="Delete this record">
+                            ❌ Delete
+                        </button>
+                    </td>
                 `;
+
+                row.style.animation = 'fadeInUp 0.5s ease-out';
+            });
+        }
+
+        // Update stats
+        const qrCount = this.clients.filter(c => c.source.toLowerCase().includes('qr')).length;
+        const ocrCount = this.clients.filter(c => c.source.toLowerCase().includes('ocr')).length;
+        const manualCount = this.clients.filter(c => c.source === 'Manual Entry').length;
+
+        stats.innerHTML = `
+            📊 Total: ${this.clients.length} |
+            📱 QR: ${qrCount} |
+            🤖 OCR: ${ocrCount} |
+            ✍️ Manual: ${manualCount}
+        `;
+
+        // Add event listeners for edit buttons
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Ensure we get the button itself, not its child icon
+                const targetBtn = e.target.closest('.edit-btn');
+                if (targetBtn) {
+                    const index = parseInt(targetBtn.dataset.index);
+                    this.editClient(index);
+                }
+            });
+        });
+
+        // Add event listeners for delete buttons
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Ensure we get the button itself, not its child icon
+                const targetBtn = e.target.closest('.delete-btn');
+                if (targetBtn) {
+                    const index = parseInt(targetBtn.dataset.index);
+                    this.deleteClient(index);
+                }
+            });
+        });
+    }
+
+    exportToCSV() {
+        if (this.clients.length === 0) {
+            this.showStatus('❌ No data to export', 'error');
+            return;
+        }
+
+        const headers = ['Name', 'Email', 'Phone', 'Company', 'LinkedIn', 'Source', 'Notes', 'Timestamp'];
+        const csvContent = [
+            headers.join(','),
+            ...this.clients.map(client => [
+                `"${(client.name || '').replace(/"/g, '""')}"`,
+                `"${(client.email || '').replace(/"/g, '""')}"`,
+                `"${(client.phone || '').replace(/"/g, '""')}"`,
+                `"${(client.company || '').replace(/"/g, '""')}"`,
+                `"${(client.linkedIn || '').replace(/"/g, '""')}"`,
+                `"${(client.source || '').replace(/"/g, '""')}"`,
+                `"${(client.notes || '').replace(/"/g, '""')}"`, // Added notes to CSV
+                `"${(client.timestamp || '').replace(/"/g, '""')}"`
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `exhibition-clients-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        this.showStatus('📊 Data exported successfully!', 'success');
+    }
+
+    deleteClient(index) {
+        if (index < 0 || index >= this.clients.length) {
+            this.showStatus('❌ Invalid client index', 'error');
+            return;
+        }
+
+        const client = this.clients[index];
+        const confirmDelete = confirm(`Are you sure you want to delete ${client.name || 'this client'}?`);
+
+        if (confirmDelete) {
+            this.clients.splice(index, 1);
+            this.saveClients();
+            this.updateClientsTable();
+            this.showStatus(`🗑️ Deleted client: ${client.name || 'Unknown'}`, 'success');
+        }
+    }
+
+    clearAllData() {
+        if (this.clients.length === 0) {
+            this.showStatus('❌ No data to clear', 'error');
+            return;
+        }
+
+        if (confirm(`🗑️ Are you sure you want to clear all ${this.clients.length} client records? This action cannot be undone.`)) {
+            this.clients = [];
+            this.saveClients();
+            this.updateClientsTable();
+            this.showStatus('🗑️ All client data cleared', 'info');
+        }
+    }
+
+    loadClients() {
+        try {
+            const stored = localStorage.getItem('exhibitionCardReaderClients');
+            return stored ? JSON.parse(stored) : [];
+        } catch (error) {
+            console.error('Error loading clients:', error);
+            return [];
+        }
+    }
+
+    saveClients() {
+        try {
+            localStorage.setItem('exhibitionCardReaderClients', JSON.stringify(this.clients));
+            console.log('Clients saved to localStorage:', this.clients.length);
+        } catch (error) {
+            console.error('Error saving clients:', error);
+        }
+    }
+
+    showStatus(message, type) {
+        const statusEl = document.getElementById('statusMessage');
+        statusEl.innerHTML = `<div class="status-message ${type}">${message}</div>`;
+
+        // Auto-hide success and info messages after 5 seconds
+        if (type === 'success' || type === 'info') {
+            setTimeout(() => {
+                // Only clear if the current message is still the one we set
+                if (statusEl.innerHTML.includes(message)) {
+                    statusEl.innerHTML = '';
+                }
+            }, 5000);
+        }
+    }
+
+    showProcessing(show) {
+        document.getElementById('processing').style.display = show ? 'block' : 'none';
+        // Disable buttons when processing
+        document.getElementById('startCamera').disabled = show;
+        document.getElementById('captureImage').disabled = show;
+        document.getElementById('fileInput').disabled = show;
+        document.getElementById('uploadArea').style.pointerEvents = show ? 'none' : 'auto';
+        document.getElementById('manualForm').style.pointerEvents = show ? 'none' : 'auto';
+    }
+
+    editClient(index) {
+        const client = this.clients[index];
+        if (!client) return;
+
+        // Remove any existing modal to prevent duplicates
+        const existingModal = document.querySelector('.edit-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Create and show edit modal with better styling
+        const modal = document.createElement('div');
+        modal.className = 'edit-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease-out;
+        `;
+
+        modal.innerHTML = `
+            <div class="edit-modal-content" style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 20px;
+                padding: 0;
+                width: 90%;
+                max-width: 500px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                border: 2px solid rgba(255,255,255,0.1);
+                backdrop-filter: blur(10px);
+                animation: slideInFromTop 0.4s ease-out;
+            ">
+                <div style="
+                    background: rgba(255,255,255,0.1);
+                    padding: 25px 30px;
+                    border-radius: 18px 18px 0 0;
+                    border-bottom: 1px solid rgba(255,255,255,0.2);
+                ">
+                    <h3 style="
+                        color: white;
+                        margin: 0;
+                        font-size: 1.5rem;
+                        font-weight: 600;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    ">
+                        ✏️ Edit Client
+                    </h3>
+                </div>
+
+                <div style="padding: 30px;">
+                    <form id="editClientForm">
+                        <div style="margin-bottom: 20px;">
+                            <label style="
+                                color: white;
+                                font-weight: 600;
+                                margin-bottom: 8px;
+                                display: block;
+                                font-size: 0.9rem;
+                            ">👤 Name *</label>
+                            <input type="text" class="edit-input" id="editName" value="${client.name || ''}" required style="
+                                width: 100%;
+                                padding: 12px 15px;
+                                border: 2px solid rgba(255,255,255,0.2);
+                                border-radius: 10px;
+                                background: rgba(255,255,255,0.1);
+                                color: white;
+                                font-size: 1rem;
+                                transition: all 0.3s ease;
+                            " placeholder="Enter full name">
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="
+                                color: white;
+                                font-weight: 600;
+                                margin-bottom: 8px;
+                                display: block;
+                                font-size: 0.9rem;
+                            ">📧 Email</label>
+                            <input type="email" class="edit-input" id="editEmail" value="${client.email || ''}" style="
+                                width: 100%;
+                                padding: 12px 15px;
+                                border: 2px solid rgba(255,255,255,0.2);
+                                border-radius: 10px;
+                                background: rgba(255,255,255,0.1);
+                                color: white;
+                                font-size: 1rem;
+                                transition: all 0.3s ease;
+                            " placeholder="Enter email address">
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="
+                                color: white;
+                                font-weight: 600;
+                                margin-bottom: 8px;
+                                display: block;
+                                font-size: 0.9rem;
+                            ">📞 Phone</label>
+                            <input type="tel" class="edit-input" id="editPhone" value="${client.phone || ''}" style="
+                                width: 100%;
+                                padding: 12px 15px;
+                                border: 2px solid rgba(255,255,255,0.2);
+                                border-radius: 10px;
+                                background: rgba(255,255,255,0.1);
+                                color: white;
+                                font-size: 1rem;
+                                transition: all 0.3s ease;
+                            " placeholder="Enter phone number">
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="
+                                color: white;
+                                font-weight: 600;
+                                margin-bottom: 8px;
+                                display: block;
+                                font-size: 0.9rem;
+                            ">🏢 Company</label>
+                            <input type="text" class="edit-input" id="editCompany" value="${client.company || ''}" style="
+                                width: 100%;
+                                padding: 12px 15px;
+                                border: 2px solid rgba(255,255,255,0.2);
+                                border-radius: 10px;
+                                background: rgba(255,255,255,0.1);
+                                color: white;
+                                font-size: 1rem;
+                                transition: all 0.3s ease;
+                            " placeholder="Enter company name">
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="
+                                color: white;
+                                font-weight: 600;
+                                margin-bottom: 8px;
+                                display: block;
+                                font-size: 0.9rem;
+                            ">🔗 LinkedIn</label>
+                            <input type="url" class="edit-input" id="editLinkedin" value="${client.linkedIn || ''}" style="
+                                width: 100%;
+                                padding: 12px 15px;
+                                border: 2px solid rgba(255,255,255,0.2);
+                                border-radius: 10px;
+                                background: rgba(255,255,255,0.1);
+                                color: white;
+                                font-size: 1rem;
+                                transition: all 0.3s ease;
+                            " placeholder="Enter LinkedIn URL">
+                        </div>
+
+                        <div style="margin-bottom: 25px;">
+                            <label style="
+                                color: white;
+                                font-weight: 600;
+                                margin-bottom: 8px;
+                                display: block;
+                                font-size: 0.9rem;
+                            ">📝 Notes</label>
+                            <textarea class="edit-input" id="editNotes" style="
+                                width: 100%;
+                                padding: 12px 15px;
+                                border: 2px solid rgba(255,255,255,0.2);
+                                border-radius: 10px;
+                                background: rgba(255,255,255,0.1);
+                                color: white;
+                                font-size: 1rem;
+                                transition: all 0.3s ease;
+                                min-height: 80px;
+                                resize: vertical;
+                            " placeholder="Add any additional notes">${client.notes || ''}</textarea>
+                        </div>
+                    </form>
+                </div>
+
+                <div style="
+                    padding: 20px 30px 30px;
+                    display: flex;
+                    gap: 15px;
+                    justify-content: flex-end;
+                ">
+                    <button type="button" class="edit-cancel-btn" style="
+                        padding: 12px 25px;
+                        border: 2px solid rgba(255,255,255,0.3);
+                        border-radius: 10px;
+                        background: rgba(255,255,255,0.1);
+                        color: white;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        font-size: 0.9rem;
+                    ">❌ Cancel</button>
+                    <button type="button" class="edit-update-btn" style="
+                        padding: 12px 25px;
+                        border: none;
+                        border-radius: 10px;
+                        background: linear-gradient(135deg, #00c851, #007e33);
+                        color: white;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        font-size: 0.9rem;
+                        box-shadow: 0 4px 15px rgba(0,200,81,0.3);
+                    ">✅ Update Client</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Add hover effects for inputs
+        const inputs = modal.querySelectorAll('.edit-input');
+        inputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                input.style.borderColor = '#00ff88'; // Focus color
+                input.style.background = 'rgba(255,255,255,0.15)';
+                input.style.boxShadow = '0 0 10px rgba(0,255,136,0.3)';
+            });
+            input.addEventListener('blur', () => {
+                input.style.borderColor = 'rgba(255,255,255,0.2)';
+                input.style.background = 'rgba(255,255,255,0.1)';
+                input.style.boxShadow = 'none';
+            });
+            input.addEventListener('mouseover', () => {
+                input.style.borderColor = 'rgba(255,255,255,0.4)';
+            });
+            input.addEventListener('mouseout', () => {
+                if (document.activeElement !== input) {
+                    input.style.borderColor = 'rgba(255,255,255,0.2)';
+                }
+            });
+        });
+
+        // Add hover effects and click listeners for buttons
+        const cancelBtn = modal.querySelector('.edit-cancel-btn');
+        const updateBtn = modal.querySelector('.edit-update-btn');
+
+        cancelBtn.addEventListener('click', () => modal.remove());
+
+        updateBtn.addEventListener('click', () => {
+            this.updateClient(index);
+            modal.remove(); // Close modal after update
+        });
+
+        cancelBtn.addEventListener('mouseenter', () => {
+            cancelBtn.style.background = 'rgba(255,255,255,0.2)';
+            cancelBtn.style.borderColor = 'rgba(255,255,255,0.5)';
+        });
+        cancelBtn.addEventListener('mouseleave', () => {
+            cancelBtn.style.background = 'rgba(255,255,255,0.1)';
+            cancelBtn.style.borderColor = 'rgba(255,255,255,0.3)';
+        });
+
+        updateBtn.addEventListener('mouseenter', () => {
+            updateBtn.style.transform = 'translateY(-2px)';
+            updateBtn.style.boxShadow = '0 6px 20px rgba(0,200,81,0.4)';
+        });
+        updateBtn.addEventListener('mouseleave', () => {
+            updateBtn.style.transform = 'translateY(0)';
+            updateBtn.style.boxShadow = '0 4px 15px rgba(0,200,81,0.3)';
+        });
+
+        // Focus on first input
+        setTimeout(() => {
+            document.getElementById('editName').focus();
+        }, 100);
+
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
             }
         });
 
-        // Add some helpful keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                switch(e.key) {
-                    case 's':
-                        e.preventDefault();
-                        document.getElementById('startCamera').click();
-                        break;
-                    case 'e':
-                        e.preventDefault();
-                        document.getElementById('exportData').click();
-                        break;
-                }
+        // Add keyframe styles for animations dynamically
+        const styleSheet = document.styleSheets[0];
+        styleSheet.insertRule(`
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
             }
-        });
-    </script>
+        `, styleSheet.cssRules.length);
+        styleSheet.insertRule(`
+            @keyframes slideInFromTop {
+                from { transform: translateY(-50px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+        `, styleSheet.cssRules.length);
+    }
+
+    updateClient(index) {
+        const name = document.getElementById('editName').value.trim();
+        const email = document.getElementById('editEmail').value.trim();
+        const phone = document.getElementById('editPhone').value.trim();
+        const company = document.getElementById('editCompany').value.trim();
+        const linkedin = document.getElementById('editLinkedin').value.trim();
+        const notes = document.getElementById('editNotes').value.trim(); // Get notes field
+
+        if (!name) {
+            this.showStatus('❌ Name is required!', 'error');
+            return;
+        }
+
+        // Validate email format if provided
+        if (email && !this.isValidEmail(email)) {
+            this.showStatus('❌ Please enter a valid email address', 'error');
+            return;
+        }
+
+        // Update client data with all existing fields preserved
+        const updatedClient = {
+            ...this.clients[index], // Preserve existing fields like source, timestamp, etc.
+            name: name,
+            email: email,
+            phone: phone,
+            company: company,
+            linkedIn: linkedin,
+            notes: notes // Update notes field
+        };
+
+        // Update the client in the array
+        this.clients[index] = updatedClient;
+
+        // Save to localStorage
+        this.saveClients();
+
+        // Update display
+        this.updateClientsTable();
+
+        // Show success message
+        this.showStatus('✅ Client updated successfully!', 'success');
+
+        console.log('Client updated:', updatedClient);
+    }
+}
+
+// Initialize the application when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        new ExhibitionCardReaderPro();
+        console.log('🚀 Exhibition Card Reader Pro initialized successfully!');
+    } catch (error) {
+        console.error('❌ Error initializing application:', error);
+        document.body.innerHTML = `
+            <div style="text-align: center; padding: 50px; color: white;">
+                <h1>❌ Application Error</h1>
+                <p>Failed to initialize the card reader. Please refresh the page.</p>
+                <p style="font-size: 0.9rem; opacity: 0.8;">Error: ${error.message}</p>
+            </div>
+        `;
+    }
+});
+
+// Add some helpful keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+            case 's':
+                e.preventDefault();
+                document.getElementById('startCamera').click();
+                break;
+            case 'e':
+                e.preventDefault();
+                document.getElementById('exportData').click();
+                break;
+        }
+    }
+});
+   </script>
 </body>
 </html>
