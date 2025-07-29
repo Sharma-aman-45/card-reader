@@ -1136,7 +1136,7 @@
             }
 
             parseQRData(qrText) {
-                const clientData = { name: '', email: '', phone: '', company: '' };
+                const clientData = { name: '', email: '', phone: '', company: '', notes: '' };
                 console.log('Parsing QR text:', qrText);
                 
                 // Initialize the efficient name extractor
@@ -1168,41 +1168,40 @@
                 } else {
                     console.log('Parsing as plain text with enhanced extraction');
                     
-                    // OPTIMIZED EMAIL EXTRACTION - Fast and accurate
-                    const emailResult = this.extractEmailOptimized(qrText);
-                    if (emailResult.email) {
-                        clientData.email = emailResult.email;
-                        console.log('Found email:', clientData.email);
-                    }
+                    // Extract all possible emails and phones
+                    const allEmails = this.extractEmails(qrText);
+                    const allPhones = this.extractPhoneNumbers(qrText);
                     
-                    // Extract phone number (improved regex for various formats)
-                    const phoneRegex = /(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})|(?:\+?[\d\s\-\(\)]{10,15})/g;
-                    const phoneMatches = qrText.match(phoneRegex);
-                    if (phoneMatches) {
-                        clientData.phone = phoneMatches[0].replace(/\s+/g, '');
-                        console.log('Found phone:', clientData.phone);
-                    }
-                    
-                    // EFFICIENT NAME EXTRACTION - New algorithm
-                    const nameResult = nameExtractor.extractName(qrText);
-                    if (nameResult.name && nameResult.confidence >= 5) {
-                        clientData.name = nameResult.name;
-                        console.log(`Efficient name extraction: ${clientData.name} (confidence: ${nameResult.confidence}, method: ${nameResult.method})`);
-                    } else {
-                        console.log('Name extraction failed with new algorithm, trying fallback');
-                        // Fallback to basic name extraction if needed
-                        const lines = qrText.split('\n').filter(line => line.trim().length > 2);
-                        for (const line of lines.slice(0, 3)) {
-                            const cleanLine = line.trim();
-                            if (cleanLine.length >= 3 && cleanLine.length <= 50 && 
-                                /^[A-Za-z\s\.\-']+$/.test(cleanLine) &&
-                                !cleanLine.includes('@') && 
-                                !phoneRegex.test(cleanLine)) {
-                                clientData.name = cleanLine;
-                                console.log('Found name with fallback:', clientData.name);
-                                break;
-                            }
+                    // Select the best email and phone
+                    if (allEmails.length > 0) {
+                        clientData.email = allEmails[0];
+                        console.log('Found primary email:', clientData.email);
+                        
+                        // If we have multiple emails, consider adding secondary to notes
+                        if (allEmails.length > 1) {
+                            clientData.notes = `Additional emails: ${allEmails.slice(1).join(', ')}`;
+                            console.log('Found additional emails:', allEmails.slice(1));
                         }
+                    }
+                    
+                    if (allPhones.length > 0) {
+                        clientData.phone = allPhones[0];
+                        console.log('Found primary phone:', clientData.phone);
+                        
+                        // If we have multiple phones, consider adding secondary to notes
+                        if (allPhones.length > 1) {
+                            const phoneNote = `Additional phones: ${allPhones.slice(1).join(', ')}`;
+                            clientData.notes = clientData.notes 
+                                ? `${clientData.notes}; ${phoneNote}`
+                                : phoneNote;
+                            console.log('Found additional phones:', allPhones.slice(1));
+                        }
+                    }
+                    
+                    // Extract name with context awareness
+                    clientData.name = this.extractNameWithContext(qrText);
+                    if (clientData.name) {
+                        console.log('Found name with context:', clientData.name);
                     }
                     
                     // Extract company (existing logic)
@@ -1225,6 +1224,23 @@
                         if (clientData.company) break;
                     }
                     
+                    // If we have email but no name, try to extract name from email prefix
+                    if (clientData.email && !clientData.name) {
+                        const emailPrefix = clientData.email.split('@')[0];
+                        const nameFromEmail = emailPrefix
+                            .replace(/[^a-zA-Z]/g, ' ')
+                            .replace(/\s+/g, ' ')
+                            .trim();
+                        
+                        if (nameFromEmail.split(' ').length <= 3) {
+                            const nameCheck = nameExtractor.extractName(nameFromEmail);
+                            if (nameCheck.confidence >= 4) {
+                                clientData.name = nameCheck.name;
+                                console.log('Extracted name from email:', clientData.name);
+                            }
+                        }
+                    }
+                    
                     // Check if it's just a URL or error code (no contact info)
                     const isUrl = qrText.match(/^https?:\/\//);
                     const isErrorCode = qrText.match(/^(ERROR|FAIL|INVALID)/i);
@@ -1243,8 +1259,78 @@
                 return clientData;
             }
 
-            // OPTIMIZED EMAIL EXTRACTION METHOD
-            extractEmailOptimized(text) {
+            /**
+             * Optimized phone number extraction with multiple number handling
+             */
+            extractPhoneNumbers(text) {
+                // Enhanced phone regex patterns
+                const phonePatterns = [
+                    // Standard formats (highest priority)
+                    /(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g,
+                    /(?:\+?[0-9]{1,3}[-.\s]?)?\(?[0-9]{2,4}\)?[-.\s]?[0-9]{2,4}[-.\s]?[0-9]{2,4}[-.\s]?[0-9]{2,4}/g,
+                    
+                    // International formats
+                    /\+[\d\s\-\(\)]{10,20}/g,
+                    
+                    // Special cases (lower priority)
+                    /tel:([+\d\s\-\(\)]+)/gi,
+                    /phone:([+\d\s\-\(\)]+)/gi,
+                    /mobile:([+\d\s\-\(\)]+)/gi
+                ];
+
+                const foundNumbers = new Set();
+                
+                // Try each pattern in order of priority
+                for (const pattern of phonePatterns) {
+                    const matches = text.match(pattern);
+                    if (matches) {
+                        matches.forEach(num => {
+                            // Clean the number
+                            let cleanNum = num.replace(/[^\d+]/g, '');
+                            
+                            // Remove tel: or phone: prefixes if present
+                            if (cleanNum.startsWith('tel') || cleanNum.startsWith('phone')) {
+                                cleanNum = cleanNum.replace(/^[a-z]+/i, '');
+                            }
+                            
+                            // Validate length (minimum 7 digits for local numbers, 10 for full numbers)
+                            if ((cleanNum.startsWith('+') && cleanNum.length >= 8) || 
+                                (!cleanNum.startsWith('+') && cleanNum.length >= 7)) {
+                                foundNumbers.add(cleanNum);
+                            }
+                        });
+                        
+                        // If we found numbers with high confidence pattern, stop searching
+                        if (foundNumbers.size > 0 && pattern === phonePatterns[0]) break;
+                    }
+                }
+
+                // Convert to array and prioritize numbers
+                const numbers = Array.from(foundNumbers);
+                
+                // Prioritization logic:
+                // 1. Numbers with + prefix (international)
+                // 2. Longer numbers (more likely to be complete)
+                // 3. Numbers that appear earlier in the text
+                numbers.sort((a, b) => {
+                    const aIsIntl = a.startsWith('+');
+                    const bIsIntl = b.startsWith('+');
+                    
+                    if (aIsIntl && !bIsIntl) return -1;
+                    if (!aIsIntl && bIsIntl) return 1;
+                    
+                    if (a.length !== b.length) return b.length - a.length;
+                    
+                    return text.indexOf(a) - text.indexOf(b);
+                });
+
+                return numbers;
+            }
+
+            /**
+             * Enhanced email extraction with multiple email handling
+             */
+            extractEmails(text) {
                 // Multiple email patterns for better accuracy
                 const emailPatterns = [
                     // Standard email pattern
@@ -1255,29 +1341,185 @@
                     /[\(\[][^\)\]]*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})[^\(\[\]]*[\)\]]/g
                 ];
                 
+                const foundEmails = new Set();
+                
                 for (const pattern of emailPatterns) {
                     const matches = text.match(pattern);
                     if (matches && matches.length > 0) {
-                        // Clean up the email (remove prefixes, parentheses, etc.)
-                        let email = matches[0];
+                        matches.forEach(email => {
+                            // Clean up the email (remove prefixes, parentheses, etc.)
+                            let cleanEmail = email;
+                            
+                            // Extract email from patterns with prefixes
+                            if (pattern.source.includes('email|e-mail|mail|contact')) {
+                                const emailMatch = email.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+                                if (emailMatch) cleanEmail = emailMatch[1];
+                            }
+                            
+                            // Remove parentheses/brackets if present
+                            cleanEmail = cleanEmail.replace(/[\(\)\[\]]/g, '');
+                            
+                            // Validate email format
+                            if (this.isValidEmail(cleanEmail)) {
+                                foundEmails.add(cleanEmail.toLowerCase());
+                            }
+                        });
+                    }
+                }
+                
+                // Convert to array and prioritize emails
+                const emails = Array.from(foundEmails);
+                
+                // Prioritization logic:
+                // 1. Personal emails (not business domains like noreply, info, etc.)
+                // 2. Shorter emails (more likely to be personal)
+                // 3. Emails that appear earlier in the text
+                emails.sort((a, b) => {
+                    const aIsPersonal = !a.includes('noreply') && !a.includes('info') && !a.includes('contact');
+                    const bIsPersonal = !b.includes('noreply') && !b.includes('info') && !b.includes('contact');
+                    
+                    if (aIsPersonal && !bIsPersonal) return -1;
+                    if (!aIsPersonal && bIsPersonal) return 1;
+                    
+                    if (a.length !== b.length) return a.length - b.length;
+                    
+                    return text.indexOf(a) - text.indexOf(b);
+                });
+                
+                return emails;
+            }
+
+            /**
+             * Enhanced name extraction considering surrounding context with name dataset validation
+             */
+            extractNameWithContext(text) {
+                const nameExtractor = new EfficientNameExtractor();
+                const nameResult = nameExtractor.extractName(text);
+                
+                // If we found a high confidence name, validate with dataset
+                if (nameResult.confidence >= 7) {
+                    const validatedName = this.validateNameWithDataset(nameResult.name);
+                    if (validatedName) {
+                        return validatedName;
+                    }
+                    return nameResult.name;
+                }
+                
+                // Fallback to context-based extraction
+                const lines = text.split('\n').filter(line => line.trim().length > 2);
+                
+                // Try to find name near email or phone
+                const emails = this.extractEmails(text);
+                const phones = this.extractPhoneNumbers(text);
+                
+                // If we have email or phone, look for name in nearby lines
+                if (emails.length > 0 || phones.length > 0) {
+                    const referencePoints = [...emails, ...phones];
+                    
+                    for (const point of referencePoints) {
+                        const pointIndex = text.indexOf(point);
+                        if (pointIndex === -1) continue;
                         
-                        // Extract email from patterns with prefixes
-                        if (pattern.source.includes('email|e-mail|mail|contact')) {
-                            const emailMatch = email.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
-                            if (emailMatch) email = emailMatch[1];
+                        // Get the line containing the reference point
+                        let lineIndex = 0;
+                        let currentPos = 0;
+                        for (let i = 0; i < lines.length; i++) {
+                            currentPos += lines[i].length + 1; // +1 for newline
+                            if (currentPos > pointIndex) {
+                                lineIndex = i;
+                                break;
+                            }
                         }
                         
-                        // Remove parentheses/brackets if present
-                        email = email.replace(/[\(\)\[\]]/g, '');
-                        
-                        // Validate email format
-                        if (this.isValidEmail(email)) {
-                            return { email: email.toLowerCase(), confidence: 'high' };
+                        // Check previous lines for name
+                        for (let i = Math.max(0, lineIndex - 2); i <= Math.min(lines.length - 1, lineIndex + 1); i++) {
+                            const line = lines[i];
+                            const check = nameExtractor.extractName(line);
+                            if (check.confidence >= 5) {
+                                const validatedName = this.validateNameWithDataset(check.name);
+                                if (validatedName) {
+                                    return validatedName;
+                                }
+                                return check.name;
+                            }
                         }
                     }
                 }
                 
-                return { email: '', confidence: 'none' };
+                // Final fallback to the best name we found (even if low confidence)
+                if (nameResult.name) {
+                    const validatedName = this.validateNameWithDataset(nameResult.name);
+                    if (validatedName) {
+                        return validatedName;
+                    }
+                }
+                return nameResult.name || '';
+            }
+
+            /**
+             * Validate and correct name using the name dataset
+             */
+            validateNameWithDataset(extractedName) {
+                if (!extractedName || extractedName.length < 2) return null;
+                
+                // Clean the extracted name
+                const cleanName = extractedName.trim().toLowerCase();
+                const nameParts = cleanName.split(/\s+/);
+                
+                // Name dataset (common Indian names)
+                const nameDataset = [
+                    'aaban', 'aabharan', 'aabhas', 'aabhat', 'aabheer', 'aabir', 'aabishan', 'aacharya', 'aachman', 'aadarsh', 'aadarshan', 'aadavan', 'aadesh', 'aadhan', 'aadhar', 'aadhav', 'aadhi', 'aadhidev', 'aadhil', 'aadhiraj', 'aadhiran', 'aadhish', 'aadhishankar', 'aadhithan', 'aadhithya', 'aaditya', 'aadvay', 'aadvik', 'aadyant', 'aafiya', 'aafreen', 'aaftab', 'aagash', 'aahaan', 'aahan', 'aahil', 'aahlaad', 'aahnik', 'aahvan', 'aajeevan', 'aakaar', 'aakaash', 'aakarsh', 'aakash', 'aakashi', 'aakshat', 'aalam', 'aalan', 'aalap', 'aalok', 'aamil', 'aamir', 'aamish', 'aamod', 'aamodh', 'aanand', 'aanandit', 'aananth', 'aansh', 'aapt', 'aapu', 'aaqib', 'aaqil', 'aaradhak', 'aaran', 'aarav', 'aarif', 'aarish', 'aarit', 'aarnab', 'aarnav', 'aarsh', 'aarth', 'aaryan', 'aaryav', 'aashang', 'aashank', 'aashay', 'aashir', 'aashish', 'aashlesh', 'aashman', 'aashray', 'aashresh', 'aashrith', 'aashrut', 'aashu', 'aashutosh', 'aasif', 'aasim', 'aasit', 'aastha', 'aastik', 'aasvi', 'aathan', 'aathavan', 'aathees', 'aathijeyan', 'aathikan', 'aathipan', 'aathiran', 'aathish', 'aathith', 'aathithan', 'aathrav', 'aatif', 'aatish', 'aatma', 'aatmaj', 'aatman', 'aatmanand', 'aatmaram', 'aatmay', 'aatmik', 'aatrey', 'aatreya', 'aavansh', 'aavanyan', 'aavarthan', 'aaveg', 'aavesh', 'aavi', 'aavish', 'aayam', 'aayan', 'aayansh', 'aayu', 'aayush', 'aayudh', 'aayus', 'aayushmaan', 'aazim', 'abaan', 'abadhya', 'abay', 'abayan', 'abbas', 'abbhinav', 'abbir', 'abbott', 'abbud', 'abdul', 'abdullah', 'abdus', 'abed', 'abedin', 'abeer', 'abel', 'abenayan', 'abezag', 'abhaidev', 'abhaijeet', 'abharajithan', 'abhas', 'abhav', 'abhay', 'abhayan', 'abhayananda', 'abhayanankar', 'abheek', 'abheesht', 'abheet', 'abhey', 'abhibhava', 'abhicandra', 'abhidharm', 'abhidhi', 'abhigyaan', 'abhiijaat', 'abhijan', 'abhijat', 'abhijay', 'abhijaya', 'abhijeet', 'abhijit', 'abhijith', 'abhijun', 'abhik', 'abhikam', 'abhilash', 'abhilesh', 'abhim', 'abhiman', 'abhimand', 'abhimani', 'abhimanyu', 'abhimath', 'abhimoda', 'abhinabhas', 'abhinand', 'abhinanda', 'abhinandan', 'abhinandana', 'abhinash', 'abhinatha', 'abhinav', 'abhinava', 'abhinay', 'abhineet', 'abhinesh', 'abhinit', 'abhinivesh', 'abhinuj', 'abhipuj', 'abhir', 'abhiraam', 'abhiraj', 'abhiral', 'abhiram', 'abhirath', 'abhiroop', 'abhirup', 'abhisar', 'abhisek', 'abhisheik', 'abhishek', 'abhishekita', 'abhishrey', 'abhisoka', 'abhisumat', 'abhisumath', 'abhisyanta', 'abhith', 'abhivaadan', 'abhivadan', 'abhivanth', 'abhivira', 'abhjeet', 'abhoy', 'abhra', 'abhrakasin', 'abhram', 'abhranila', 'abhu', 'abhya', 'abhyagni', 'abhyan', 'abhyank', 'abhypsit', 'abhyuday', 'abhyudaya', 'abhyudev', 'abhyudita', 'abid', 'abidin', 'abijith', 'abimanyu', 'abinash', 'abinav', 'abinay', 'abinayan', 'abinesh', 'abinish', 'abiram', 'abisali', 'abishek', 'abivanth', 'abjayoni', 'abjit', 'abner', 'abninayan', 'abra', 'abrad', 'abraham', 'abrar', 'abrash', 'abrik', 'abu', 'abul', 'acalapati', 'acalendra', 'acalesvara', 'acanda', 'acaryanandana', 'acaryasuta', 'acaryatanaya', 'acchindra', 'acchutan', 'achal', 'achalapati', 'achalendra', 'achalesvara', 'achalraj', 'achanda', 'achapal', 'acharya', 'acharyanandana', 'acharyasuta', 'achindra', 'achint', 'achintya', 'achuthan', 'achyut', 'achyuta', 'achyutam', 'achyutaraya', 'achyuth', 'achyuthan', 'acintya', 'acyutaraya', 'adalarachan', 'adalarasen', 'adalarasu', 'adam', 'adarsh', 'adavan', 'adbhutah', 'addison', 'adedev', 'adeel', 'adeela', 'adeem', 'adeep', 'adel', 'adenya', 'adesh', 'adeshwar', 'adham', 'adharsh', 'adharv', 'adhavan', 'adheer', 'adheesh', 'adhik', 'adhikara', 'adhinath', 'adhinav', 'adhip', 'adhipa', 'adhir', 'adhiraiyan', 'adhiraj', 'adhiratha', 'adhish', 'adhit', 'adhita', 'adhithya', 'adhitya', 'adhrit', 'adhrith', 'adhvait', 'adhvesh', 'adhvik', 'adhyan', 'adhyayan', 'adhyuth', 'adi', 'adib', 'adidev', 'adikavi', 'adikya', 'adil', 'adiman', 'adinath', 'adipurush', 'adipurusha', 'adisesh', 'adit', 'aditeya', 'adith', 'adithiya', 'adithya', 'aditiya', 'aditraj', 'aditya', 'adityaharicharan', 'adityakiran', 'adityanandan', 'adityanandana', 'adityavardhana', 'adiv', 'adiyaman', 'adler', 'adley', 'adlin', 'adnan', 'adotka', 'adrav', 'adrian', 'adrien', 'adrik', 'adripathi', 'adrish', 'adriyan', 'adrush', 'adtiya', 'advait', 'advaith', 'advay', 'advaya', 'advik', 'advit', 'adviteeya', 'advith', 'advitya', 'adwaid', 'adwait', 'adwaita', 'advaitha', 'adwaith', 'adway', 'adwaya', 'adwik', 'adwin', 'adyant', 'aedan', 'aiden', 'aekansh', 'aeshan', 'aeyush', 'afeef', 'aftab', 'aftaab', 'afzal', 'agam', 'agamiya', 'agampreet', 'aganit', 'aganveer', 'agarv', 'agarvin', 'agasthya', 'agasti', 'agathiyan', 'agavoli', 'agendra', 'agha', 'aghartha', 'aghat', 'aghor', 'aghornath', 'aghosh', 'agilan', 'agnello', 'agnes', 'agneya', 'aagneya', 'agnibahu', 'agnihotra', 'agnikumara', 'agnimitra', 'agniprava', 'agniras', 'agniv', 'agnivesh', 'agnivo', 'agraj', 'agrani', 'agrim', 'agrima', 'agriya', 'agustya', 'agyeya', 'ahaan', 'ahachcudar', 'ahad', 'ahaliyan', 'ahalyan', 'ahamathi', 'ahamynthan', 'ahan', 'ahanaeyan', 'ahankar', 'ahanyan', 'ahar', 'aharan', 'aharathan', 'aharihan', 'aharijan', 'aharshi', 'aharsi', 'ahaventhan', 'ahi', 'ahijit', 'ahil', 'ahilan', 'ahim', 'ahin', 'ahir', 'ahlad', 'ahmad', 'ahnay', 'ahren', 'ahrooran', 'ahruran', 'ahsan', 'ahti', 'aiden', 'aifa', 'aijaz', 'aiken', 'ail', 'aiman', 'ainesh', 'ainitosh', 'airaawat', 'airawat', 'eirawat', 'erawat', 'irawat', 'airavath', 'airawat', 'aishwa', 'aiyan', 'aiyappa', 'aiyyapa', 'ajaat', 'ajaatshatru', 'ajatshatru', 'ajah', 'ajahni', 'ajai', 'ajaipal', 'ajamil', 'ajan', 'ajanma', 'ajanthan', 'ajanya', 'ajat', 'ajatashatru', 'ajathasathru', 'ajatshatru', 'ajay', 'ajayan', 'ajeesh', 'ajeet', 'ajendra', 'ajesh', 'ajinkya', 'ajish', 'ajisth', 'ajit', 'ajitaabh', 'ajitabh', 'ajitesh', 'ajith', 'ajithabh', 'ajithesh', 'ajkhyat', 'ajmal', 'ajmil', 'ajneesh', 'ajoy', 'akal', 'akaldeep', 'akalin', 'akaljot', 'akalmash', 'akalnivas', 'akalpa', 'akalpreet', 'akalroop', 'akalsharan', 'akalsimar', 'akalsukh', 'akand', 'akansh', 'akanshit', 'akarsh', 'akash', 'akashdeep', 'akashini', 'akathiyan', 'akbar', 'akeem', 'akendra', 'akhalesh', 'akhand', 'akharsh', 'akhas', 'akhil', 'akhilash', 'akhilesh', 'akhileshwar', 'akhileswar', 'akhsaj', 'akhtar', 'akhurath', 'akhyath', 'akif', 'akil', 'akilan', 'akilesh', 'akira', 'akkamma', 'akkrum', 'akmal', 'akram', 'akaram', 'akrash', 'akrish', 'akrit', 'akroor', 'akruti', 'aksh', 'akshad', 'akshagna', 'akshahantre', 'akshaj', 'akshan', 'akshansh', 'akshant', 'akshar', 'aksharan', 'akshat', 'akshath', 'akshay', 'akshaya', 'akshayan', 'akshaykeerti', 'akshey', 'akshit', 'akshith', 'akshobhya', 'akshu', 'akshun', 'akshyan', 'akshyat', 'akul', 'ala', 'alaa', 'alaap', 'alabhya', 'alagan', 'alagappan', 'alagarasu', 'alagen', 'alaginiyan', 'alagiri', 'alahan', 'alakeshan', 'alakeshwaran', 'alakshendra', 'alamgir', 'alampata', 'alan', 'allan', 'alankar', 'alankrit', 'alarka', 'alastair', 'albern', 'albert', 'albion', 'alden', 'aldis', 'aldrich', 'alec', 'aleem', 'alek', 'alexander', 'alfie', 'alfred', 'algernon', 'alhad', 'alhasan', 'alhusain', 'alhusayn', 'ali', 'alice', 'alif', 'alin', 'alipta', 'allah', 'allaiyamuthan', 'allappariyan', 'alman', 'almir', 'alok', 'alok', 'aalok', 'aloke', 'alokendra', 'alolupan', 'alop', 'alpesh', 'alpha', 'alpit', 'alston', 'altaf', 'altair', 'alton', 'alvin', 'amaan', 'amaanat', 'amaar', 'amaay', 'amad', 'amadhya', 'amain', 'amaithipriyan', 'amaiyaran', 'amal', 'amalendu', 'amalesh', 'amam', 'aman', 'amanat', 'amanath', 'amanbir', 'amandeep', 'amandev', 'amaneesh', 'amanjeet', 'amanpal', 'amanpreet', 'amapramaadhy', 'amar', 'amaradhevan', 'amaran', 'amaranaath', 'amarnath', 'amaranayagan', 'amardeep', 'amardev', 'amarender', 'amarendra', 'amaresh', 'amarinder', 'amaris', 'amarjeet', 'amarjot', 'amarleen', 'amarnath', 'amarpreet', 'amarshayan', 'amarthevan', 'amartya', 'amav', 'amay', 'ambadi', 'ambak', 'ambalavan', 'ambar', 'ambareesh', 'ambarish', 'ambav', 'amber', 'amberish', 'ambesh', 'ambhoj', 'ambikanath', 'ambikapathi', 'ambikeya', 'ambili', 'ambrose', 'ambud', 'ambuj', 'ambujakshan', 'ambunath', 'ameer', 'ameet', 'amer', 'amery', 'amet', 'amey', 'ameyaatmaa', 'ameyatma', 'amid', 'amil', 'amildhiniyan', 'amileigh', 'amin', 'ameen', 'amir', 'amirathan', 'amirtha', 'amirtharasan', 'amish', 'amit', 'amitab', 'amitabh', 'amitaabh', 'amitabha', 'amitav', 'amitava', 'amitay', 'amitbikram', 'amitesh', 'amith', 'amithran', 'amitiyoti', 'amitrasudan', 'amiy', 'amjad', 'amlan', 'amlangusum', 'amod', 'amogh', 'amoghah', 'amoghraj', 'amol', 'amolak', 'amolik', 'amoorta', 'amos', 'ampulli', 'amrik', 'amrinder', 'amrish', 'amrit', 'amritambu', 'amritaya', 'amrith', 'amrithash', 'amritpal', 'amrut', 'amruth', 'amrutheswar', 'amsan', 'amshu', 'amshul', 'amshuman', 'amuda', 'amudan', 'amudhan', 'amuk', 'amul', 'amuthan', 'amuthiniyan', 'amuthithan', 'amzad', 'an', 'anaad', 'anaadhrushya', 'anaadi', 'anaadih', 'anaan', 'anaathi', 'anadh', 'anadhi', 'anadi', 'anagh', 'anahath', 'anak', 'anakh', 'anakul', 'anal', 'anam', 'anamay', 'anamaya', 'anami', 'anamitra', 'anan', 'ananay', 'anand', 'aanand', 'ananda', 'anandaganesh', 'anandamay', 'anandan', 'anandh', 'anandhamurugan', 'anandhan', 'anandhu', 'anandsagar', 'anang', 'ananinay', 'ananmay', 'ananmaya', 'anant', 'anantachidrupamayam', 'anantadrishti', 'anantaguna', 'anantajeet', 'anantajit', 'ananth', 'anant', 'ananthaa', 'ananthan', 'ananthu', 'anantim', 'anantram', 'anany', 'ananye', 'ananyo', 'anash', 'anashay', 'anashin', 'anashwar', 'anashya', 'anathikan', 'anav', 'anaye', 'anbaenthi', 'anbalagan', 'anbarasan', 'anbarasu', 'anbazhagan', 'anbu', 'anbuchelvan', 'anbumadi', 'anbuselvan', 'anbushelvan', 'anchit', 'andeep', 'andrew', 'aneek', 'aneeq', 'anees', 'aneesh', 'aneeth', 'anek', 'anesh', 'angad', 'angada', 'angadan', 'angaj', 'angak', 'angamuthu', 'angara', 'angaran', 'angayapriyan', 'angiras', 'angith', 'angleen', 'angus', 'anhar', 'anidev', 'aniesh', 'aniij', 'anik', 'anikait', 'anikanchan', 'anikant', 'aniket', 'aniketh', 'anikt', 'anil', 'anilaabh', 'anilabh', 'anilan', 'anilesh', 'animan', 'animash', 'animesh', 'anindith', 'anindo', 'anindya', 'aniq', 'anirban', 'aniroodh', 'aniruddh', 'aniruddha', 'aniruddhan', 'anirudh', 'anirudhha', 'anirudra', 'anirudu', 'aniruth', 'anirvan', 'anirved', 'anirvin', 'anirvinya', 'anis', 'anish', 'anishk', 'anishvar', 'aniswar', 'anit', 'aniteja', 'aniv', 'anivardh', 'anjaan', 'anjak', 'anjal', 'anjan', 'anjanappa', 'anjaneya', 'anjas', 'anjasa', 'anjay', 'anjesh', 'anjik', 'anjish', 'anjor', 'anjum', 'anjuman', 'ankal', 'ankesh', 'ankit', 'ankith', 'ankolit', 'ankur', 'ankush', 'anmay', 'anmesh', 'anmol', 'anna', 'annanathan', 'anniruddha', 'annsh', 'annuabhuj', 'annul', 'anokha', 'anoob', 'anoop', 'anoor', 'anosh', 'anoush', 'anpalagan', 'anpalahan', 'anpalakan', 'anpan', 'anpukiniyan', 'anram', 'ansal', 'ansel', 'ansh', 'anshaan', 'anshak', 'anshal', 'anshin', 'anshit', 'anshrith', 'anshu', 'anshuk', 'anshul', 'anshum', 'anshuman', 'anshumaan', 'anshumat', 'ansil', 'ansu', 'ansuman', 'antam', 'antar', 'antarang', 'antareeksh', 'antariksh', 'anthamaan', 'anthaman', 'anthikan', 'anthony', 'anthudaran', 'antim', 'antrix', 'anubhab', 'anubhaj', 'anubhav', 'anubodh', 'anuchan', 'anuchana', 'anudarshan', 'anudeep', 'anudev', 'anugrah', 'anugya', 'anuh', 'anuha', 'anuj', 'anukash', 'anukrit', 'anukul', 'anul', 'anumit', 'anumodith', 'anunay', 'anup', 'anupam', 'anupreet', 'anuprit', 'anuraag', 'anurag', 'anuraag', 'anuraj', 'anuritha', 'anurodh', 'anuroop', 'anurup', 'anuroop', 'anush', 'anushahan', 'anushan', 'anushivan', 'anuthaman', 'anutharshan', 'anutosh', 'anuttam', 'anuvindha', 'anuyog', 'anvay', 'anveer', 'anvesh', 'anveshan', 'anvit', 'anvith', 'anwar', 'anwesh', 'anwit', 'anyah', 'anyang', 'anzan', 'apar', 'aparajeet', 'aparajit', 'aparant', 'aparichit', 'apasyu', 'apij', 'apoorv', 'appaji', 'apparajito', 'appu', 'apsaran', 'apure', 'apurti', 'apurv', 'apurva', 'apoorva', 'ara', 'araahan', 'arab', 'aradhy', 'araha', 'arahan', 'arakhsan', 'aralan', 'aram', 'arambhi', 'aranab', 'aranamuthan', 'aranmakan', 'aranyak', 'araon', 'arasu', 'arav', 'aravali', 'aravan', 'aravin', 'aravind', 'aravindan', 'aravindhan', 'aravinth', 'arawo', 'archak', 'archan', 'archat', 'archer', 'archibald', 'archin', 'archish', 'archishman', 'archit', 'archith', 'archuna', 'ardashir', 'ardhendu', 'arean', 'areehah', 'areen', 'aref', 'arif', 'arekh', 'aresh', 'arganesh', 'argha', 'arghya', 'arha', 'arhaan', 'arhan', 'arhant', 'arhat', 'ariez', 'arihaan', 'arihan', 'arihant', 'ariharan', 'arijeet', 'arijit', 'arin', 'arindam', 'arindham', 'arine', 'arinjay', 'arinjoy', 'arish', 'arishwaran', 'arit', 'arivahan', 'arivalagan', 'arivali', 'arivarasan', 'arivarasu', 'arivoli', 'arivolli', 'arivozhi', 'arivuchelvan', 'arivukumaran', 'arivumadhi', 'arivumani', 'arivunambi', 'arivuselvan', 'arivuththamil', 'ariyan', 'arjan', 'arjav', 'arjeeth', 'arjit', 'arju', 'arjun', 'arjuna', 'arjunan', 'arjune', 'arjunna', 'arjunnan', 'arjunnen', 'ark', 'arka', 'arkaj', 'arkash', 'arkesh', 'arkin', 'arkish', 'arksh', 'arlen', 'arman', 'arnab', 'arnad', 'arnav', 'arnesh', 'arnik', 'arnish', 'arnit', 'arnoh', 'arnold', 'arnon', 'arnrit', 'aroha', 'arohan', 'aroop', 'aroush', 'arpan', 'arpil', 'arpit', 'arravind', 'arravinth', 'arsalan', 'arsha', 'arshad', 'arshan', 'artabandhu', 'artagnan', 'artatrana', 'arth', 'artham', 'arthav', 'arthikan', 'arthin', 'arthish', 'arthit', 'arthur', 'arudhra', 'aruj', 'arujas', 'arul', 'arulan', 'arulchelvan', 'arulganeshan', 'arulkumar', 'arulmozhiselvan', 'arulmozhivarman', 'arulnithi', 'arumai', 'arumbu', 'arumin', 'arumugam', 'arumugan', 'arumugathamudhu', 'arumughan', 'arumukhan', 'arun', 'arunabh', 'arunachaleshwara', 'arunageethayan', 'arunan', 'arunesh', 'arungedan', 'arunkannan', 'arunmozhithevan', 'arunmozhivarman', 'arunoday', 'arunothayan', 'arunthavan', 'aruran', 'arush', 'arushan', 'arushanan', 'aruth', 'arva', 'arvalan', 'arvel', 'arvin', 'arvind', 'arvinda', 'arvindswamy', 'ary', 'arya', 'aryaa', 'aryaan', 'aryadit', 'aryadita', 'aryamaan', 'aryaman', 'aryan', 'aryaraj', 'aryasb', 'aryash', 'aryav', 'aryavan', 'aryaveer', 'asad', 'asaja', 'asas', 'asav', 'aseelah', 'aseem', 'asees', 'asgar', 'ashakiran', 'ashan', 'ashank', 'ashankit', 'ashanko', 'ashcharya', 'asheem', 'ashesh', 'ashik', 'ashimat', 'ashirvad', 'ashis', 'ashish', 'ashit', 'ashith', 'ashitosh', 'ashkan', 'ashkaran', 'ashlesh', 'ashman', 'ashmik', 'ashmit', 'ashmith', 'ashneel', 'asho', 'ashok', 'ashokan', 'ashooja', 'ashpan', 'ashraf', 'asraf', 'ashrav', 'ashravya', 'ashray', 'ashrit', 'ashrith', 'ashrut', 'ashsri', 'ashtavakra', 'ashu', 'ashuthosh', 'ashutosh', 'aashutosh', 'ashva', 'ashvad', 'ashvanth', 'ashvarya', 'ashvat', 'ashvath', 'ashvik', 'ashvin', 'ashvind', 'ashwaghosh', 'ashwant', 'ashwanth', 'ashwarth', 'ashwath', 'ashwatham', 'ashwathama', 'ashwatthama', 'ashwathama', 'ashwesh', 'ashwin', 'ashwinraj', 'asidhan', 'asim', 'asish', 'asit', 'asitvaran', 'aslam', 'aslan', 'aslesh', 'aslun', 'aslunak', 'aslunit', 'asmit', 'asmith', 'asner', 'asok', 'asokan', 'asotosa', 'aashutosh', 'asrith', 'astik', 'astitva', 'astitya', 'astrit', 'asuman', 'asvin', 'aswanth', 'aswantha', 'aswapn', 'aswathaama', 'aswin', 'aswinikumar', 'atal', 'atambhu', 'atanu', 'atas', 'atash', 'ateeksh', 'ateet', 'atharav', 'atharv', 'atharva', 'atharvan', 'atheesh', 'athi', 'athiban', 'athighashen', 'athikaya', 'athikunan', 'athinarayanan', 'athiraiyan', 'athirayan', 'athish', 'athishan', 'athishay', 'athishen', 'athithan', 'athitya', 'athiyen', 'athrava', 'athreya', 'athrv', 'athul', 'athyajat', 'ati', 'atikish', 'atiksh', 'atim', 'atimanav', 'atin', 'atish', 'atishay', 'atit', 'atiya', 'atma', 'atmadeep', 'atmaj', 'atmajyothi', 'atmakanth', 'atman', 'atmanand', 'atmananda', 'atmaprakash', 'atmaram', 'atmik', 'atraiu', 'atralarasu', 'atreya', 'atri', 'atul', 'atultejas', 'atulya', 'atun', 'atvar', 'atvi', 'atwater', 'atwood', 'aubrey', 'audvik', 'augadh', 'auniket', 'aurel', 'austin', 'avadh', 'avadhesh', 'avadhoot', 'avalok', 'avan', 'avaneesh', 'avanish', 'avaneeth', 'avanesh', 'avanindra', 'avanish', 'avanithan', 'avaraj', 'avas', 'avashesh', 'avasyu', 'avatar', 'avaya', 'avdhoot', 'avdhut', 'aveekshith', 'aveen', 'avery', 'avhimanyu', 'avi', 'avichal', 'avigyan', 'avijit', 'avik', 'avikalp', 'avikam', 'avikrish', 'avikrut', 'avikshit', 'avilash', 'avin', 'avinash', 'avinay', 'avinesh', 'avingha', 'avir', 'aviraaj', 'aviraj', 'aviral', 'avirat', 'avirbhav', 'avirup', 'avish', 'avishkar', 'aviyukta', 'avkash', 'avneesh', 'avnendra', 'avnesh', 'avniel', 'avtar', 'avya', 'avyaansh', 'avyan', 'avyaya', 'avyayaprabhu', 'avyukt', 'avyukta', 'avyukth', 'awadhesh', 'awan', 'awas', 'awdhesh', 'awesh', 'axel', 'ayaan', 'ayaansh', 'ayan', 'ayank', 'ayansh', 'ayavanth', 'ayilyam', 'ayngaran', 'ayobaahu', 'ayodhya', 'ayog', 'ayub', 'ayudh', 'ayushmaan', 'ayushman', 'ayyan', 'ayyapan', 'ayyappa', 'ayyappadas', 'ayyappan', 'azad', 'azar', 'azeez', 'aziz', 'azhaar', 'azhagan', 'azhagar', 'azhagu', 'azhar'
+                ];
+                
+                // Check if any part of the extracted name matches the dataset
+                for (const namePart of nameParts) {
+                    if (namePart.length < 2) continue;
+                    
+                    // Direct match
+                    if (nameDataset.includes(namePart)) {
+                        console.log(`Name validated with dataset: ${namePart} -> ${extractedName}`);
+                        return extractedName;
+                    }
+                    
+                    // Fuzzy match for common variations
+                    const variations = this.generateNameVariations(namePart);
+                    for (const variation of variations) {
+                        if (nameDataset.includes(variation)) {
+                            console.log(`Name corrected with dataset: ${namePart} -> ${variation}`);
+                            return extractedName.replace(namePart, variation);
+                        }
+                    }
+                }
+                
+                return null;
+            }
+
+            /**
+             * Generate common name variations for fuzzy matching
+             */
+            generateNameVariations(name) {
+                const variations = [];
+                
+                // Common spelling variations
+                if (name.includes('aa')) variations.push(name.replace(/aa/g, 'a'));
+                if (name.includes('a')) variations.push(name.replace(/a/g, 'aa'));
+                if (name.includes('ee')) variations.push(name.replace(/ee/g, 'i'));
+                if (name.includes('i')) variations.push(name.replace(/i/g, 'ee'));
+                if (name.includes('oo')) variations.push(name.replace(/oo/g, 'u'));
+                if (name.includes('u')) variations.push(name.replace(/u/g, 'oo'));
+                
+                // Common letter substitutions
+                if (name.includes('c')) variations.push(name.replace(/c/g, 'k'));
+                if (name.includes('k')) variations.push(name.push(name.replace(/k/g, 'c')));
+                if (name.includes('ph')) variations.push(name.replace(/ph/g, 'f'));
+                if (name.includes('f')) variations.push(name.replace(/f/g, 'ph'));
+                
+                // Remove common suffixes
+                if (name.endsWith('an')) variations.push(name.slice(0, -2));
+                if (name.endsWith('esh')) variations.push(name.slice(0, -3));
+                if (name.endsWith('ish')) variations.push(name.slice(0, -3));
+                
+                return variations;
             }
 
             // EMAIL VALIDATION HELPER
@@ -1291,31 +1533,52 @@
                        !email.endsWith('.');
             }
 
-            // Also add this method to your ExhibitionCardReaderPro class for OCR text extraction
+            // Enhanced OCR text extraction using the new optimized methods
             extractClientDataFromText(text) {
-                const clientData = { name: '', email: '', phone: '', company: '' };
+                const clientData = { name: '', email: '', phone: '', company: '', notes: '' };
                 
-                // Initialize the efficient name extractor
+                // Extract all possible emails and phones using optimized methods
+                const allEmails = this.extractEmails(text);
+                const allPhones = this.extractPhoneNumbers(text);
+                
+                // Select the best email and phone
+                if (allEmails.length > 0) {
+                    clientData.email = allEmails[0];
+                    console.log('OCR found primary email:', clientData.email);
+                    
+                    // If we have multiple emails, add secondary to notes
+                    if (allEmails.length > 1) {
+                        clientData.notes = `Additional emails: ${allEmails.slice(1).join(', ')}`;
+                        console.log('OCR found additional emails:', allEmails.slice(1));
+                    }
+                }
+                
+                if (allPhones.length > 0) {
+                    clientData.phone = allPhones[0];
+                    console.log('OCR found primary phone:', clientData.phone);
+                    
+                    // If we have multiple phones, add secondary to notes
+                    if (allPhones.length > 1) {
+                        const phoneNote = `Additional phones: ${allPhones.slice(1).join(', ')}`;
+                        clientData.notes = clientData.notes 
+                            ? `${clientData.notes}; ${phoneNote}`
+                            : phoneNote;
+                        console.log('OCR found additional phones:', allPhones.slice(1));
+                    }
+                }
+                
+                // Extract name with context awareness (lower threshold for OCR)
                 const nameExtractor = new EfficientNameExtractor();
-                
-                // OPTIMIZED EMAIL EXTRACTION for OCR
-                const emailResult = this.extractEmailOptimized(text);
-                if (emailResult.email) {
-                    clientData.email = emailResult.email;
-                }
-                
-                // Extract phone number (improved regex for various formats)
-                const phoneRegex = /(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})|(?:\+?[\d\s\-\(\)]{10,15})/g;
-                const phoneMatches = text.match(phoneRegex);
-                if (phoneMatches) {
-                    clientData.phone = phoneMatches[0].replace(/\s+/g, '');
-                }
-                
-                // EFFICIENT NAME EXTRACTION for OCR text
                 const nameResult = nameExtractor.extractName(text);
                 if (nameResult.name && nameResult.confidence >= 4) { // Lower threshold for OCR
                     clientData.name = nameResult.name;
                     console.log(`OCR name extraction: ${clientData.name} (confidence: ${nameResult.confidence})`);
+                } else {
+                    // Try context-based extraction for OCR
+                    clientData.name = this.extractNameWithContext(text);
+                    if (clientData.name) {
+                        console.log('OCR found name with context:', clientData.name);
+                    }
                 }
                 
                 // Extract company (existing logic)
@@ -1331,22 +1594,26 @@
                         const match = cleanLine.match(pattern);
                         if (match && !clientData.company) {
                             clientData.company = match[0];
+                            console.log('OCR found company:', clientData.company);
                             break;
                         }
                     }
                     if (clientData.company) break;
                 }
                 
-                // If email is found but name is missing, try to find a name near the email
+                // If we have email but no name, try to extract name from email prefix
                 if (clientData.email && !clientData.name) {
-                    for (let i = 0; i < lines.length; i++) {
-                        if (lines[i].includes(clientData.email) && i > 0) {
-                            const possibleName = lines[i-1].trim();
-                            const nameCheck = nameExtractor.extractName(possibleName);
-                            if (nameCheck.confidence >= 3) {
-                                clientData.name = nameCheck.name;
-                                break;
-                            }
+                    const emailPrefix = clientData.email.split('@')[0];
+                    const nameFromEmail = emailPrefix
+                        .replace(/[^a-zA-Z]/g, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                    
+                    if (nameFromEmail.split(' ').length <= 3) {
+                        const nameCheck = nameExtractor.extractName(nameFromEmail);
+                        if (nameCheck.confidence >= 3) { // Lower threshold for OCR
+                            clientData.name = nameCheck.name;
+                            console.log('OCR extracted name from email:', clientData.name);
                         }
                     }
                 }
