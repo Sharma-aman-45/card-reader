@@ -926,7 +926,7 @@
 
             initializeEventListeners() {
                 document.getElementById('startCamera').addEventListener('click', () => this.startCamera());
-                document.getElementById('captureImage').addEventListener('click', () => this.captureAndAnalyze());
+                document.getElementById('captureImage').addEventListener('click', () => this.captureAndAnalyzeImage());
                 document.getElementById('fileInput').addEventListener('change', (e) => this.handleFileUpload(e));
                 document.getElementById('manualForm').addEventListener('submit', (e) => this.handleManualEntry(e));
                 document.getElementById('searchLinkedIn').addEventListener('click', () => this.searchLinkedIn());
@@ -1005,23 +1005,38 @@
             updateScanModeUI() {
                 const qrBtn = document.getElementById('qrModeBtn');
                 const imageBtn = document.getElementById('imageModeBtn');
+                const captureBtn = document.getElementById('captureImage');
                 
                 if (this.currentScanMode === 'qr') {
                     qrBtn.classList.add('active');
                     imageBtn.classList.remove('active');
+                    // Disable capture button in QR mode
+                    captureBtn.disabled = true;
                 } else {
                     imageBtn.classList.add('active');
                     qrBtn.classList.remove('active');
+                    // Enable capture button only if camera is started
+                    captureBtn.disabled = !this.cameraStarted;
                 }
+                
+                console.log('Mode updated:', this.currentScanMode, 'Capture enabled:', !captureBtn.disabled);
             }
 
             /**
              * Capture and analyze image for business card scanning
              */
             async captureAndAnalyzeImage() {
+                console.log('captureAndAnalyzeImage called');
+                
                 // Prevent multiple captures
                 if (this.isCapturing) {
                     this.showStatus('⏳ Already capturing, please wait...', 'warning');
+                    return;
+                }
+                
+                // Check if camera is started
+                if (!this.cameraStarted) {
+                    this.showStatus('❌ Camera not started. Please start camera first.', 'error');
                     return;
                 }
                 
@@ -1040,8 +1055,11 @@
                     
                     // Get the video element from html5-qrcode
                     const videoElement = document.querySelector('#qr-reader video');
+                    console.log('Video element found:', videoElement);
+                    
                     if (!videoElement) {
-                        this.showStatus('❌ Camera not ready for capture', 'error');
+                        this.showStatus('❌ Camera not ready for capture - no video element found', 'error');
+                        this.isCapturing = false;
                         return;
                     }
                     
@@ -1056,13 +1074,29 @@
                     const ctx = canvas.getContext('2d');
                     canvas.width = videoElement.videoWidth;
                     canvas.height = videoElement.videoHeight;
+                    
+                    console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+                    console.log('Video dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
+                    
+                    if (canvas.width === 0 || canvas.height === 0) {
+                        this.showStatus('❌ Video not ready - dimensions are zero', 'error');
+                        this.isCapturing = false;
+                        return;
+                    }
+                    
                     ctx.drawImage(videoElement, 0, 0);
+                    console.log('Frame captured successfully');
                     
                     // Convert to blob and process
                     canvas.toBlob(async (blob) => {
+                        console.log('Blob created:', blob);
                         if (blob) {
+                            console.log('Blob size:', blob.size, 'bytes');
                             await this.processImageFile(blob);
                             this.stopCamera();
+                        } else {
+                            console.error('Failed to create blob from canvas');
+                            this.showStatus('❌ Failed to create image from camera', 'error');
                         }
                         this.isCapturing = false; // Reset capture flag
                     }, 'image/jpeg', 0.9);
@@ -1082,7 +1116,11 @@
 
                 document.getElementById('cameraPlaceholder').style.display = 'none';
                 document.getElementById('startCamera').disabled = true;
-                document.getElementById('captureImage').disabled = false;
+                
+                // Only enable capture button in business card mode
+                const captureBtn = document.getElementById('captureImage');
+                captureBtn.disabled = this.currentScanMode !== 'image';
+                console.log('Capture button enabled:', !captureBtn.disabled, 'Mode:', this.currentScanMode);
                     
                 try {
                     const devices = await Html5Qrcode.getCameras();
