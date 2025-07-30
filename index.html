@@ -536,6 +536,71 @@
                 text-align: center;
             }
         }
+
+        /* Image Editor Styles */
+        #brightnessSlider {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.2);
+            outline: none;
+            cursor: pointer;
+        }
+
+        #brightnessSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00ff88, #00cc66);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        #brightnessSlider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00ff88, #00cc66);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        #brightnessSlider::-webkit-slider-track {
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+
+        #brightnessSlider::-moz-range-track {
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+            height: 6px;
+        }
+
+        .control-group {
+            transition: all 0.3s ease;
+        }
+
+        .control-group:hover {
+            background: rgba(255,255,255,0.1) !important;
+            transform: translateY(-2px);
+        }
+
+        #editorCanvas {
+            transition: all 0.3s ease;
+        }
+
+        #editorCanvas:hover {
+            border-color: rgba(255,255,255,0.5);
+            box-shadow: 0 0 20px rgba(0,255,136,0.2);
+        }
+
+        #cropOverlay {
+            transition: all 0.2s ease;
+        }
     </style>
 </head>
 <body>
@@ -587,6 +652,117 @@
                     <button class="btn" onclick="document.getElementById('fileInput').click()">
                         Choose File
                     </button>
+                </div>
+
+                <!-- Image Editor Section -->
+                <div class="image-editor" id="imageEditor" style="display: none;">
+                    <h3 style="color: white; margin-bottom: 20px; text-align: center;">🖼️ Image Editor</h3>
+                    
+                    <div class="editor-container" style="
+                        background: rgba(255,255,255,0.1);
+                        border-radius: 15px;
+                        padding: 20px;
+                        margin-bottom: 20px;
+                        backdrop-filter: blur(10px);
+                        border: 1px solid rgba(255,255,255,0.2);
+                    ">
+                        <div class="canvas-container" style="
+                            position: relative;
+                            margin: 0 auto;
+                            max-width: 100%;
+                            text-align: center;
+                        ">
+                            <canvas id="editorCanvas" style="
+                                max-width: 100%;
+                                max-height: 400px;
+                                border: 2px solid rgba(255,255,255,0.3);
+                                border-radius: 10px;
+                                cursor: crosshair;
+                            "></canvas>
+                            <div id="cropOverlay" style="
+                                position: absolute;
+                                border: 2px dashed #00ff88;
+                                background: rgba(0,255,136,0.1);
+                                display: none;
+                                pointer-events: none;
+                            "></div>
+                        </div>
+                        
+                        <div class="editor-controls" style="
+                            margin-top: 20px;
+                            display: grid;
+                            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                            gap: 15px;
+                        ">
+                            <!-- Crop Controls -->
+                            <div class="control-group" style="
+                                background: rgba(255,255,255,0.05);
+                                padding: 15px;
+                                border-radius: 10px;
+                                border: 1px solid rgba(255,255,255,0.1);
+                            ">
+                                <h4 style="color: white; margin-bottom: 10px; font-size: 0.9rem;">✂️ Crop</h4>
+                                <button id="cropBtn" class="btn mode-btn" style="margin: 5px;">Select Area</button>
+                                <button id="applyCropBtn" class="btn success" style="margin: 5px; display: none;">Apply Crop</button>
+                                <button id="cancelCropBtn" class="btn danger" style="margin: 5px; display: none;">Cancel</button>
+                            </div>
+                            
+                            <!-- Brightness Controls -->
+                            <div class="control-group" style="
+                                background: rgba(255,255,255,0.05);
+                                padding: 15px;
+                                border-radius: 10px;
+                                border: 1px solid rgba(255,255,255,0.1);
+                            ">
+                                <h4 style="color: white; margin-bottom: 10px; font-size: 0.9rem;">💡 Brightness</h4>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="color: white; font-size: 0.8rem;">-</span>
+                                    <input type="range" id="brightnessSlider" min="-100" max="100" value="0" style="
+                                        flex: 1;
+                                        height: 6px;
+                                        border-radius: 3px;
+                                        background: rgba(255,255,255,0.2);
+                                        outline: none;
+                                        -webkit-appearance: none;
+                                    ">
+                                    <span style="color: white; font-size: 0.8rem;">+</span>
+                                </div>
+                                <div style="text-align: center; margin-top: 5px;">
+                                    <span id="brightnessValue" style="color: white; font-size: 0.8rem;">0%</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Rotation Controls -->
+                            <div class="control-group" style="
+                                background: rgba(255,255,255,0.05);
+                                padding: 15px;
+                                border-radius: 10px;
+                                border: 1px solid rgba(255,255,255,0.1);
+                            ">
+                                <h4 style="color: white; margin-bottom: 10px; font-size: 0.8rem;">🔄 Rotate</h4>
+                                <div style="display: flex; gap: 10px; justify-content: center;">
+                                    <button id="rotateLeftBtn" class="btn mode-btn" style="padding: 8px 12px;">↶ -90°</button>
+                                    <button id="rotateRightBtn" class="btn mode-btn" style="padding: 8px 12px;">↷ +90°</button>
+                                </div>
+                                <div style="text-align: center; margin-top: 10px;">
+                                    <button id="resetRotationBtn" class="btn mode-btn" style="padding: 6px 10px; font-size: 0.8rem;">Reset</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="control-group" style="
+                                background: rgba(255,255,255,0.05);
+                                padding: 15px;
+                                border-radius: 10px;
+                                border: 1px solid rgba(255,255,255,0.1);
+                            ">
+                                <h4 style="color: white; margin-bottom: 10px; font-size: 0.9rem;">⚡ Actions</h4>
+                                <button id="processEditedBtn" class="btn success" style="margin: 5px; width: 100%;">Process Image</button>
+                                <button id="resetEditorBtn" class="btn danger" style="margin: 5px; width: 100%;">Reset All</button>
+                                <button id="testProcessBtn" class="btn" style="margin: 5px; width: 100%; background: #ff8800;">Test Process</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="processing" id="processing">
@@ -918,10 +1094,23 @@
                 this.currentScanMode = 'qr'; // 'qr' or 'image'
                 this.isCapturing = false; // Prevent multiple captures
                 
+                // Image Editor Properties
+                this.editorCanvas = null;
+                this.editorCtx = null;
+                this.originalImage = null;
+                this.currentImage = null;
+                this.rotation = 0;
+                this.brightness = 0;
+                this.isCropping = false;
+                this.cropStart = null;
+                this.cropEnd = null;
+                this.cropOverlay = null;
+                
                 this.initializeEventListeners();
                 this.updateClientsTable();
                 this.setupDragAndDrop();
                 this.updateScanModeUI();
+                this.initializeImageEditor();
             }
 
             initializeEventListeners() {
@@ -936,6 +1125,18 @@
                 // Add scan mode toggle listeners
                 document.getElementById('qrModeBtn').addEventListener('click', () => this.setScanMode('qr'));
                 document.getElementById('imageModeBtn').addEventListener('click', () => this.setScanMode('image'));
+                
+                // Image Editor Event Listeners
+                document.getElementById('cropBtn').addEventListener('click', () => this.toggleCropMode());
+                document.getElementById('applyCropBtn').addEventListener('click', () => this.applyCrop());
+                document.getElementById('cancelCropBtn').addEventListener('click', () => this.cancelCrop());
+                document.getElementById('brightnessSlider').addEventListener('input', (e) => this.adjustBrightness(e.target.value));
+                document.getElementById('rotateLeftBtn').addEventListener('click', () => this.rotateImage(-90));
+                document.getElementById('rotateRightBtn').addEventListener('click', () => this.rotateImage(90));
+                document.getElementById('resetRotationBtn').addEventListener('click', () => this.resetRotation());
+                document.getElementById('processEditedBtn').addEventListener('click', () => this.processEditedImage());
+                document.getElementById('resetEditorBtn').addEventListener('click', () => this.resetEditor());
+                document.getElementById('testProcessBtn').addEventListener('click', () => this.testProcessImage());
             }
 
             setupDragAndDrop() {
@@ -957,8 +1158,13 @@
                     const files = e.dataTransfer.files;
                     console.log('Drop event triggered, files:', files);
                     if (files.length > 0) {
-                        this.showStatus('📁 File dropped, processing...', 'info');
-                        this.processImageFile(files[0]);
+                        this.showStatus('📁 File dropped, loading into editor...', 'info');
+                        this.loadImageIntoEditor(files[0]).then(() => {
+                            this.showStatus('🖼️ Image loaded in editor. Edit the image or click "Process Image" to extract data.', 'info');
+                        }).catch(error => {
+                            console.error('Error loading dropped image into editor:', error);
+                            this.showStatus('❌ Error loading image into editor', 'error');
+                        });
                         // Clear any file input to ensure fresh state
                         const fileInput = document.getElementById('fileInput');
                         if (fileInput) {
@@ -1087,20 +1293,22 @@
                     ctx.drawImage(videoElement, 0, 0);
                     console.log('Frame captured successfully');
                     
-                    // Convert to blob and process with AI vision
+                    // Convert to blob and load into editor
                     canvas.toBlob(async (blob) => {
                         console.log('Blob created:', blob);
                         if (blob) {
                             console.log('Blob size:', blob.size, 'bytes');
-                            console.log('Starting AI business card processing...');
+                            console.log('Loading captured image into editor...');
                             try {
-                                await this.processBusinessCardWithAI(blob, canvas);
-                                console.log('AI processing completed successfully');
+                                // Create a file from the blob to load into editor
+                                const file = new File([blob], 'captured-image.jpg', { type: 'image/jpeg' });
+                                await this.loadImageIntoEditor(file);
+                                console.log('Image loaded into editor successfully');
+                                this.stopCamera();
                             } catch (error) {
-                                console.error('AI processing failed:', error);
-                                this.showStatus('❌ Processing failed: ' + error.message, 'error');
+                                console.error('Error loading captured image into editor:', error);
+                                this.showStatus('❌ Error loading captured image into editor: ' + error.message, 'error');
                             }
-                            this.stopCamera();
                         } else {
                             console.error('Failed to create blob from canvas');
                             this.showStatus('❌ Failed to create image from camera', 'error');
@@ -1273,7 +1481,13 @@
             handleFileUpload(event) {
                 const file = event.target.files[0];
                 if (file) {
-                    this.processImageFile(file);
+                    // Load image into editor first
+                    this.loadImageIntoEditor(file).then(() => {
+                        this.showStatus('🖼️ Image loaded in editor. Edit the image or click "Process Image" to extract data.', 'info');
+                    }).catch(error => {
+                        console.error('Error loading image into editor:', error);
+                        this.showStatus('❌ Error loading image into editor', 'error');
+                    });
                     // Clear the file input to allow re-uploading the same file
                     event.target.value = '';
                 }
@@ -2152,6 +2366,7 @@
 
             // Enhanced OCR text extraction using the new optimized methods
             extractClientDataFromText(text) {
+                console.log('Extracting client data from text:', text);
                 const clientData = { name: '', email: '', phone: '', company: '', notes: '' };
                 
                 // Extract all possible emails and phones using optimized methods
@@ -2235,11 +2450,13 @@
                     }
                 }
                 
+                console.log('Final extracted client data:', clientData);
                 return clientData;
             }
 
             async analyzeImageWithOCR(imageData, source) {
                 try {
+                    console.log('Starting OCR analysis for source:', source);
                     this.showStatus('🤖 Performing text recognition...', 'info');
                     
                     const { data: { text } } = await Tesseract.recognize(imageData, 'eng', {
@@ -2250,20 +2467,27 @@
                         }
                     });
                     
+                    console.log('OCR text extracted:', text);
                     const clientData = this.extractClientDataFromText(text);
+                    console.log('Extracted client data:', clientData);
                     
                     // Allow adding if at least email, name, or phone is found
                     if (clientData.email || clientData.name || clientData.phone) {
+                        console.log('Contact info found, adding client...');
                         await this.addClientWithLinkedInSearch(clientData, source);
                     } else {
+                        console.log('No contact info found in OCR text');
                         this.showStatus('❌ No contact information found in the image. Please try manual entry.', 'error');
                     }
                 } catch (error) {
+                    console.error('OCR processing failed:', error);
                     this.showStatus('❌ OCR processing failed: ' + error.message, 'error');
                 }
             }
 
             async addClientWithLinkedInSearch(clientData, source) {
+                console.log('Adding client with data:', clientData, 'Source:', source);
+                
                 if (clientData.name) {
                     this.showStatus('🔍 Searching for LinkedIn profile...', 'info');
                     clientData.linkedIn = await this.findLinkedInProfile(clientData.name, clientData.company);
@@ -2271,6 +2495,7 @@
                 
                 this.addClient({...clientData, source});
                 this.showStatus(`✅ Client data extracted and added successfully! Source: ${source}`, 'success');
+                console.log('Client added successfully');
             }
 
             async findLinkedInProfile(name, company = '') {
@@ -2527,6 +2752,413 @@
 
             showProcessing(show) {
                 document.getElementById('processing').style.display = show ? 'block' : 'none';
+            }
+
+            // ===== IMAGE EDITOR METHODS =====
+            
+            initializeImageEditor() {
+                this.editorCanvas = document.getElementById('editorCanvas');
+                this.editorCtx = this.editorCanvas.getContext('2d');
+                this.cropOverlay = document.getElementById('cropOverlay');
+                
+                // Set up canvas event listeners for cropping
+                this.editorCanvas.addEventListener('mousedown', (e) => this.handleCropMouseDown(e));
+                this.editorCanvas.addEventListener('mousemove', (e) => this.handleCropMouseMove(e));
+                this.editorCanvas.addEventListener('mouseup', (e) => this.handleCropMouseUp(e));
+                
+                // Touch events for mobile
+                this.editorCanvas.addEventListener('touchstart', (e) => this.handleCropTouchStart(e));
+                this.editorCanvas.addEventListener('touchmove', (e) => this.handleCropTouchMove(e));
+                this.editorCanvas.addEventListener('touchend', (e) => this.handleCropTouchEnd(e));
+            }
+
+            /**
+             * Load image into editor
+             */
+            loadImageIntoEditor(imageFile) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            this.originalImage = img;
+                            this.currentImage = img;
+                            this.rotation = 0;
+                            this.brightness = 0;
+                            this.resetEditor();
+                            this.renderImage();
+                            this.showImageEditor();
+                            resolve();
+                        };
+                        img.onerror = reject;
+                        img.src = e.target.result;
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(imageFile);
+                });
+            }
+
+            /**
+             * Show the image editor
+             */
+            showImageEditor() {
+                document.getElementById('imageEditor').style.display = 'block';
+                this.showStatus('🖼️ Image loaded in editor. Use the controls to enhance the image.', 'info');
+            }
+
+            /**
+             * Hide the image editor
+             */
+            hideImageEditor() {
+                document.getElementById('imageEditor').style.display = 'none';
+            }
+
+            /**
+             * Render the current image with all applied effects
+             */
+            renderImage() {
+                if (!this.currentImage) return;
+
+                const canvas = this.editorCanvas;
+                const ctx = this.editorCtx;
+                
+                // Calculate dimensions to fit in canvas while maintaining aspect ratio
+                const maxWidth = 600;
+                const maxHeight = 400;
+                const scale = Math.min(maxWidth / this.currentImage.width, maxHeight / this.currentImage.height);
+                
+                canvas.width = this.currentImage.width * scale;
+                canvas.height = this.currentImage.height * scale;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Apply rotation
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate((this.rotation * Math.PI) / 180);
+                
+                // Apply brightness filter
+                if (this.brightness !== 0) {
+                    ctx.filter = `brightness(${100 + parseInt(this.brightness)}%)`;
+                }
+                
+                // Draw image
+                ctx.drawImage(
+                    this.currentImage,
+                    -canvas.width / 2,
+                    -canvas.height / 2,
+                    canvas.width,
+                    canvas.height
+                );
+                
+                ctx.restore();
+            }
+
+            /**
+             * Toggle crop mode
+             */
+            toggleCropMode() {
+                this.isCropping = !this.isCropping;
+                const cropBtn = document.getElementById('cropBtn');
+                const applyBtn = document.getElementById('applyCropBtn');
+                const cancelBtn = document.getElementById('cancelCropBtn');
+                
+                if (this.isCropping) {
+                    cropBtn.textContent = 'Cancel Selection';
+                    cropBtn.classList.add('active');
+                    applyBtn.style.display = 'inline-block';
+                    cancelBtn.style.display = 'inline-block';
+                    this.editorCanvas.style.cursor = 'crosshair';
+                    this.showStatus('✂️ Click and drag to select crop area', 'info');
+                } else {
+                    cropBtn.textContent = 'Select Area';
+                    cropBtn.classList.remove('active');
+                    applyBtn.style.display = 'none';
+                    cancelBtn.style.display = 'none';
+                    this.editorCanvas.style.cursor = 'default';
+                    this.hideCropOverlay();
+                }
+            }
+
+            /**
+             * Handle crop mouse down
+             */
+            handleCropMouseDown(e) {
+                if (!this.isCropping) return;
+                
+                const rect = this.editorCanvas.getBoundingClientRect();
+                this.cropStart = {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+                this.cropEnd = { ...this.cropStart };
+                this.showCropOverlay();
+            }
+
+            /**
+             * Handle crop mouse move
+             */
+            handleCropMouseMove(e) {
+                if (!this.isCropping || !this.cropStart) return;
+                
+                const rect = this.editorCanvas.getBoundingClientRect();
+                this.cropEnd = {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+                this.updateCropOverlay();
+            }
+
+            /**
+             * Handle crop mouse up
+             */
+            handleCropMouseUp(e) {
+                if (!this.isCropping) return;
+                // Crop selection is complete, user can now apply or cancel
+            }
+
+            /**
+             * Handle touch events for mobile
+             */
+            handleCropTouchStart(e) {
+                if (!this.isCropping) return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = this.editorCanvas.getBoundingClientRect();
+                this.cropStart = {
+                    x: touch.clientX - rect.left,
+                    y: touch.clientY - rect.top
+                };
+                this.cropEnd = { ...this.cropStart };
+                this.showCropOverlay();
+            }
+
+            handleCropTouchMove(e) {
+                if (!this.isCropping || !this.cropStart) return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = this.editorCanvas.getBoundingClientRect();
+                this.cropEnd = {
+                    x: touch.clientX - rect.left,
+                    y: touch.clientY - rect.top
+                };
+                this.updateCropOverlay();
+            }
+
+            handleCropTouchEnd(e) {
+                if (!this.isCropping) return;
+                e.preventDefault();
+            }
+
+            /**
+             * Show crop overlay
+             */
+            showCropOverlay() {
+                this.cropOverlay.style.display = 'block';
+            }
+
+            /**
+             * Hide crop overlay
+             */
+            hideCropOverlay() {
+                this.cropOverlay.style.display = 'none';
+                this.cropStart = null;
+                this.cropEnd = null;
+            }
+
+            /**
+             * Update crop overlay position and size
+             */
+            updateCropOverlay() {
+                if (!this.cropStart || !this.cropEnd) return;
+                
+                const left = Math.min(this.cropStart.x, this.cropEnd.x);
+                const top = Math.min(this.cropStart.y, this.cropEnd.y);
+                const width = Math.abs(this.cropEnd.x - this.cropStart.x);
+                const height = Math.abs(this.cropEnd.y - this.cropStart.y);
+                
+                this.cropOverlay.style.left = left + 'px';
+                this.cropOverlay.style.top = top + 'px';
+                this.cropOverlay.style.width = width + 'px';
+                this.cropOverlay.style.height = height + 'px';
+            }
+
+            /**
+             * Apply crop to image
+             */
+            applyCrop() {
+                if (!this.cropStart || !this.cropEnd) return;
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Calculate crop dimensions
+                const left = Math.min(this.cropStart.x, this.cropEnd.x);
+                const top = Math.min(this.cropStart.y, this.cropEnd.y);
+                const width = Math.abs(this.cropEnd.x - this.cropStart.x);
+                const height = Math.abs(this.cropEnd.y - this.cropStart.y);
+                
+                // Set canvas size to crop dimensions
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Draw cropped portion
+                ctx.drawImage(
+                    this.editorCanvas,
+                    left, top, width, height,
+                    0, 0, width, height
+                );
+                
+                // Create new image from cropped canvas
+                const croppedImage = new Image();
+                croppedImage.onload = () => {
+                    this.currentImage = croppedImage;
+                    this.rotation = 0; // Reset rotation after crop
+                    this.renderImage();
+                    this.hideCropOverlay();
+                    this.toggleCropMode(); // Exit crop mode
+                    this.showStatus('✅ Image cropped successfully', 'success');
+                };
+                croppedImage.src = canvas.toDataURL();
+            }
+
+            /**
+             * Cancel crop operation
+             */
+            cancelCrop() {
+                this.hideCropOverlay();
+                this.toggleCropMode();
+            }
+
+            /**
+             * Adjust brightness
+             */
+            adjustBrightness(value) {
+                this.brightness = parseInt(value);
+                document.getElementById('brightnessValue').textContent = this.brightness + '%';
+                this.renderImage();
+            }
+
+            /**
+             * Rotate image
+             */
+            rotateImage(degrees) {
+                this.rotation += degrees;
+                this.renderImage();
+                this.showStatus(`🔄 Image rotated ${degrees > 0 ? '+' : ''}${degrees}°`, 'info');
+            }
+
+            /**
+             * Reset rotation
+             */
+            resetRotation() {
+                this.rotation = 0;
+                this.renderImage();
+                this.showStatus('🔄 Rotation reset', 'info');
+            }
+
+            /**
+             * Reset all editor changes
+             */
+            resetEditor() {
+                this.currentImage = this.originalImage;
+                this.rotation = 0;
+                this.brightness = 0;
+                this.hideCropOverlay();
+                this.toggleCropMode(); // Exit crop mode if active
+                
+                // Reset UI
+                document.getElementById('brightnessSlider').value = 0;
+                document.getElementById('brightnessValue').textContent = '0%';
+                
+                this.renderImage();
+                this.showStatus('🔄 Editor reset to original image', 'info');
+            }
+
+            /**
+             * Process the edited image
+             */
+            async processEditedImage() {
+                if (!this.currentImage) {
+                    this.showStatus('❌ No image to process', 'error');
+                    return;
+                }
+                
+                this.showStatus('🔍 Processing edited image...', 'info');
+                
+                // Convert canvas to blob
+                const canvas = this.editorCanvas;
+                canvas.toBlob(async (blob) => {
+                    if (blob) {
+                        try {
+                            console.log('Processing edited image blob:', blob.size, 'bytes');
+                            
+                            // Try QR scan first
+                            let qrText = null;
+                            try {
+                                const html5QrCodeFile = new Html5Qrcode();
+                                qrText = await html5QrCodeFile.scanFile(blob, true);
+                                console.log('QR scan result:', qrText);
+                            } catch (qrError) {
+                                console.log('QR scan failed, trying OCR:', qrError);
+                                // QR scan failed, continue to OCR
+                            }
+                            
+                            if (qrText) {
+                                console.log('QR code found, processing...');
+                                const contactFound = await this.processQRResult(qrText, 'Edited Image QR');
+                                if (!contactFound) {
+                                    // QR found but no contact info, run OCR
+                                    console.log('QR found but no contact info, running OCR...');
+                                    await this.analyzeImageWithOCR(canvas.toDataURL(), 'Edited Image OCR');
+                                }
+                            } else {
+                                // No QR found, run OCR
+                                console.log('No QR found, running OCR...');
+                                this.showStatus('🔄 No QR found, running OCR on edited image...', 'info');
+                                await this.analyzeImageWithOCR(canvas.toDataURL(), 'Edited Image OCR');
+                            }
+                            
+                            // Hide editor after processing
+                            this.hideImageEditor();
+                            
+                        } catch (error) {
+                            console.error('Error processing edited image:', error);
+                            this.showStatus('❌ Error processing edited image: ' + error.message, 'error');
+                        }
+                    } else {
+                        this.showStatus('❌ Failed to create image from editor', 'error');
+                    }
+                }, 'image/jpeg', 0.9);
+            }
+
+            /**
+             * Test method for debugging process image functionality
+             */
+            async testProcessImage() {
+                console.log('Test process image called');
+                this.showStatus('🧪 Testing process image functionality...', 'info');
+                
+                if (!this.currentImage) {
+                    this.showStatus('❌ No image loaded for testing', 'error');
+                    return;
+                }
+                
+                try {
+                    // Test with a simple OCR first
+                    const canvas = this.editorCanvas;
+                    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                    
+                    console.log('Testing with image data URL:', imageDataUrl.substring(0, 100) + '...');
+                    
+                    // Test OCR directly
+                    await this.analyzeImageWithOCR(imageDataUrl, 'Test Process');
+                    
+                } catch (error) {
+                    console.error('Test process failed:', error);
+                    this.showStatus('❌ Test process failed: ' + error.message, 'error');
+                }
             }
 
             editClient(index) {
