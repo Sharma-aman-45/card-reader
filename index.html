@@ -657,11 +657,15 @@
             border-radius: 15px;
             overflow: hidden;
             background: rgba(0,0,0,0.8);
+            border: 2px dashed rgba(255,255,255,0.3);
+            transition: all 0.3s ease;
         }
 
         .qr-reader-enhanced.dragover {
             border: 3px solid #00ff88;
-            box-shadow: 0 0 20px rgba(0,255,136,0.5);
+            box-shadow: 0 0 30px rgba(0,255,136,0.6);
+            background: rgba(0,255,136,0.1);
+            transform: scale(1.02);
         }
 
         .qr-reader-enhanced .drop-overlay {
@@ -670,18 +674,26 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,255,136,0.2);
+            background: rgba(0,255,136,0.15);
             display: none;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: 600;
             font-size: 1.2rem;
-            z-index: 10;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            border-radius: 15px;
         }
 
         .qr-reader-enhanced.dragover .drop-overlay {
             display: flex;
+            animation: pulse 1s infinite;
+        }
+
+        .qr-reader-enhanced:hover {
+            border-color: rgba(255,255,255,0.5);
+            box-shadow: 0 0 15px rgba(255,255,255,0.2);
         }
 
         /* Image Editor Styles */
@@ -745,9 +757,7 @@
             box-shadow: 0 0 20px rgba(0,255,136,0.2);
         }
 
-        #cropOverlay {
-            transition: all 0.2s ease;
-        }
+
     </style>
 </head>
 <body>
@@ -824,16 +834,7 @@
                                 max-height: 400px;
                                 border: 2px solid rgba(255,255,255,0.3);
                                 border-radius: 10px;
-                                cursor: crosshair;
                             "></canvas>
-                            <div id="cropOverlay" style="
-                                position: absolute;
-                                border: 2px solid #00ff88;
-                                background: rgba(0,255,136,0.2);
-                                display: none;
-                                pointer-events: none;
-                                box-shadow: 0 0 10px rgba(0,255,136,0.3);
-                            "></div>
                         </div>
                         
                         <div class="editor-controls" style="
@@ -842,20 +843,7 @@
                             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
                             gap: 15px;
                         ">
-                            <!-- Simple Crop Controls -->
-                            <div class="control-group" style="
-                                background: rgba(255,255,255,0.05);
-                                padding: 15px;
-                                border-radius: 10px;
-                                border: 1px solid rgba(255,255,255,0.1);
-                            ">
-                                <h4 style="color: white; margin-bottom: 10px; font-size: 0.9rem;">✂️ Quick Crop</h4>
-                                <p style="color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-bottom: 10px;">
-                                    Select area & apply crop
-                                </p>
-                                <button id="cropBtn" class="btn mode-btn" style="margin: 5px;">Crop & Process</button>
-                                <button id="applyCropBtn" class="btn success" style="margin: 5px; display: none;">Apply Crop</button>
-                            </div>
+
                             
                             <!-- Brightness Controls -->
                             <div class="control-group" style="
@@ -1263,10 +1251,6 @@
                 this.currentImage = null;
                 this.rotation = 0;
                 this.brightness = 0;
-                this.isCropping = false;
-                this.cropStart = null;
-                this.cropEnd = null;
-                this.cropOverlay = null;
                 
                 this.initializeEventListeners();
                 this.updateClientsTable();
@@ -1289,8 +1273,6 @@
                 document.getElementById('imageModeBtn').addEventListener('click', () => this.setScanMode('image'));
                 
                 // Image Editor Event Listeners
-                document.getElementById('cropBtn').addEventListener('click', () => this.toggleCropMode());
-                document.getElementById('applyCropBtn').addEventListener('click', () => this.applyCropAndProcess());
                 document.getElementById('brightnessSlider').addEventListener('input', (e) => this.adjustBrightness(e.target.value));
                 document.getElementById('rotateLeftBtn').addEventListener('click', () => this.rotateImage(-90));
                 document.getElementById('rotateRightBtn').addEventListener('click', () => this.rotateImage(90));
@@ -1298,6 +1280,9 @@
                 document.getElementById('processEditedBtn').addEventListener('click', () => this.processEditedImage());
                 document.getElementById('resetEditorBtn').addEventListener('click', () => this.resetEditor());
                 document.getElementById('testProcessBtn').addEventListener('click', () => this.testProcessImage());
+                
+                // Global drag and drop fallback for QR reader area
+                this.setupGlobalDragAndDrop();
             }
 
             setupDragAndDrop() {
@@ -1343,40 +1328,120 @@
                 if (qrReader) {
                     qrReader.classList.add('qr-reader-enhanced');
                     
-                    // Add drop overlay
+                    // Create a more robust drop overlay
                     const dropOverlay = document.createElement('div');
                     dropOverlay.className = 'drop-overlay';
-                    dropOverlay.innerHTML = '📁 Drop image here to scan QR code';
+                    dropOverlay.innerHTML = `
+                        <div style="text-align: center; padding: 20px;">
+                            <div style="font-size: 3rem; margin-bottom: 10px;">📁</div>
+                            <div style="font-weight: 600; margin-bottom: 5px;">Drop Image Here</div>
+                            <div style="font-size: 0.9rem; opacity: 0.8;">to scan QR code</div>
+                        </div>
+                    `;
                     qrReader.appendChild(dropOverlay);
 
-                    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                        qrReader.addEventListener(eventName, this.preventDefaults, false);
-                    });
+                    // Enhanced event handling with better error handling
+                    const handleDragEnter = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        qrReader.classList.add('dragover');
+                        this.showStatus('📱 Drop image to scan QR code!', 'info');
+                    };
 
-                    ['dragenter', 'dragover'].forEach(eventName => {
-                        qrReader.addEventListener(eventName, () => {
-                            qrReader.classList.add('dragover');
-                            this.showStatus('📱 Drop image to scan QR code!', 'info');
-                        }, false);
-                    });
+                    const handleDragOver = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        qrReader.classList.add('dragover');
+                    };
 
-                    ['dragleave', 'drop'].forEach(eventName => {
-                        qrReader.addEventListener(eventName, () => qrReader.classList.remove('dragover'), false);
-                    });
+                    const handleDragLeave = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Only remove dragover if we're leaving the element entirely
+                        if (!qrReader.contains(e.relatedTarget)) {
+                            qrReader.classList.remove('dragover');
+                        }
+                    };
 
-                    qrReader.addEventListener('drop', (e) => {
+                    const handleDrop = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        qrReader.classList.remove('dragover');
+                        
                         const files = e.dataTransfer.files;
                         if (files.length > 0) {
-                            this.showStatus('📱 Processing dropped image for QR codes...', 'info');
-                            this.processImageFile(files[0]);
+                            const file = files[0];
+                            if (file.type.startsWith('image/')) {
+                                this.showStatus('📱 Processing dropped image for QR codes...', 'info');
+                                try {
+                                    this.processImageFile(file);
+                                } catch (error) {
+                                    console.error('Error processing dropped file:', error);
+                                    this.showStatus('❌ Error processing dropped image', 'error');
+                                }
+                            } else {
+                                this.showStatus('❌ Please drop an image file', 'error');
+                            }
                         }
-                    }, false);
+                    };
+
+                    // Add event listeners with error handling
+                    try {
+                        qrReader.addEventListener('dragenter', handleDragEnter, false);
+                        qrReader.addEventListener('dragover', handleDragOver, false);
+                        qrReader.addEventListener('dragleave', handleDragLeave, false);
+                        qrReader.addEventListener('drop', handleDrop, false);
+                        
+                        // Also add a fallback for the entire scanner section
+                        const scannerSection = qrReader.closest('.scanner-section');
+                        if (scannerSection) {
+                            scannerSection.addEventListener('drop', handleDrop, false);
+                        }
+                    } catch (error) {
+                        console.error('Error setting up QR reader drag and drop:', error);
+                    }
                 }
             }
 
             preventDefaults(e) {
                 e.preventDefault();
                 e.stopPropagation();
+            }
+
+            /**
+             * Setup global drag and drop fallback for QR reader
+             */
+            setupGlobalDragAndDrop() {
+                // Add global drop handler for the entire document
+                document.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+
+                document.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Check if drop is in QR reader area
+                    const qrReader = document.getElementById('qr-reader');
+                    if (qrReader && qrReader.contains(e.target)) {
+                        const files = e.dataTransfer.files;
+                        if (files.length > 0) {
+                            const file = files[0];
+                            if (file.type.startsWith('image/')) {
+                                this.showStatus('📱 Processing dropped image for QR codes...', 'info');
+                                try {
+                                    this.processImageFile(file);
+                                } catch (error) {
+                                    console.error('Error processing dropped file:', error);
+                                    this.showStatus('❌ Error processing dropped image', 'error');
+                                }
+                            } else {
+                                this.showStatus('❌ Please drop an image file', 'error');
+                            }
+                        }
+                    }
+                }, false);
             }
 
             /**
@@ -2966,17 +3031,6 @@
             initializeImageEditor() {
                 this.editorCanvas = document.getElementById('editorCanvas');
                 this.editorCtx = this.editorCanvas.getContext('2d');
-                this.cropOverlay = document.getElementById('cropOverlay');
-                
-                // Set up canvas event listeners for cropping
-                this.editorCanvas.addEventListener('mousedown', (e) => this.handleCropMouseDown(e));
-                this.editorCanvas.addEventListener('mousemove', (e) => this.handleCropMouseMove(e));
-                this.editorCanvas.addEventListener('mouseup', (e) => this.handleCropMouseUp(e));
-                
-                // Touch events for mobile
-                this.editorCanvas.addEventListener('touchstart', (e) => this.handleCropTouchStart(e));
-                this.editorCanvas.addEventListener('touchmove', (e) => this.handleCropTouchMove(e));
-                this.editorCanvas.addEventListener('touchend', (e) => this.handleCropTouchEnd(e));
             }
 
             /**
@@ -3062,215 +3116,7 @@
                 ctx.restore();
             }
 
-            /**
-             * Toggle crop mode - Simple and robust cropping
-             */
-            toggleCropMode() {
-                this.isCropping = !this.isCropping;
-                const cropBtn = document.getElementById('cropBtn');
-                const applyBtn = document.getElementById('applyCropBtn');
-                
-                if (this.isCropping) {
-                    cropBtn.textContent = 'Cancel Crop';
-                    cropBtn.classList.add('active');
-                    applyBtn.style.display = 'none'; // Hide apply button initially
-                    this.editorCanvas.style.cursor = 'crosshair';
-                    this.showStatus('✂️ Click and drag to select crop area, then click "Apply Crop"', 'info');
-                } else {
-                    cropBtn.textContent = 'Crop & Process';
-                    cropBtn.classList.remove('active');
-                    applyBtn.style.display = 'none';
-                    this.editorCanvas.style.cursor = 'default';
-                    this.hideCropOverlay();
-                }
-            }
 
-            /**
-             * Handle crop mouse down - Simplified
-             */
-            handleCropMouseDown(e) {
-                if (!this.isCropping) return;
-                
-                const rect = this.editorCanvas.getBoundingClientRect();
-                this.cropStart = {
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top
-                };
-                this.cropEnd = { ...this.cropStart };
-                this.showCropOverlay();
-            }
-
-            /**
-             * Handle crop mouse move - Simplified
-             */
-            handleCropMouseMove(e) {
-                if (!this.isCropping || !this.cropStart) return;
-                
-                const rect = this.editorCanvas.getBoundingClientRect();
-                this.cropEnd = {
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top
-                };
-                this.updateCropOverlay();
-            }
-
-            /**
-             * Handle crop mouse up - Show apply button
-             */
-            handleCropMouseUp(e) {
-                if (!this.isCropping) return;
-                
-                // Show apply crop button when selection is made
-                if (this.cropStart && this.cropEnd) {
-                    const applyBtn = document.getElementById('applyCropBtn');
-                    applyBtn.style.display = 'inline-block';
-                    this.showStatus('✅ Crop area selected! Click "Apply Crop" to process', 'success');
-                }
-            }
-
-            /**
-             * Handle touch events for mobile - Simplified
-             */
-            handleCropTouchStart(e) {
-                if (!this.isCropping) return;
-                e.preventDefault();
-                const touch = e.touches[0];
-                const rect = this.editorCanvas.getBoundingClientRect();
-                this.cropStart = {
-                    x: touch.clientX - rect.left,
-                    y: touch.clientY - rect.top
-                };
-                this.cropEnd = { ...this.cropStart };
-                this.showCropOverlay();
-            }
-
-            handleCropTouchMove(e) {
-                if (!this.isCropping || !this.cropStart) return;
-                e.preventDefault();
-                const touch = e.touches[0];
-                const rect = this.editorCanvas.getBoundingClientRect();
-                this.cropEnd = {
-                    x: touch.clientX - rect.left,
-                    y: touch.clientY - rect.top
-                };
-                this.updateCropOverlay();
-            }
-
-            handleCropTouchEnd(e) {
-                if (!this.isCropping) return;
-                e.preventDefault();
-                
-                // Show apply crop button when selection is made
-                if (this.cropStart && this.cropEnd) {
-                    const applyBtn = document.getElementById('applyCropBtn');
-                    applyBtn.style.display = 'inline-block';
-                    this.showStatus('✅ Crop area selected! Click "Apply Crop" to process', 'success');
-                }
-            }
-
-            /**
-             * Show crop overlay - Simplified
-             */
-            showCropOverlay() {
-                this.cropOverlay.style.display = 'block';
-            }
-
-            /**
-             * Hide crop overlay - Simplified
-             */
-            hideCropOverlay() {
-                this.cropOverlay.style.display = 'none';
-                this.cropStart = null;
-                this.cropEnd = null;
-            }
-
-            /**
-             * Update crop overlay position and size - Simplified
-             */
-            updateCropOverlay() {
-                if (!this.cropStart || !this.cropEnd) return;
-                
-                const left = Math.min(this.cropStart.x, this.cropEnd.x);
-                const top = Math.min(this.cropStart.y, this.cropEnd.y);
-                const width = Math.abs(this.cropEnd.x - this.cropStart.x);
-                const height = Math.abs(this.cropEnd.y - this.cropStart.y);
-                
-                this.cropOverlay.style.left = left + 'px';
-                this.cropOverlay.style.top = top + 'px';
-                this.cropOverlay.style.width = width + 'px';
-                this.cropOverlay.style.height = height + 'px';
-            }
-
-            /**
-             * Apply crop and process immediately - Simple and robust
-             */
-            applyCropAndProcess() {
-                if (!this.cropStart || !this.cropEnd) return;
-                
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                
-                // Calculate crop dimensions
-                const left = Math.min(this.cropStart.x, this.cropEnd.x);
-                const top = Math.min(this.cropStart.y, this.cropEnd.y);
-                const width = Math.abs(this.cropEnd.x - this.cropStart.x);
-                const height = Math.abs(this.cropEnd.y - this.cropStart.y);
-                
-                // Minimum crop size check
-                if (width < 30 || height < 30) {
-                    this.showStatus('❌ Area too small. Select larger area.', 'error');
-                    this.hideCropOverlay();
-                    this.toggleCropMode();
-                    return;
-                }
-                
-                // Set canvas size to crop dimensions
-                canvas.width = width;
-                canvas.height = height;
-                
-                // Draw cropped portion
-                ctx.drawImage(
-                    this.editorCanvas,
-                    left, top, width, height,
-                    0, 0, width, height
-                );
-                
-                // Create new image from cropped canvas
-                const croppedImage = new Image();
-                croppedImage.onload = () => {
-                    this.currentImage = croppedImage;
-                    this.rotation = 0; // Reset rotation after crop
-                    this.renderImage();
-                    this.hideCropOverlay();
-                    this.toggleCropMode(); // Exit crop mode
-                    
-                    // Hide apply button
-                    document.getElementById('applyCropBtn').style.display = 'none';
-                    
-                    // Auto-process the cropped image immediately
-                    this.showStatus('⚡ Processing cropped image...', 'info');
-                    setTimeout(() => {
-                        this.processEditedImage();
-                    }, 500);
-                };
-                croppedImage.src = canvas.toDataURL();
-            }
-
-            /**
-             * Apply crop to image - Legacy method
-             */
-            applyCrop() {
-                this.applyCropAndProcess();
-            }
-
-            /**
-             * Cancel crop operation - Quick cancel
-             */
-            cancelCrop() {
-                this.hideCropOverlay();
-                this.toggleCropMode();
-                this.showStatus('❌ Crop cancelled', 'info');
-            }
 
             /**
              * Adjust brightness
@@ -3306,13 +3152,10 @@
                 this.currentImage = this.originalImage;
                 this.rotation = 0;
                 this.brightness = 0;
-                this.hideCropOverlay();
-                this.toggleCropMode(); // Exit crop mode if active
                 
                 // Reset UI
                 document.getElementById('brightnessSlider').value = 0;
                 document.getElementById('brightnessValue').textContent = '0%';
-                document.getElementById('applyCropBtn').style.display = 'none';
                 
                 this.renderImage();
                 this.showStatus('🔄 Editor reset to original image', 'info');
