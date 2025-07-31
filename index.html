@@ -537,6 +537,153 @@
             }
         }
 
+        /* Mobile Responsive Table Styles */
+        @media (max-width: 600px) {
+            .clients-table {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 800px;
+                font-size: 0.75rem;
+            }
+            
+            th, td {
+                padding: 8px 6px;
+                white-space: nowrap;
+            }
+            
+            .table-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+            
+            .stats {
+                font-size: 0.8rem;
+                padding: 10px 15px;
+            }
+            
+            /* Hide less important columns on mobile */
+            .mobile-hide {
+                display: none;
+            }
+            
+            /* Make source badges smaller on mobile */
+            .source-badge {
+                font-size: 0.7rem;
+                padding: 2px 8px;
+            }
+        }
+
+        /* Category Selection Styles */
+        .category-select {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            color: white;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .category-select:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 15px rgba(0,255,136,0.3);
+        }
+
+        .category-select option {
+            background: #333;
+            color: white;
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 2px;
+        }
+
+        .category-1 {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+
+        .category-2 {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .category-3 {
+            background: linear-gradient(135deg, #45b7d1, #96c93d);
+            color: white;
+        }
+
+        .category-4 {
+            background: linear-gradient(135deg, #f9ca24, #f0932b);
+            color: white;
+        }
+
+        /* Enhanced Drag and Drop Styles */
+        .upload-area.dragover {
+            border-color: #00ff88;
+            background: rgba(0,255,136,0.15);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0,255,136,0.4);
+        }
+
+        .upload-area.dragover .icon {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* QR Reader Enhancement for Drag and Drop */
+        .qr-reader-enhanced {
+            position: relative;
+            min-height: 200px;
+            border-radius: 15px;
+            overflow: hidden;
+            background: rgba(0,0,0,0.8);
+        }
+
+        .qr-reader-enhanced.dragover {
+            border: 3px solid #00ff88;
+            box-shadow: 0 0 20px rgba(0,255,136,0.5);
+        }
+
+        .qr-reader-enhanced .drop-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,255,136,0.2);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.2rem;
+            z-index: 10;
+        }
+
+        .qr-reader-enhanced.dragover .drop-overlay {
+            display: flex;
+        }
+
         /* Image Editor Styles */
         #brightnessSlider {
             -webkit-appearance: none;
@@ -681,10 +828,11 @@
                             "></canvas>
                             <div id="cropOverlay" style="
                                 position: absolute;
-                                border: 2px dashed #00ff88;
-                                background: rgba(0,255,136,0.1);
+                                border: 2px solid #00ff88;
+                                background: rgba(0,255,136,0.2);
                                 display: none;
                                 pointer-events: none;
+                                box-shadow: 0 0 10px rgba(0,255,136,0.3);
                             "></div>
                         </div>
                         
@@ -694,17 +842,19 @@
                             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
                             gap: 15px;
                         ">
-                            <!-- Crop Controls -->
+                            <!-- Simple Crop Controls -->
                             <div class="control-group" style="
                                 background: rgba(255,255,255,0.05);
                                 padding: 15px;
                                 border-radius: 10px;
                                 border: 1px solid rgba(255,255,255,0.1);
                             ">
-                                <h4 style="color: white; margin-bottom: 10px; font-size: 0.9rem;">✂️ Crop</h4>
-                                <button id="cropBtn" class="btn mode-btn" style="margin: 5px;">Select Area</button>
+                                <h4 style="color: white; margin-bottom: 10px; font-size: 0.9rem;">✂️ Quick Crop</h4>
+                                <p style="color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-bottom: 10px;">
+                                    Select area & apply crop
+                                </p>
+                                <button id="cropBtn" class="btn mode-btn" style="margin: 5px;">Crop & Process</button>
                                 <button id="applyCropBtn" class="btn success" style="margin: 5px; display: none;">Apply Crop</button>
-                                <button id="cancelCropBtn" class="btn danger" style="margin: 5px; display: none;">Cancel</button>
                             </div>
                             
                             <!-- Brightness Controls -->
@@ -802,6 +952,17 @@
                         <input type="url" id="manualLinkedIn" placeholder="LinkedIn profile URL (optional)">
                     </div>
                     
+                    <div class="form-group">
+                        <label for="manualCategory">📂 Category:</label>
+                        <select id="manualCategory" class="category-select">
+                            <option value="">Select Category</option>
+                            <option value="1">Option 1</option>
+                            <option value="2">Option 2</option>
+                            <option value="3">Option 3</option>
+                            <option value="4">Option 4</option>
+                        </select>
+                    </div>
+                    
                     <div style="text-align: center; margin-top: 30px;">
                         <button type="submit" class="btn success">➕ Add Client</button>
                         <button type="button" id="searchLinkedIn" class="btn">🔍 Find LinkedIn</button>
@@ -831,9 +992,10 @@
                             <th>📧 Email</th>
                             <th>📞 Phone</th>
                             <th>🏢 Company</th>
+                            <th>📂 Category</th>
                             <th>💼 LinkedIn</th>
-                            <th>🔍 Source</th>
-                            <th>⏰ Added</th>
+                            <th class="mobile-hide">🔍 Source</th>
+                            <th class="mobile-hide">⏰ Added</th>
                             <th>🖊️ Edit</th>
                             <th>🗑️ Delete</th>
                         </tr>
@@ -1128,8 +1290,7 @@
                 
                 // Image Editor Event Listeners
                 document.getElementById('cropBtn').addEventListener('click', () => this.toggleCropMode());
-                document.getElementById('applyCropBtn').addEventListener('click', () => this.applyCrop());
-                document.getElementById('cancelCropBtn').addEventListener('click', () => this.cancelCrop());
+                document.getElementById('applyCropBtn').addEventListener('click', () => this.applyCropAndProcess());
                 document.getElementById('brightnessSlider').addEventListener('input', (e) => this.adjustBrightness(e.target.value));
                 document.getElementById('rotateLeftBtn').addEventListener('click', () => this.rotateImage(-90));
                 document.getElementById('rotateRightBtn').addEventListener('click', () => this.rotateImage(90));
@@ -1141,13 +1302,18 @@
 
             setupDragAndDrop() {
                 const uploadArea = document.getElementById('uploadArea');
+                const qrReader = document.getElementById('qr-reader');
                 
+                // Enhanced drag and drop for upload area
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                     uploadArea.addEventListener(eventName, this.preventDefaults, false);
                 });
 
                 ['dragenter', 'dragover'].forEach(eventName => {
-                    uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'), false);
+                    uploadArea.addEventListener(eventName, () => {
+                        uploadArea.classList.add('dragover');
+                        this.showStatus('📁 Drop your image here to process!', 'info');
+                    }, false);
                 });
 
                 ['dragleave', 'drop'].forEach(eventName => {
@@ -1172,6 +1338,40 @@
                         }
                     }
                 }, false);
+
+                // Enhanced drag and drop for QR reader area
+                if (qrReader) {
+                    qrReader.classList.add('qr-reader-enhanced');
+                    
+                    // Add drop overlay
+                    const dropOverlay = document.createElement('div');
+                    dropOverlay.className = 'drop-overlay';
+                    dropOverlay.innerHTML = '📁 Drop image here to scan QR code';
+                    qrReader.appendChild(dropOverlay);
+
+                    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                        qrReader.addEventListener(eventName, this.preventDefaults, false);
+                    });
+
+                    ['dragenter', 'dragover'].forEach(eventName => {
+                        qrReader.addEventListener(eventName, () => {
+                            qrReader.classList.add('dragover');
+                            this.showStatus('📱 Drop image to scan QR code!', 'info');
+                        }, false);
+                    });
+
+                    ['dragleave', 'drop'].forEach(eventName => {
+                        qrReader.addEventListener(eventName, () => qrReader.classList.remove('dragover'), false);
+                    });
+
+                    qrReader.addEventListener('drop', (e) => {
+                        const files = e.dataTransfer.files;
+                        if (files.length > 0) {
+                            this.showStatus('📱 Processing dropped image for QR codes...', 'info');
+                            this.processImageFile(files[0]);
+                        }
+                    }, false);
+                }
             }
 
             preventDefaults(e) {
@@ -2539,6 +2739,7 @@
                     phone: document.getElementById('manualPhone').value.trim(),
                     company: document.getElementById('manualCompany').value.trim(),
                     linkedIn: document.getElementById('manualLinkedIn').value.trim(),
+                    category: document.getElementById('manualCategory').value.trim(),
                     source: 'Manual Entry'
                 };
                 
@@ -2586,7 +2787,7 @@
                 if (this.clients.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="9" style="text-align: center; padding: 40px; opacity: 0.7;">
+                            <td colspan="11" style="text-align: center; padding: 40px; opacity: 0.7;">
                                 📭 No clients added yet. Start scanning or add manually!
                             </td>
                         </tr>
@@ -2597,22 +2798,27 @@
                         const sourceClass = client.source.toLowerCase().includes('qr') ? 'source-qr' : 
                                           client.source.toLowerCase().includes('ocr') ? 'source-ocr' : 'source-manual';
                         
+                        const categoryBadge = client.category ? 
+                            `<span class="category-badge category-${client.category}">Option ${client.category}</span>` : 
+                            '<em>N/A</em>';
+                        
                         row.innerHTML = `
                             <td><strong>${index + 1}</strong></td>
                             <td>${client.name || '<em>N/A</em>'}</td>
                             <td>${client.email || '<em>N/A</em>'}</td>
                             <td>${client.phone || '<em>N/A</em>'}</td>
                             <td>${client.company || '<em>N/A</em>'}</td>
+                            <td>${categoryBadge}</td>
                             <td>${client.linkedIn ? `<a href="${client.linkedIn}" target="_blank" class="linkedin-link">🔗 LinkedIn</a>` : '<em>N/A</em>'}</td>
-                            <td><span class="source-badge ${sourceClass}">${client.source}</span></td>
-                            <td>${client.timestamp}</td>
+                            <td class="mobile-hide"><span class="source-badge ${sourceClass}">${client.source}</span></td>
+                            <td class="mobile-hide">${client.timestamp}</td>
                             <td>
-                                <button class="btn btn-sm btn-primary edit-btn" data-index="${index}">
-                                    <i class="fas fa-edit"></i> Edit
+                                <button class="btn btn-sm btn-primary edit-btn" data-index="${index}" style="padding: 6px 10px; font-size: 0.8rem;">
+                                    ✏️ Edit
                                 </button>
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-danger delete-btn" data-index="${index}" title="Delete this record">
+                                <button class="btn btn-sm btn-danger delete-btn" data-index="${index}" title="Delete this record" style="padding: 6px 10px; font-size: 0.8rem;">
                                     ❌ Delete
                                 </button>
                             </td>
@@ -2659,7 +2865,7 @@
                     return;
                 }
                 
-                const headers = ['Name', 'Email', 'Phone', 'Company', 'LinkedIn', 'Source', 'Timestamp'];
+                const headers = ['Name', 'Email', 'Phone', 'Company', 'Category', 'LinkedIn', 'Source', 'Timestamp'];
                 const csvContent = [
                     headers.join(','),
                     ...this.clients.map(client => [
@@ -2667,6 +2873,7 @@
                         `"${(client.email || '').replace(/"/g, '""')}"`,
                         `"${(client.phone || '').replace(/"/g, '""')}"`,
                         `"${(client.company || '').replace(/"/g, '""')}"`,
+                        `"${(client.category ? `Option ${client.category}` : '').replace(/"/g, '""')}"`,
                         `"${(client.linkedIn || '').replace(/"/g, '""')}"`,
                         `"${client.source.replace(/"/g, '""')}"`,
                         `"${client.timestamp.replace(/"/g, '""')}"`
@@ -2856,33 +3063,30 @@
             }
 
             /**
-             * Toggle crop mode
+             * Toggle crop mode - Simple and robust cropping
              */
             toggleCropMode() {
                 this.isCropping = !this.isCropping;
                 const cropBtn = document.getElementById('cropBtn');
                 const applyBtn = document.getElementById('applyCropBtn');
-                const cancelBtn = document.getElementById('cancelCropBtn');
                 
                 if (this.isCropping) {
-                    cropBtn.textContent = 'Cancel Selection';
+                    cropBtn.textContent = 'Cancel Crop';
                     cropBtn.classList.add('active');
-                    applyBtn.style.display = 'inline-block';
-                    cancelBtn.style.display = 'inline-block';
+                    applyBtn.style.display = 'none'; // Hide apply button initially
                     this.editorCanvas.style.cursor = 'crosshair';
-                    this.showStatus('✂️ Click and drag to select crop area', 'info');
+                    this.showStatus('✂️ Click and drag to select crop area, then click "Apply Crop"', 'info');
                 } else {
-                    cropBtn.textContent = 'Select Area';
+                    cropBtn.textContent = 'Crop & Process';
                     cropBtn.classList.remove('active');
                     applyBtn.style.display = 'none';
-                    cancelBtn.style.display = 'none';
                     this.editorCanvas.style.cursor = 'default';
                     this.hideCropOverlay();
                 }
             }
 
             /**
-             * Handle crop mouse down
+             * Handle crop mouse down - Simplified
              */
             handleCropMouseDown(e) {
                 if (!this.isCropping) return;
@@ -2897,7 +3101,7 @@
             }
 
             /**
-             * Handle crop mouse move
+             * Handle crop mouse move - Simplified
              */
             handleCropMouseMove(e) {
                 if (!this.isCropping || !this.cropStart) return;
@@ -2911,15 +3115,21 @@
             }
 
             /**
-             * Handle crop mouse up
+             * Handle crop mouse up - Show apply button
              */
             handleCropMouseUp(e) {
                 if (!this.isCropping) return;
-                // Crop selection is complete, user can now apply or cancel
+                
+                // Show apply crop button when selection is made
+                if (this.cropStart && this.cropEnd) {
+                    const applyBtn = document.getElementById('applyCropBtn');
+                    applyBtn.style.display = 'inline-block';
+                    this.showStatus('✅ Crop area selected! Click "Apply Crop" to process', 'success');
+                }
             }
 
             /**
-             * Handle touch events for mobile
+             * Handle touch events for mobile - Simplified
              */
             handleCropTouchStart(e) {
                 if (!this.isCropping) return;
@@ -2949,17 +3159,24 @@
             handleCropTouchEnd(e) {
                 if (!this.isCropping) return;
                 e.preventDefault();
+                
+                // Show apply crop button when selection is made
+                if (this.cropStart && this.cropEnd) {
+                    const applyBtn = document.getElementById('applyCropBtn');
+                    applyBtn.style.display = 'inline-block';
+                    this.showStatus('✅ Crop area selected! Click "Apply Crop" to process', 'success');
+                }
             }
 
             /**
-             * Show crop overlay
+             * Show crop overlay - Simplified
              */
             showCropOverlay() {
                 this.cropOverlay.style.display = 'block';
             }
 
             /**
-             * Hide crop overlay
+             * Hide crop overlay - Simplified
              */
             hideCropOverlay() {
                 this.cropOverlay.style.display = 'none';
@@ -2968,7 +3185,7 @@
             }
 
             /**
-             * Update crop overlay position and size
+             * Update crop overlay position and size - Simplified
              */
             updateCropOverlay() {
                 if (!this.cropStart || !this.cropEnd) return;
@@ -2985,9 +3202,9 @@
             }
 
             /**
-             * Apply crop to image
+             * Apply crop and process immediately - Simple and robust
              */
-            applyCrop() {
+            applyCropAndProcess() {
                 if (!this.cropStart || !this.cropEnd) return;
                 
                 const canvas = document.createElement('canvas');
@@ -2998,6 +3215,14 @@
                 const top = Math.min(this.cropStart.y, this.cropEnd.y);
                 const width = Math.abs(this.cropEnd.x - this.cropStart.x);
                 const height = Math.abs(this.cropEnd.y - this.cropStart.y);
+                
+                // Minimum crop size check
+                if (width < 30 || height < 30) {
+                    this.showStatus('❌ Area too small. Select larger area.', 'error');
+                    this.hideCropOverlay();
+                    this.toggleCropMode();
+                    return;
+                }
                 
                 // Set canvas size to crop dimensions
                 canvas.width = width;
@@ -3018,17 +3243,33 @@
                     this.renderImage();
                     this.hideCropOverlay();
                     this.toggleCropMode(); // Exit crop mode
-                    this.showStatus('✅ Image cropped successfully', 'success');
+                    
+                    // Hide apply button
+                    document.getElementById('applyCropBtn').style.display = 'none';
+                    
+                    // Auto-process the cropped image immediately
+                    this.showStatus('⚡ Processing cropped image...', 'info');
+                    setTimeout(() => {
+                        this.processEditedImage();
+                    }, 500);
                 };
                 croppedImage.src = canvas.toDataURL();
             }
 
             /**
-             * Cancel crop operation
+             * Apply crop to image - Legacy method
+             */
+            applyCrop() {
+                this.applyCropAndProcess();
+            }
+
+            /**
+             * Cancel crop operation - Quick cancel
              */
             cancelCrop() {
                 this.hideCropOverlay();
                 this.toggleCropMode();
+                this.showStatus('❌ Crop cancelled', 'info');
             }
 
             /**
@@ -3071,6 +3312,7 @@
                 // Reset UI
                 document.getElementById('brightnessSlider').value = 0;
                 document.getElementById('brightnessValue').textContent = '0%';
+                document.getElementById('applyCropBtn').style.display = 'none';
                 
                 this.renderImage();
                 this.showStatus('🔄 Editor reset to original image', 'info');
@@ -3294,7 +3536,7 @@
                                     " placeholder="Enter company name">
                                 </div>
                                 
-                                <div style="margin-bottom: 25px;">
+                                <div style="margin-bottom: 20px;">
                                     <label style="
                                         color: white;
                                         font-weight: 600;
@@ -3312,6 +3554,32 @@
                                         font-size: 1rem;
                                         transition: all 0.3s ease;
                                     " placeholder="Enter LinkedIn URL">
+                                </div>
+                                
+                                <div style="margin-bottom: 25px;">
+                                    <label style="
+                                        color: white;
+                                        font-weight: 600;
+                                        margin-bottom: 8px;
+                                        display: block;
+                                        font-size: 0.9rem;
+                                    ">📂 Category</label>
+                                    <select class="edit-input category-select" id="editCategory" style="
+                                        width: 100%;
+                                        padding: 12px 15px;
+                                        border: 2px solid rgba(255,255,255,0.2);
+                                        border-radius: 10px;
+                                        background: rgba(255,255,255,0.1);
+                                        color: white;
+                                        font-size: 1rem;
+                                        transition: all 0.3s ease;
+                                    ">
+                                        <option value="">Select Category</option>
+                                        <option value="1" ${client.category === '1' ? 'selected' : ''}>Option 1</option>
+                                        <option value="2" ${client.category === '2' ? 'selected' : ''}>Option 2</option>
+                                        <option value="3" ${client.category === '3' ? 'selected' : ''}>Option 3</option>
+                                        <option value="4" ${client.category === '4' ? 'selected' : ''}>Option 4</option>
+                                    </select>
                                 </div>
                             </form>
                         </div>
@@ -3414,6 +3682,7 @@
                 const phone = document.getElementById('editPhone').value.trim();
                 const company = document.getElementById('editCompany').value.trim();
                 const linkedin = document.getElementById('editLinkedin').value.trim();
+                const category = document.getElementById('editCategory').value.trim();
                 
                 if (!name) {
                     alert('Name is required!');
@@ -3427,7 +3696,8 @@
                     email: email,
                     phone: phone,
                     company: company,
-                    linkedIn: linkedin
+                    linkedIn: linkedin,
+                    category: category
                 };
                 
                 // Update the client in the array
