@@ -395,7 +395,7 @@
 
         <div class="navigation">
             <a href="index.html" class="btn">🏠 Back to Scanner</a>
-            <button class="btn success" onclick="exportToPDF()">📄 Export to PDF</button>
+            <button class="btn success " onclick="exportToPDF()">📄 Export to PDF</button>
             <button class="btn info" onclick="exportToCSV()">📊 Export to CSV</button>
             <button class="btn danger" onclick="clearAllData()">🗑️ Clear All Data</button>
         </div>
@@ -422,6 +422,8 @@
                             <th>💼 LinkedIn</th>
                             <th class="mobile-hide">🔍 Source</th>
                             <th class="mobile-hide">⏰ Added</th>
+                            <th>🖊️ Edit</th>
+                            <th>🗑️ Delete</th>
                         </tr>
                     </thead>
                     <tbody id="clientsTableBody">
@@ -460,7 +462,7 @@
                 if (this.clients.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="9" style="text-align: center; padding: 40px; opacity: 0.7;">
+                            <td colspan="11" style="text-align: center; padding: 40px; opacity: 0.7;">
                                 📭 No clients found. Go back to the scanner to add some data!
                             </td>
                         </tr>
@@ -485,6 +487,16 @@
                             <td>${client.linkedIn ? `<a href="${client.linkedIn}" target="_blank" class="linkedin-link">🔗 LinkedIn</a>` : '<em>N/A</em>'}</td>
                             <td class="mobile-hide"><span class="source-badge ${sourceClass}">${client.source}</span></td>
                             <td class="mobile-hide">${client.timestamp}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary edit-btn" data-index="${index}" style="padding: 6px 10px; font-size: 0.8rem;">
+                                    ✏️ Edit
+                                </button>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-danger delete-btn" data-index="${index}" title="Delete this record" style="padding: 6px 10px; font-size: 0.8rem;">
+                                    ❌ Delete
+                                </button>
+                            </td>
                         `;
                         
                         row.style.animation = 'fadeInUp 0.5s ease-out';
@@ -502,6 +514,24 @@
                     🤖 OCR: ${ocrCount} | 
                     ✍️ Manual: ${manualCount}
                 `;
+                
+                // Add event listeners for edit buttons
+                document.querySelectorAll('.edit-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = parseInt(e.target.closest('.edit-btn').dataset.index);
+                        console.log('Edit button clicked for index:', index);
+                        this.editClient(index);
+                    });
+                });
+
+                // Add event listeners for delete buttons
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = parseInt(e.target.closest('.delete-btn').dataset.index);
+                        console.log('Delete button clicked for index:', index);
+                        this.deleteClient(index);
+                    });
+                });
             }
 
             showStatus(message, type) {
@@ -641,6 +671,338 @@
 
 
 
+            deleteClient(index) {
+                if (index < 0 || index >= this.clients.length) {
+                    this.showStatus('❌ Invalid client index', 'error');
+                    return;
+                }
+
+                const client = this.clients[index];
+                const confirmDelete = confirm(`Are you sure you want to delete ${client.name || 'this client'}?`);
+                
+                if (confirmDelete) {
+                    this.clients.splice(index, 1);
+                    localStorage.setItem('exhibitionCardReaderClients', JSON.stringify(this.clients));
+                    this.updateClientsTable();
+                    this.showStatus(`🗑️ Deleted client: ${client.name || 'Unknown'}`, 'success');
+                }
+            }
+
+            editClient(index) {
+                const client = this.clients[index];
+                if (!client) return;
+                
+                // Create and show edit modal with better styling
+                const modal = document.createElement('div');
+                modal.className = 'edit-modal';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.8);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 9999;
+                    backdrop-filter: blur(5px);
+                `;
+                
+                modal.innerHTML = `
+                    <div class="edit-modal-content" style="
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        border-radius: 20px;
+                        padding: 0;
+                        width: 90%;
+                        max-width: 500px;
+                        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                        border: 2px solid rgba(255,255,255,0.1);
+                        backdrop-filter: blur(10px);
+                    ">
+                        <div style="
+                            background: rgba(255,255,255,0.1);
+                            padding: 25px 30px;
+                            border-radius: 18px 18px 0 0;
+                            border-bottom: 1px solid rgba(255,255,255,0.2);
+                        ">
+                            <h3 style="
+                                color: white;
+                                margin: 0;
+                                font-size: 1.5rem;
+                                font-weight: 600;
+                                display: flex;
+                                align-items: center;
+                                gap: 10px;
+                            ">
+                                ✏️ Edit Client
+                            </h3>
+                        </div>
+                        
+                        <div style="padding: 30px;">
+                            <form id="editClientForm">
+                                <div style="margin-bottom: 20px;">
+                                    <label style="
+                                        color: white;
+                                        font-weight: 600;
+                                        margin-bottom: 8px;
+                                        display: block;
+                                        font-size: 0.9rem;
+                                    ">👤 Name *</label>
+                                    <input type="text" class="edit-input" id="editName" value="${client.name || ''}" required style="
+                                        width: 100%;
+                                        padding: 12px 15px;
+                                        border: 2px solid rgba(255,255,255,0.2);
+                                        border-radius: 10px;
+                                        background: rgba(255,255,255,0.1);
+                                        color: white;
+                                        font-size: 1rem;
+                                        transition: all 0.3s ease;
+                                    " placeholder="Enter full name">
+                                </div>
+                                
+                                <div style="margin-bottom: 20px;">
+                                    <label style="
+                                        color: white;
+                                        font-weight: 600;
+                                        margin-bottom: 8px;
+                                        display: block;
+                                        font-size: 0.9rem;
+                                    ">📧 Email</label>
+                                    <input type="email" class="edit-input" id="editEmail" value="${client.email || ''}" style="
+                                        width: 100%;
+                                        padding: 12px 15px;
+                                        border: 2px solid rgba(255,255,255,0.2);
+                                        border-radius: 10px;
+                                        background: rgba(255,255,255,0.1);
+                                        color: white;
+                                        font-size: 1rem;
+                                        transition: all 0.3s ease;
+                                    " placeholder="Enter email address">
+                                </div>
+                                
+                                <div style="margin-bottom: 20px;">
+                                    <label style="
+                                        color: white;
+                                        font-weight: 600;
+                                        margin-bottom: 8px;
+                                        display: block;
+                                        font-size: 0.9rem;
+                                    ">📞 Phone</label>
+                                    <input type="tel" class="edit-input" id="editPhone" value="${client.phone || ''}" style="
+                                        width: 100%;
+                                        padding: 12px 15px;
+                                        border: 2px solid rgba(255,255,255,0.2);
+                                        border-radius: 10px;
+                                        background: rgba(255,255,255,0.1);
+                                        color: white;
+                                        font-size: 1rem;
+                                        transition: all 0.3s ease;
+                                    " placeholder="Enter phone number">
+                                </div>
+                                
+                                <div style="margin-bottom: 20px;">
+                                    <label style="
+                                        color: white;
+                                        font-weight: 600;
+                                        margin-bottom: 8px;
+                                        display: block;
+                                        font-size: 0.9rem;
+                                    ">🏢 Company</label>
+                                    <input type="text" class="edit-input" id="editCompany" value="${client.company || ''}" style="
+                                        width: 100%;
+                                        padding: 12px 15px;
+                                        border: 2px solid rgba(255,255,255,0.2);
+                                        border-radius: 10px;
+                                        background: rgba(255,255,255,0.1);
+                                        color: white;
+                                        font-size: 1rem;
+                                        transition: all 0.3s ease;
+                                    " placeholder="Enter company name">
+                                </div>
+                                
+                                <div style="margin-bottom: 20px;">
+                                    <label style="
+                                        color: white;
+                                        font-weight: 600;
+                                        margin-bottom: 8px;
+                                        display: block;
+                                        font-size: 0.9rem;
+                                    ">🔗 LinkedIn</label>
+                                    <input type="url" class="edit-input" id="editLinkedin" value="${client.linkedIn || ''}" style="
+                                        width: 100%;
+                                        padding: 12px 15px;
+                                        border: 2px solid rgba(255,255,255,0.2);
+                                        border-radius: 10px;
+                                        background: rgba(255,255,255,0.1);
+                                        color: white;
+                                        font-size: 1rem;
+                                        transition: all 0.3s ease;
+                                    " placeholder="Enter LinkedIn URL">
+                                </div>
+                                
+                                <div style="margin-bottom: 25px;">
+                                    <label style="
+                                        color: white;
+                                        font-weight: 600;
+                                        margin-bottom: 8px;
+                                        display: block;
+                                        font-size: 0.9rem;
+                                    ">📂 Category</label>
+                                    <select class="edit-input category-select" id="editCategory" style="
+                                        width: 100%;
+                                        padding: 12px 15px;
+                                        border: 2px solid rgba(255,255,255,0.2);
+                                        border-radius: 10px;
+                                        background: rgba(255,255,255,0.1);
+                                        color: white;
+                                        font-size: 1rem;
+                                        transition: all 0.3s ease;
+                                    ">
+                                        <option value="">Select Category</option>
+                                        <option value="1" ${client.category === '1' ? 'selected' : ''}>Option 1</option>
+                                        <option value="2" ${client.category === '2' ? 'selected' : ''}>Option 2</option>
+                                        <option value="3" ${client.category === '3' ? 'selected' : ''}>Option 3</option>
+                                        <option value="4" ${client.category === '4' ? 'selected' : ''}>Option 4</option>
+                                    </select>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div style="
+                            padding: 20px 30px 30px;
+                            display: flex;
+                            gap: 15px;
+                            justify-content: flex-end;
+                        ">
+                            <button type="button" class="edit-cancel-btn" onclick="this.closest('.edit-modal').remove()" style="
+                                padding: 12px 25px;
+                                border: 2px solid rgba(255,255,255,0.3);
+                                border-radius: 10px;
+                                background: rgba(255,255,255,0.1);
+                                color: white;
+                                font-weight: 600;
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                font-size: 0.9rem;
+                            ">❌ Cancel</button>
+                            <button type="button" class="edit-update-btn" style="
+                                padding: 12px 25px;
+                                border: none;
+                                border-radius: 10px;
+                                background: linear-gradient(135deg, #00c851, #007e33);
+                                color: white;
+                                font-weight: 600;
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                font-size: 0.9rem;
+                                box-shadow: 0 4px 15px rgba(0,200,81,0.3);
+                            ">✅ Update Client</button>
+                            <button type="button" class="update-btn" data-index="${index}" style="display: none;"></button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Add hover effects for inputs
+                const inputs = modal.querySelectorAll('.edit-input');
+                inputs.forEach(input => {
+                    input.addEventListener('focus', () => {
+                        input.style.borderColor = 'rgba(255,255,255,0.5)';
+                        input.style.background = 'rgba(255,255,255,0.15)';
+                    });
+                    input.addEventListener('blur', () => {
+                        input.style.borderColor = 'rgba(255,255,255,0.2)';
+                        input.style.background = 'rgba(255,255,255,0.1)';
+                    });
+                });
+                
+                // Add hover effects for buttons
+                const cancelBtn = modal.querySelector('.edit-cancel-btn');
+                const updateBtn = modal.querySelector('.edit-update-btn');
+                const hiddenUpdateBtn = modal.querySelector('.update-btn');
+                
+                // Add click event for update button
+                updateBtn.addEventListener('click', () => {
+                    const index = parseInt(hiddenUpdateBtn.dataset.index);
+                    console.log('Update button clicked for index:', index);
+                    this.updateClient(index);
+                });
+                
+                cancelBtn.addEventListener('mouseenter', () => {
+                    cancelBtn.style.background = 'rgba(255,255,255,0.2)';
+                    cancelBtn.style.borderColor = 'rgba(255,255,255,0.5)';
+                });
+                cancelBtn.addEventListener('mouseleave', () => {
+                    cancelBtn.style.background = 'rgba(255,255,255,0.1)';
+                    cancelBtn.style.borderColor = 'rgba(255,255,255,0.3)';
+                });
+                
+                updateBtn.addEventListener('mouseenter', () => {
+                    updateBtn.style.transform = 'translateY(-2px)';
+                    updateBtn.style.boxShadow = '0 6px 20px rgba(0,200,81,0.4)';
+                });
+                updateBtn.addEventListener('mouseleave', () => {
+                    updateBtn.style.transform = 'translateY(0)';
+                    updateBtn.style.boxShadow = '0 4px 15px rgba(0,200,81,0.3)';
+                });
+                
+                // Focus on first input
+                setTimeout(() => {
+                    document.getElementById('editName').focus();
+                }, 100);
+                
+                // Close modal when clicking outside
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+            }
+            
+            updateClient(index) {
+                const name = document.getElementById('editName').value.trim();
+                const email = document.getElementById('editEmail').value.trim();
+                const phone = document.getElementById('editPhone').value.trim();
+                const company = document.getElementById('editCompany').value.trim();
+                const linkedin = document.getElementById('editLinkedin').value.trim();
+                const category = document.getElementById('editCategory').value.trim();
+                
+                if (!name) {
+                    alert('Name is required!');
+                    return;
+                }
+                
+                // Update client data with all existing fields preserved
+                const updatedClient = {
+                    ...this.clients[index], // Preserve existing fields like source, timestamp, etc.
+                    name: name,
+                    email: email,
+                    phone: phone,
+                    company: company,
+                    linkedIn: linkedin,
+                    category: category
+                };
+                
+                // Update the client in the array
+                this.clients[index] = updatedClient;
+                
+                // Save to localStorage
+                localStorage.setItem('exhibitionCardReaderClients', JSON.stringify(this.clients));
+                
+                // Update display
+                this.updateClientsTable();
+                
+                // Close modal
+                document.querySelector('.edit-modal').remove();
+                
+                // Show success message
+                this.showStatus('✅ Client updated successfully!', 'success');
+                
+                console.log('Client updated:', updatedClient);
+            }
+
             clearAllData() {
                 if (this.clients.length === 0) {
                     this.showStatus('❌ No data to clear', 'error');
@@ -649,7 +1011,7 @@
                 
                 if (confirm(`🗑️ Are you sure you want to clear all ${this.clients.length} client records? This action cannot be undone.`)) {
                     this.clients = [];
-                    localStorage.setItem('exhibitionCardReaderClients', JSON.stringify([]));
+                    localStorage.setItem('exhibitionCardReaderClients', JSON.stringify(this.clients));
                     this.updateClientsTable();
                     this.showStatus('🗑️ All client data cleared', 'info');
                 }
