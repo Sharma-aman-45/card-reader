@@ -420,6 +420,7 @@
                             <th>🏢 Company</th>
                             <th>📂 Category</th>
                             <th>💼 LinkedIn</th>
+                            <th>📝 Notes</th>
                             <th class="mobile-hide">🔍 Source</th>
                             <th class="mobile-hide">⏰ Added</th>
                             <th>🖊️ Edit</th>
@@ -511,7 +512,7 @@
                 if (this.clients.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="11" style="text-align: center; padding: 40px; opacity: 0.7;">
+                            <td colspan="12" style="text-align: center; padding: 40px; opacity: 0.7;">
                                 📭 No clients found. Go back to the scanner to add some data!
                             </td>
                         </tr>
@@ -550,6 +551,7 @@
                             <td>${client.company || '<em>N/A</em>'}</td>
                             <td>${categoryBadge}</td>
                             <td>${client.linkedIn ? `<a href="${client.linkedIn}" target="_blank" class="linkedin-link">🔗 LinkedIn</a>` : '<em>N/A</em>'}</td>
+                            <td>${client.notes ? `<span title="${client.notes}" style="cursor: help;">📝 ${client.notes.length > 20 ? client.notes.substring(0, 20) + '...' : client.notes}</span>` : '<em>N/A</em>'}</td>
                             <td class="mobile-hide"><span class="source-badge ${sourceClass}">${client.source}</span></td>
                             <td class="mobile-hide">${client.timestamp}</td>
                             <td>
@@ -720,6 +722,8 @@
                         doc.text(`Category: ${client.category ? `Option ${client.category}` : 'N/A'}`, 25, yPosition);
                         yPosition += 5;
                         doc.text(`Source: ${client.source}`, 25, yPosition);
+                        yPosition += 5;
+                        doc.text(`Notes: ${client.notes || 'N/A'}`, 25, yPosition);
                         yPosition += 5;
                         doc.text(`Added: ${client.timestamp}`, 25, yPosition);
                         yPosition += 10;
@@ -955,6 +959,28 @@
                                         <option value="4" ${client.category === '4' ? 'selected' : ''}>Option 4</option>
                                     </select>
                                 </div>
+                                
+                                <div style="margin-bottom: 25px;">
+                                    <label style="
+                                        color: white;
+                                        font-weight: 600;
+                                        margin-bottom: 8px;
+                                        display: block;
+                                        font-size: 0.9rem;
+                                    ">📝 Notes</label>
+                                    <textarea class="edit-input" id="editNotes" style="
+                                        width: 100%;
+                                        padding: 12px 15px;
+                                        border: 2px solid rgba(255,255,255,0.2);
+                                        border-radius: 10px;
+                                        background: rgba(255,255,255,0.1);
+                                        color: white;
+                                        font-size: 1rem;
+                                        transition: all 0.3s ease;
+                                        resize: vertical;
+                                        min-height: 80px;
+                                    " placeholder="Additional notes about this contact...">${client.notes || ''}</textarea>
+                                </div>
                             </form>
                         </div>
                         
@@ -1057,6 +1083,7 @@
                 const company = document.getElementById('editCompany').value.trim();
                 const linkedin = document.getElementById('editLinkedin').value.trim();
                 const category = document.getElementById('editCategory').value.trim();
+                const notes = document.getElementById('editNotes').value.trim();
                 
                 if (!name) {
                     alert('Name is required!');
@@ -1071,7 +1098,8 @@
                     phone: phone,
                     company: company,
                     linkedIn: linkedin,
-                    category: category
+                    category: category,
+                    notes: notes
                 };
                 
                 // Update the client in the array

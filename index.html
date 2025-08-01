@@ -1008,6 +1008,10 @@
                         <label for="manualCompany">🏢 Company:</label>
                         <input type="text" id="manualCompany" placeholder="Enter company name (optional)">
                     </div>
+                    <div class="form-group">
+                        <label for="manualNotes">📝 Notes:</label>
+                        <input type="text" id="manualNotes" placeholder="Enter notes (optional)">
+                    </div>
                     
                     <div class="form-group">
                         <label for="manualLinkedIn">💼 LinkedIn Profile:</label>
@@ -2353,6 +2357,37 @@
             }
 
             /**
+             * Enhanced OCR text extraction using Tesseract.js with better configuration
+             */
+            async extractTextFromImage(imageData) {
+                try {
+                    this.showStatus('🔍 Extracting text from image...', 'info');
+                    
+                    const { data: { text } } = await Tesseract.recognize(
+                        imageData,
+                        'eng',
+                        {
+                            logger: m => {
+                                if (m.status === 'recognizing text') {
+                                    this.showStatus(`🔍 OCR Progress: ${Math.round(m.progress * 100)}%`, 'info');
+                                }
+                            },
+                            // Enhanced OCR settings for better business card recognition
+                            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@.-_+() /\\',
+                            preserve_interword_spaces: '1',
+                            tessedit_pageseg_mode: '6' // Assume uniform block of text
+                        }
+                    );
+                    
+                    console.log('Extracted text:', text);
+                    return text;
+                } catch (error) {
+                    console.error('OCR extraction error:', error);
+                    throw error;
+                }
+            }
+
+            /**
              * Extract business card data using AI vision
              */
             async extractBusinessCardDataWithAI(base64Image) {
@@ -2466,10 +2501,10 @@
             }
 
             /**
-             * Enhanced business card data extraction
+             * Enhanced business card data extraction with notes field
              */
             extractBusinessCardDataFromText(text) {
-                const clientData = { name: '', email: '', phone: '', company: '', notes: '' };
+                const clientData = { name: '', email: '', phone: '', company: '', notes: '', jobTitle: '', website: '' };
                 
                 // Clean and normalize text
                 const cleanText = text.replace(/\s+/g, ' ').trim();
@@ -3281,6 +3316,7 @@
                     company: document.getElementById('manualCompany').value.trim(),
                     linkedIn: document.getElementById('manualLinkedIn').value.trim(),
                     category: document.getElementById('manualCategory').value.trim(),
+                    notes: document.getElementById('manualNotes').value.trim(),
                     source: 'Manual Entry'
                 };
                 
@@ -3312,7 +3348,8 @@
                     id: Date.now(),
                     ...clientData,
                     timestamp: new Date().toLocaleString(),
-                    imageData: clientData.imageData || null // Store the image data
+                    imageData: clientData.imageData || null, // Store the image data
+                    notes: clientData.notes || '' // Add notes field
                 };
                 
                 this.clients.push(client);
@@ -3346,7 +3383,7 @@
                     return;
                 }
                 
-                const headers = ['Name', 'Email', 'Phone', 'Company', 'Category', 'LinkedIn', 'Source', 'Timestamp'];
+                const headers = ['Name', 'Email', 'Phone', 'Company', 'Category', 'LinkedIn', 'Notes', 'Source', 'Timestamp'];
                 const csvContent = [
                     headers.join(','),
                     ...this.clients.map(client => [
@@ -3356,6 +3393,7 @@
                         `"${(client.company || '').replace(/"/g, '""')}"`,
                         `"${(client.category ? `Option ${client.category}` : '').replace(/"/g, '""')}"`,
                         `"${(client.linkedIn || '').replace(/"/g, '""')}"`,
+                        `"${(client.notes || '').replace(/"/g, '""')}"`,
                         `"${client.source.replace(/"/g, '""')}"`,
                         `"${client.timestamp.replace(/"/g, '""')}"`
                     ].join(','))
@@ -3446,6 +3484,12 @@
                         yPosition += 5;
                         doc.text(`Category: ${client.category ? `Option ${client.category}` : 'N/A'}`, 25, yPosition);
                         yPosition += 5;
+                        doc.text(`LinkedIn: ${client.linkedIn || 'N/A'}`, 25, yPosition);
+                        yPosition += 5;
+                        if (client.notes) {
+                            doc.text(`Notes: ${client.notes}`, 25, yPosition);
+                            yPosition += 5;
+                        }
                         doc.text(`Source: ${client.source}`, 25, yPosition);
                         yPosition += 5;
                         doc.text(`Added: ${client.timestamp}`, 25, yPosition);
