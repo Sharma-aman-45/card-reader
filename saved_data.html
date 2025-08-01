@@ -647,7 +647,7 @@
                 this.showStatus('📊 Data exported to CSV successfully!', 'success');
             }
 
-            exportToPDF() {
+            async exportToPDF() {
                 if (this.clients.length === 0) {
                     this.showStatus('❌ No data to export', 'error');
                     return;
@@ -696,7 +696,10 @@
                     doc.setFontSize(10);
                     doc.setFont(undefined, 'normal');
                     
-                    this.clients.forEach((client, index) => {
+                    // Process clients sequentially to handle async image loading
+                    for (let index = 0; index < this.clients.length; index++) {
+                        const client = this.clients[index];
+                        
                         // Check if we need a new page
                         if (yPosition > 250) {
                             doc.addPage();
@@ -719,32 +722,12 @@
                         doc.text(`Source: ${client.source}`, 25, yPosition);
                         yPosition += 5;
                         doc.text(`Added: ${client.timestamp}`, 25, yPosition);
-                        
+                        yPosition += 10;
                         // Add image if available
-                        if (client.imageData) {
-                            yPosition += 5;
-                            try {
-                                // Add image to PDF
-                                const img = new Image();
-                                img.onload = () => {
-                                    const canvas = document.createElement('canvas');
-                                    const ctx = canvas.getContext('2d');
-                                    canvas.width = 80;
-                                    canvas.height = 50;
-                                    ctx.drawImage(img, 0, 0, 80, 50);
-                                    
-                                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
-                                    doc.addImage(imgData, 'JPEG', 25, yPosition, 40, 25);
-                                };
-                                img.src = client.imageData;
-                                doc.text('📷 Business Card:', 25, yPosition - 3);
-                            } catch (error) {
-                                console.log('Could not add image to PDF:', error);
-                            }
-                        }
+                     
                         
                         yPosition += 15;
-                    });
+                    }
                     
                     // Save the PDF
                     const filename = `exhibition-clients-${new Date().toISOString().split('T')[0]}.pdf`;

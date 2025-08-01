@@ -1049,6 +1049,7 @@
             
             <div style="text-align: center; margin-top: 20px; color: white; opacity: 0.8;">
                 <p>📝 All scanned data is automatically saved. Use the buttons above to view, export, or integrate your data.</p>
+                <p style="margin-top: 10px; font-size: 0.9rem; color: #4CAF50;">🤖 Mindee AI is active for enhanced business card extraction</p>
             </div>
         </div>
         <div id="crmModal" class="modal" style="display: none; margin-top: 20px;">
@@ -1180,6 +1181,7 @@
     <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="main.js"></script>
 
     <script>
         // Helper class for the efficient name extraction
@@ -1433,6 +1435,10 @@
                     this.rotation = 0;
                     this.brightness = 0;
                     
+                    // Initialize Mindee API directly
+                    this.mindeeAPI = new MindeeAPI('4ac6925023b8961a6475865dd6ed9853');
+                    this.mindeeAPIKey = '4ac6925023b8961a6475865dd6ed9853';
+                    
                     this.initializeEventListeners();
                     this.updateClientStats();
                     this.setupDragAndDrop();
@@ -1484,6 +1490,8 @@
                 safeAddEventListener('processEditedBtn', 'click', () => this.processEditedImage());
                 safeAddEventListener('resetEditorBtn', 'click', () => this.resetEditor());
                 safeAddEventListener('testProcessBtn', 'click', () => this.testProcessImage());
+                
+                // Mindee API is now initialized directly in constructor
                 
                 // Global drag and drop fallback for QR reader area
                 this.setupGlobalDragAndDrop();
@@ -2172,8 +2180,8 @@
                             // Convert blob to base64 for AI processing
                             const base64Image = await this.blobToBase64(blob);
                             
-                            // Extract data using AI vision
-                            const clientData = await this.extractBusinessCardDataWithAI(base64Image);
+                            // Extract data using Mindee API (if available) or fallback to AI vision
+                            const clientData = await this.extractBusinessCardDataWithMindee(base64Image);
                             
                             if (clientData && (clientData.name || clientData.email || clientData.phone)) {
                                 // Add image data to client data
@@ -2301,6 +2309,47 @@
                     reader.onerror = reject;
                     reader.readAsDataURL(file);
                 });
+            }
+
+
+
+            /**
+             * Extract business card data using Mindee API with OCR fallback
+             */
+            async extractBusinessCardDataWithMindee(base64Image) {
+                try {
+                    this.showStatus('🤖 Processing with Mindee AI...', 'info');
+                    console.log('Starting Mindee API extraction...');
+                    
+                    // Use Mindee API for extraction
+                    const mindeeResult = await this.mindeeAPI.extractBusinessCardData(base64Image, false); // false for sync
+                    console.log('Mindee API result:', mindeeResult);
+                    
+                    if (mindeeResult && (mindeeResult.name || mindeeResult.email || mindeeResult.phone)) {
+                        this.showStatus(`✅ Mindee extraction completed (${mindeeResult.confidence ? Math.round(mindeeResult.confidence * 100) : 'Unknown'}% confidence)`, 'success');
+                        
+                        // Convert Mindee result to our format
+                        return {
+                            name: mindeeResult.name || '',
+                            email: mindeeResult.email || '',
+                            phone: mindeeResult.phone || '',
+                            company: mindeeResult.company || '',
+                            linkedIn: mindeeResult.website || '', // Use website as LinkedIn for now
+                            jobTitle: mindeeResult.jobTitle || '',
+                            address: mindeeResult.address || '',
+                            confidence: mindeeResult.confidence || 0,
+                            source: 'Mindee AI'
+                        };
+                    } else {
+                        console.log('Mindee extraction failed or no data found, falling back to OCR');
+                        this.showStatus('🔄 Mindee extraction incomplete, falling back to OCR...', 'info');
+                        return await this.extractBusinessCardDataWithAI(base64Image);
+                    }
+                } catch (error) {
+                    console.error('Mindee API error:', error);
+                    this.showStatus('❌ Mindee API failed, falling back to OCR...', 'warning');
+                    return await this.extractBusinessCardDataWithAI(base64Image);
+                }
             }
 
             /**
@@ -3325,7 +3374,7 @@
                 this.showStatus('📊 Data exported successfully!', 'success');
             }
 
-            exportToPDF() {
+            async exportToPDF() {
                 if (this.clients.length === 0) {
                     this.showStatus('❌ No data to export', 'error');
                     return;
@@ -3374,7 +3423,10 @@
                     doc.setFontSize(10);
                     doc.setFont(undefined, 'normal');
                     
-                    this.clients.forEach((client, index) => {
+                    // Process clients sequentially to handle async image loading
+                    for (let index = 0; index < this.clients.length; index++) {
+                        const client = this.clients[index];
+                        
                         // Check if we need a new page
                         if (yPosition > 250) {
                             doc.addPage();
@@ -3399,30 +3451,10 @@
                         doc.text(`Added: ${client.timestamp}`, 25, yPosition);
                         
                         // Add image if available
-                        if (client.imageData) {
-                            yPosition += 5;
-                            try {
-                                // Add image to PDF
-                                const img = new Image();
-                                img.onload = () => {
-                                    const canvas = document.createElement('canvas');
-                                    const ctx = canvas.getContext('2d');
-                                    canvas.width = 80;
-                                    canvas.height = 50;
-                                    ctx.drawImage(img, 0, 0, 80, 50);
-                                    
-                                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
-                                    doc.addImage(imgData, 'JPEG', 25, yPosition, 40, 25);
-                                };
-                                img.src = client.imageData;
-                                doc.text('📷 Business Card:', 25, yPosition - 3);
-                            } catch (error) {
-                                console.log('Could not add image to PDF:', error);
-                            }
-                        }
+                     
                         
                         yPosition += 15;
-                    });
+                    }
                     
                     // Save the PDF
                     const filename = `exhibition-clients-${new Date().toISOString().split('T')[0]}.pdf`;
@@ -3473,6 +3505,8 @@
                     this.showStatus('🗑️ All client data cleared', 'info');
                 }
             }
+
+
 
             getClients() {
                 return this.clients;
