@@ -436,8 +436,57 @@
         <div id="statusMessage"></div>
     </div>
 
-    <script>
-        class SavedDataViewer {
+            <script>
+            // Global function to show image modal
+            function showImageModal(imageSrc, title) {
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.9);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10000;
+                    cursor: pointer;
+                `;
+                
+                modal.innerHTML = `
+                    <div style="
+                        max-width: 90vw;
+                        max-height: 90vh;
+                        position: relative;
+                        text-align: center;
+                    ">
+                        <div style="
+                            color: white;
+                            margin-bottom: 15px;
+                            font-size: 1.2rem;
+                            font-weight: 600;
+                        ">${title}</div>
+                        <img src="${imageSrc}" style="
+                            max-width: 100%;
+                            max-height: 70vh;
+                            border-radius: 10px;
+                            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                        " alt="Business Card">
+                        <div style="
+                            color: white;
+                            margin-top: 15px;
+                            font-size: 0.9rem;
+                            opacity: 0.8;
+                        ">Click anywhere to close</div>
+                    </div>
+                `;
+                
+                modal.addEventListener('click', () => modal.remove());
+                document.body.appendChild(modal);
+            }
+
+            class SavedDataViewer {
             constructor() {
                 this.clients = this.loadClients();
                 this.updateClientsTable();
@@ -477,9 +526,25 @@
                             `<span class="category-badge category-${client.category}">Option ${client.category}</span>` : 
                             '<em>N/A</em>';
                         
+                        // Add image preview if available
+                        const imagePreview = client.imageData ? 
+                            `<div style="margin-bottom: 10px;">
+                                <img src="${client.imageData}" alt="Business Card" style="
+                                    max-width: 80px; 
+                                    max-height: 50px; 
+                                    border-radius: 5px; 
+                                    border: 1px solid #ddd;
+                                    cursor: pointer;
+                                    object-fit: cover;
+                                " onclick="showImageModal('${client.imageData}', '${client.name || 'Business Card'}')" title="Click to view full image">
+                            </div>` : '';
+
                         row.innerHTML = `
                             <td><strong>${index + 1}</strong></td>
-                            <td>${client.name || '<em>N/A</em>'}</td>
+                            <td>
+                                ${imagePreview}
+                                ${client.name || '<em>N/A</em>'}
+                            </td>
                             <td>${client.email || '<em>N/A</em>'}</td>
                             <td>${client.phone || '<em>N/A</em>'}</td>
                             <td>${client.company || '<em>N/A</em>'}</td>
@@ -654,7 +719,31 @@
                         doc.text(`Source: ${client.source}`, 25, yPosition);
                         yPosition += 5;
                         doc.text(`Added: ${client.timestamp}`, 25, yPosition);
-                        yPosition += 10;
+                        
+                        // Add image if available
+                        if (client.imageData) {
+                            yPosition += 5;
+                            try {
+                                // Add image to PDF
+                                const img = new Image();
+                                img.onload = () => {
+                                    const canvas = document.createElement('canvas');
+                                    const ctx = canvas.getContext('2d');
+                                    canvas.width = 80;
+                                    canvas.height = 50;
+                                    ctx.drawImage(img, 0, 0, 80, 50);
+                                    
+                                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                                    doc.addImage(imgData, 'JPEG', 25, yPosition, 40, 25);
+                                };
+                                img.src = client.imageData;
+                                doc.text('📷 Business Card:', 25, yPosition - 3);
+                            } catch (error) {
+                                console.log('Could not add image to PDF:', error);
+                            }
+                        }
+                        
+                        yPosition += 15;
                     });
                     
                     // Save the PDF
@@ -740,6 +829,23 @@
                         </div>
                         
                         <div style="padding: 30px;">
+                            ${client.imageData ? `
+                                <div style="margin-bottom: 25px; text-align: center;">
+                                    <div style="
+                                        color: white;
+                                        font-weight: 600;
+                                        margin-bottom: 10px;
+                                        font-size: 0.9rem;
+                                    ">📷 Original Business Card Image</div>
+                                    <img src="${client.imageData}" style="
+                                        max-width: 100%;
+                                        max-height: 200px;
+                                        border-radius: 10px;
+                                        border: 2px solid rgba(255,255,255,0.2);
+                                        cursor: pointer;
+                                    " onclick="showImageModal('${client.imageData}', '${client.name || 'Business Card'}')" title="Click to view full image">
+                                </div>
+                            ` : ''}
                             <form id="editClientForm">
                                 <div style="margin-bottom: 20px;">
                                     <label style="

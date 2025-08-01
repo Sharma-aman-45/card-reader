@@ -2051,12 +2051,16 @@
                 }
             }
 
-            async processQRResult(qrText, source) {
+            async processQRResult(qrText, source, imageData = null) {
                 console.log('Processing QR result:', qrText);
                 const clientData = this.parseQRData(qrText);
                 console.log('Extracted client data:', clientData);
                 
                 if (clientData.name || clientData.email || clientData.phone) {
+                    // Add image data to client data
+                    if (imageData) {
+                        clientData.imageData = imageData;
+                    }
                     await this.addClientWithLinkedInSearch(clientData, source);
                     this.showStatus('✅ Client data extracted and added successfully! Source: ' + source, 'success');
                 } else {
@@ -2172,6 +2176,8 @@
                             const clientData = await this.extractBusinessCardDataWithAI(base64Image);
                             
                             if (clientData && (clientData.name || clientData.email || clientData.phone)) {
+                                // Add image data to client data
+                                clientData.imageData = base64Image;
                                 await this.addClientWithLinkedInSearch(clientData, 'AI Business Card Scanner');
                                 this.showStatus('✅ Business card data extracted successfully with AI!', 'success');
                                 resolve();
@@ -2285,6 +2291,15 @@
                     reader.onload = () => resolve(reader.result);
                     reader.onerror = reject;
                     reader.readAsDataURL(blob);
+                });
+            }
+
+            fileToBase64(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
                 });
             }
 
@@ -2568,13 +2583,15 @@
                     
                     if (qrText) {
                         console.log('QR found:', qrText);
-                        const contactFound = await this.processQRResult(qrText, 'File QR');
+                        // Convert file to base64 for image storage
+                        const base64Image = await this.fileToBase64(file);
+                        const contactFound = await this.processQRResult(qrText, 'File QR', base64Image);
                         if (!contactFound) {
                             // QR found but no contact info, run OCR on the file
                             console.log('No contact info in QR, running OCR on file');
                 const reader = new FileReader();
                             reader.onload = async (ev) => {
-                                await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
+                                await this.analyzeImageWithOCR(ev.target.result, 'File OCR', base64Image);
                 };
                 reader.readAsDataURL(file);
                         }
@@ -2596,16 +2613,16 @@
                             const qrResult = await this.scanQRCodeFromImage(ev.target.result);
                     if (qrResult) {
                                 console.log('QR found with jsQR fallback:', qrResult);
-                                const contactFound = await this.processQRResult(qrResult, 'File QR (jsQR)');
+                                const contactFound = await this.processQRResult(qrResult, 'File QR (jsQR)', ev.target.result);
                                 if (!contactFound) {
                                     // QR found but no contact info, run OCR
                                     console.log('No contact info in QR, running OCR');
-                                    await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
+                                    await this.analyzeImageWithOCR(ev.target.result, 'File OCR', ev.target.result);
                                 }
                         } else {
                                 console.log('No QR found with jsQR, trying OCR');
                                 this.showStatus('🔄 No QR found, running OCR...', 'info');
-                                await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
+                                await this.analyzeImageWithOCR(ev.target.result, 'File OCR', ev.target.result);
                             }
                         };
                         reader.readAsDataURL(file);
@@ -3123,7 +3140,7 @@
                 return clientData;
             }
 
-            async analyzeImageWithOCR(imageData, source) {
+            async analyzeImageWithOCR(imageData, source, storedImageData = null) {
                 try {
                     console.log('Starting OCR analysis for source:', source);
                     this.showStatus('🤖 Performing text recognition...', 'info');
@@ -3143,6 +3160,12 @@
                     // Allow adding if at least email, name, or phone is found
                     if (clientData.email || clientData.name || clientData.phone) {
                         console.log('Contact info found, adding client...');
+                        // Add image data to client data
+                        if (storedImageData) {
+                            clientData.imageData = storedImageData;
+                        } else {
+                            clientData.imageData = imageData;
+                        }
                         await this.addClientWithLinkedInSearch(clientData, source);
                     } else {
                         console.log('No contact info found in OCR text');
@@ -3239,7 +3262,8 @@
                 const client = {
                     id: Date.now(),
                     ...clientData,
-                    timestamp: new Date().toLocaleString()
+                    timestamp: new Date().toLocaleString(),
+                    imageData: clientData.imageData || null // Store the image data
                 };
                 
                 this.clients.push(client);
@@ -3373,7 +3397,31 @@
                         doc.text(`Source: ${client.source}`, 25, yPosition);
                         yPosition += 5;
                         doc.text(`Added: ${client.timestamp}`, 25, yPosition);
-                        yPosition += 10;
+                        
+                        // Add image if available
+                        if (client.imageData) {
+                            yPosition += 5;
+                            try {
+                                // Add image to PDF
+                                const img = new Image();
+                                img.onload = () => {
+                                    const canvas = document.createElement('canvas');
+                                    const ctx = canvas.getContext('2d');
+                                    canvas.width = 80;
+                                    canvas.height = 50;
+                                    ctx.drawImage(img, 0, 0, 80, 50);
+                                    
+                                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                                    doc.addImage(imgData, 'JPEG', 25, yPosition, 40, 25);
+                                };
+                                img.src = client.imageData;
+                                doc.text('📷 Business Card:', 25, yPosition - 3);
+                            } catch (error) {
+                                console.log('Could not add image to PDF:', error);
+                            }
+                        }
+                        
+                        yPosition += 15;
                     });
                     
                     // Save the PDF
