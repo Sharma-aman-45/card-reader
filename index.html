@@ -1033,40 +1033,22 @@
             </div>
         </div>
 
-        <!-- Enhanced Clients Table -->
-        <div class="card clients-table">
-            <h2>👥 Collected Clients Database</h2>
+        <!-- Quick Actions Section -->
+        <div class="card">
+            <h2>⚡ Quick Actions</h2>
             
-            <div class="table-controls">
-                                        <button id="exportData" class="btn success text-white">📊 Export CSV</button>
-                        <button id="exportCRM" class="btn text-white" style="background: #4CAF50;">🔗 CRM Integration</button>
-                <button id="clearData" class="btn danger text-white">🗑️ Clear All</button>
+            <div class="table-controls" style="justify-content: center; gap: 15px;">
+                <button id="viewSavedData" class="btn text-white" style="background: #9c27b0;">💾 View Saved Data</button>
+                <button id="exportData" class="btn success text-white">📊 Export CSV</button>
+                <button id="exportPDF" class="btn info text-white">📄 Export PDF</button>
+                <button id="exportCRM" class="btn text-white" style="background: #4CAF50;">🔗 CRM Integration</button>
                 <div class="stats" id="clientStats">
                     📊 Total Clients: 0
                 </div>
             </div>
             
-            <div style="overflow-x: auto;">
-                <table id="clientsTable">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>👤 Name</th>
-                            <th>📧 Email</th>
-                            <th>📞 Phone</th>
-                            <th>🏢 Company</th>
-                            <th>📂 Category</th>
-                            <th>💼 LinkedIn</th>
-                            <th class="mobile-hide">🔍 Source</th>
-                            <th class="mobile-hide">⏰ Added</th>
-                            <th>🖊️ Edit</th>
-                            <th>🗑️ Delete</th>
-                        </tr>
-                    </thead>
-                    <tbody id="clientsTableBody">
-                        <!-- Data will be populated here -->
-                    </tbody>
-                </table>
+            <div style="text-align: center; margin-top: 20px; color: white; opacity: 0.8;">
+                <p>📝 All scanned data is automatically saved. Use the buttons above to view, export, or integrate your data.</p>
             </div>
         </div>
         <div id="crmModal" class="modal" style="display: none; margin-top: 20px;">
@@ -1197,6 +1179,7 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <script>
         // Helper class for the efficient name extraction
@@ -1434,51 +1417,73 @@
 
         class ExhibitionCardReaderPro {
             constructor() {
-                this.clients = this.loadClients();
-                this.html5QrCode = null;
-                this.cameraStarted = false;
-                this.lastScanResult = null;
-                this.currentScanMode = 'qr'; // 'qr' or 'image'
-                this.isCapturing = false; // Prevent multiple captures
-                
-                // Image Editor Properties
-                this.editorCanvas = null;
-                this.editorCtx = null;
-                this.originalImage = null;
-                this.currentImage = null;
-                this.rotation = 0;
-                this.brightness = 0;
-                
-                this.initializeEventListeners();
-                this.updateClientsTable();
-                this.setupDragAndDrop();
-                this.updateScanModeUI();
-                this.initializeImageEditor();
+                try {
+                    this.clients = this.loadClients();
+                    this.html5QrCode = null;
+                    this.cameraStarted = false;
+                    this.lastScanResult = null;
+                    this.currentScanMode = 'qr'; // 'qr' or 'image'
+                    this.isCapturing = false; // Prevent multiple captures
+                    
+                    // Image Editor Properties
+                    this.editorCanvas = null;
+                    this.editorCtx = null;
+                    this.originalImage = null;
+                    this.currentImage = null;
+                    this.rotation = 0;
+                    this.brightness = 0;
+                    
+                    this.initializeEventListeners();
+                    this.updateClientStats();
+                    this.setupDragAndDrop();
+                    this.updateScanModeUI();
+                    this.initializeImageEditor();
+                } catch (error) {
+                    console.error('Error in constructor:', error);
+                    throw error;
+                }
             }
 
             initializeEventListeners() {
-                document.getElementById('startCamera').addEventListener('click', () => this.startCamera());
-                document.getElementById('captureImage').addEventListener('click', () => this.captureAndAnalyzeImage());
-                document.getElementById('restartCamera').addEventListener('click', () => this.restartCamera());
-                document.getElementById('fileInput').addEventListener('change', (e) => this.handleFileUpload(e));
-                document.getElementById('manualForm').addEventListener('submit', (e) => this.handleManualEntry(e));
-                document.getElementById('searchLinkedIn').addEventListener('click', () => this.searchLinkedIn());
-                document.getElementById('exportData').addEventListener('click', () => this.exportToCSV());
-                document.getElementById('exportCRM').addEventListener('click', () => this.showCRMIntegration());
-                document.getElementById('clearData').addEventListener('click', () => this.clearAllData());
+                // Helper function to safely add event listeners
+                const safeAddEventListener = (elementId, event, handler) => {
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.addEventListener(event, handler);
+                    } else {
+                        console.warn(`Element with id '${elementId}' not found, skipping event listener`);
+                    }
+                };
+
+                // Camera and capture controls
+                safeAddEventListener('startCamera', 'click', () => this.startCamera());
+                safeAddEventListener('captureImage', 'click', () => this.captureAndAnalyzeImage());
+                safeAddEventListener('restartCamera', 'click', () => this.restartCamera());
                 
-                // Add scan mode toggle listeners
-                document.getElementById('qrModeBtn').addEventListener('click', () => this.setScanMode('qr'));
-                document.getElementById('imageModeBtn').addEventListener('click', () => this.setScanMode('image'));
+                // File upload and form
+                safeAddEventListener('fileInput', 'change', (e) => this.handleFileUpload(e));
+                safeAddEventListener('manualForm', 'submit', (e) => this.handleManualEntry(e));
+                safeAddEventListener('searchLinkedIn', 'click', () => this.searchLinkedIn());
+                
+                // Export and data management
+                safeAddEventListener('exportData', 'click', () => this.exportToCSV());
+                safeAddEventListener('exportPDF', 'click', () => this.exportToPDF());
+                safeAddEventListener('viewSavedData', 'click', () => this.viewSavedData());
+                safeAddEventListener('exportCRM', 'click', () => this.showCRMIntegration());
+                safeAddEventListener('clearData', 'click', () => this.clearAllData());
+                
+                // Scan mode toggle listeners
+                safeAddEventListener('qrModeBtn', 'click', () => this.setScanMode('qr'));
+                safeAddEventListener('imageModeBtn', 'click', () => this.setScanMode('image'));
                 
                 // Image Editor Event Listeners
-                document.getElementById('brightnessSlider').addEventListener('input', (e) => this.adjustBrightness(e.target.value));
-                document.getElementById('rotateLeftBtn').addEventListener('click', () => this.rotateImage(-90));
-                document.getElementById('rotateRightBtn').addEventListener('click', () => this.rotateImage(90));
-                document.getElementById('resetRotationBtn').addEventListener('click', () => this.resetRotation());
-                document.getElementById('processEditedBtn').addEventListener('click', () => this.processEditedImage());
-                document.getElementById('resetEditorBtn').addEventListener('click', () => this.resetEditor());
-                document.getElementById('testProcessBtn').addEventListener('click', () => this.testProcessImage());
+                safeAddEventListener('brightnessSlider', 'input', (e) => this.adjustBrightness(e.target.value));
+                safeAddEventListener('rotateLeftBtn', 'click', () => this.rotateImage(-90));
+                safeAddEventListener('rotateRightBtn', 'click', () => this.rotateImage(90));
+                safeAddEventListener('resetRotationBtn', 'click', () => this.resetRotation());
+                safeAddEventListener('processEditedBtn', 'click', () => this.processEditedImage());
+                safeAddEventListener('resetEditorBtn', 'click', () => this.resetEditor());
+                safeAddEventListener('testProcessBtn', 'click', () => this.testProcessImage());
                 
                 // Global drag and drop fallback for QR reader area
                 this.setupGlobalDragAndDrop();
@@ -1487,6 +1492,12 @@
             setupDragAndDrop() {
                 const uploadArea = document.getElementById('uploadArea');
                 const qrReader = document.getElementById('qr-reader');
+                
+                // Check if upload area exists
+                if (!uploadArea) {
+                    console.warn('Upload area not found, skipping drag and drop setup');
+                    return;
+                }
                 
                 // Enhanced drag and drop for upload area
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -1523,7 +1534,7 @@
                     }
                 }, false);
 
-                // Enhanced drag and drop for QR reader area
+                // Enhanced drag and drop for QR reader area with better error handling
                 if (qrReader) {
                     qrReader.classList.add('qr-reader-enhanced');
                     
@@ -1534,17 +1545,17 @@
                         <div style="text-align: center; padding: 20px;">
                             <div style="font-size: 3rem; margin-bottom: 10px;">📁</div>
                             <div style="font-weight: 600; margin-bottom: 5px;">Drop Image Here</div>
-                            <div style="font-size: 0.9rem; opacity: 0.8;">to scan QR code</div>
+                            <div style="font-size: 0.9rem; opacity: 0.8;">to scan QR code or business card</div>
                         </div>
                     `;
                     qrReader.appendChild(dropOverlay);
 
-                    // Enhanced event handling with better error handling
+                    // Enhanced event handling with better error handling and retry logic
                     const handleDragEnter = (e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         qrReader.classList.add('dragover');
-                        this.showStatus('📱 Drop image to scan QR code!', 'info');
+                        this.showStatus('📱 Drop image to scan QR code or business card!', 'info');
                     };
 
                     const handleDragOver = (e) => {
@@ -1562,7 +1573,7 @@
                         }
                     };
 
-                    const handleDrop = (e) => {
+                    const handleDrop = async (e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         qrReader.classList.remove('dragover');
@@ -1571,12 +1582,48 @@
                         if (files.length > 0) {
                             const file = files[0];
                             if (file.type.startsWith('image/')) {
-                                this.showStatus('📱 Processing dropped image for QR codes...', 'info');
+                                this.showStatus('📱 Processing dropped image...', 'info');
                                 try {
-                                    this.processImageFile(file);
+                                    // Try QR scan first
+                                    let qrText = null;
+                                    try {
+                                        const html5QrCodeFile = new Html5Qrcode();
+                                        qrText = await html5QrCodeFile.scanFile(file, true);
+                                        console.log('QR scan result:', qrText);
+                                    } catch (qrError) {
+                                        console.log('QR scan failed, will try OCR:', qrError);
+                                    }
+                                    
+                                    if (qrText) {
+                                        console.log('QR code found, processing...');
+                                        const contactFound = await this.processQRResult(qrText, 'Drop QR');
+                                        if (!contactFound) {
+                                            // QR found but no contact info, run OCR
+                                            console.log('QR found but no contact info, running OCR...');
+                                            const reader = new FileReader();
+                                            reader.onload = async (ev) => {
+                                                await this.analyzeImageWithOCR(ev.target.result, 'Drop OCR');
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    } else {
+                                        // No QR found, load into editor for business card processing
+                                        console.log('No QR found, loading into editor for business card processing...');
+                                        await this.loadImageIntoEditor(file);
+                                        this.showStatus('🖼️ Image loaded in editor. Use the controls to enhance and process the business card.', 'info');
+                                    }
                                 } catch (error) {
                                     console.error('Error processing dropped file:', error);
-                                    this.showStatus('❌ Error processing dropped image', 'error');
+                                    this.showStatus('❌ Error processing dropped image. Trying fallback...', 'error');
+                                    
+                                    // Fallback: load into editor
+                                    try {
+                                        await this.loadImageIntoEditor(file);
+                                        this.showStatus('🖼️ Image loaded in editor as fallback. Try processing from here.', 'info');
+                                    } catch (fallbackError) {
+                                        console.error('Fallback also failed:', fallbackError);
+                                        this.showStatus('❌ Failed to process image. Please try a different image.', 'error');
+                                    }
                                 }
                             } else {
                                 this.showStatus('❌ Please drop an image file', 'error');
@@ -1584,7 +1631,7 @@
                         }
                     };
 
-                    // Add event listeners with error handling
+                    // Add event listeners with error handling and retry logic
                     try {
                         qrReader.addEventListener('dragenter', handleDragEnter, false);
                         qrReader.addEventListener('dragover', handleDragOver, false);
@@ -1596,8 +1643,19 @@
                         if (scannerSection) {
                             scannerSection.addEventListener('drop', handleDrop, false);
                         }
+                        
+                        // Add global document drop handler as ultimate fallback
+                        document.addEventListener('drop', (e) => {
+                            // Only handle if drop is in our application area
+                            if (e.target.closest('.container') || e.target.closest('#qr-reader')) {
+                                handleDrop(e);
+                            }
+                        }, false);
+                        
                     } catch (error) {
                         console.error('Error setting up QR reader drag and drop:', error);
+                        // Fallback: add basic drop handling
+                        qrReader.addEventListener('drop', handleDrop, false);
                     }
                 }
             }
@@ -2032,8 +2090,16 @@
                 try {
                     this.showStatus('📸 Captured business card image', 'info');
                     
+                    // Show processing time indicator
+                    const startTime = Date.now();
+                    this.showStatus('⏱️ Processing business card with AI vision...', 'info');
+                    
                     // Display the captured image on screen and wait for user confirmation
                     await this.displayCapturedImageAndWait(canvas, blob);
+                    
+                    // Calculate and show processing time
+                    const processingTime = Date.now() - startTime;
+                    this.showStatus(`✅ AI processing completed in ${processingTime}ms`, 'success');
                     
                 } catch (error) {
                     console.error('AI processing error:', error);
@@ -2227,8 +2293,8 @@
              */
             async extractBusinessCardDataWithAI(base64Image) {
                 try {
-                    // For now, we'll simulate AI processing with enhanced OCR
-                    // In a real implementation, you would call an AI vision API
+                    // Show processing status
+                    this.showStatus('🤖 AI processing image with enhanced OCR...', 'info');
                     
                     // Create a temporary canvas to process the image
                     const canvas = document.createElement('canvas');
@@ -2241,17 +2307,38 @@
                             canvas.height = img.height;
                             ctx.drawImage(img, 0, 0);
                             
-                            // Use Tesseract.js for enhanced OCR
+                            // Use Tesseract.js for enhanced OCR with better configuration
                             Tesseract.recognize(canvas, 'eng', {
-                                logger: m => console.log('OCR Progress:', m)
+                                logger: m => {
+                                    if (m.status === 'recognizing text') {
+                                        this.showStatus(`🤖 AI Processing: ${Math.round(m.progress * 100)}%`, 'info');
+                                    }
+                                },
+                                // Enhanced OCR settings for business cards
+                                tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@.-_+() ',
+                                preserve_interword_spaces: '1'
                             }).then(({ data: { text } }) => {
                                 console.log('AI OCR Text:', text);
                                 
                                 // Enhanced extraction with AI-like patterns
                                 const clientData = this.extractBusinessCardDataFromText(text);
+                                
+                                // Verify extracted data quality
+                                const verificationScore = this.verifyExtractedData(clientData);
+                                console.log('Data verification score:', verificationScore);
+                                
+                                if (verificationScore >= 0.6) {
+                                    this.showStatus('✅ AI extraction completed with high confidence', 'success');
+                                } else if (verificationScore >= 0.3) {
+                                    this.showStatus('⚠️ AI extraction completed with medium confidence', 'info');
+                                } else {
+                                    this.showStatus('❌ AI extraction completed with low confidence', 'warning');
+                                }
+                                
                                 resolve(clientData);
                             }).catch(error => {
                                 console.error('AI OCR Error:', error);
+                                this.showStatus('❌ AI processing failed, trying fallback...', 'error');
                                 resolve(null);
                             });
                         };
@@ -2262,6 +2349,56 @@
                     console.error('AI extraction error:', error);
                     return null;
                 }
+            }
+
+            /**
+             * Verify the quality of extracted data
+             */
+            verifyExtractedData(clientData) {
+                let score = 0;
+                let totalChecks = 0;
+                
+                // Check name quality
+                if (clientData.name) {
+                    totalChecks++;
+                    const nameWords = clientData.name.split(' ').filter(word => word.length > 0);
+                    if (nameWords.length >= 2 && nameWords.every(word => /^[A-Za-z]+$/.test(word))) {
+                        score += 0.3; // Good name format
+                    } else if (nameWords.length >= 1) {
+                        score += 0.1; // Basic name
+                    }
+                }
+                
+                // Check email quality
+                if (clientData.email) {
+                    totalChecks++;
+                    if (this.isValidEmail(clientData.email)) {
+                        score += 0.3; // Valid email
+                    } else {
+                        score += 0.1; // Invalid but present
+                    }
+                }
+                
+                // Check phone quality
+                if (clientData.phone) {
+                    totalChecks++;
+                    const cleanPhone = clientData.phone.replace(/[^\d+]/g, '');
+                    if (cleanPhone.length >= 7) {
+                        score += 0.2; // Valid phone
+                    } else {
+                        score += 0.05; // Invalid but present
+                    }
+                }
+                
+                // Check company quality
+                if (clientData.company) {
+                    totalChecks++;
+                    if (clientData.company.length >= 3) {
+                        score += 0.2; // Valid company
+                    }
+                }
+                
+                return totalChecks > 0 ? score / totalChecks : 0;
             }
 
             /**
@@ -3107,57 +3244,14 @@
                 
                 this.clients.push(client);
                 this.saveClients();
-                this.updateClientsTable();
+                this.updateClientStats();
             }
 
-            updateClientsTable() {
-                const tbody = document.getElementById('clientsTableBody');
+            updateClientStats() {
                 const stats = document.getElementById('clientStats');
-                
-                tbody.innerHTML = '';
-                
-                if (this.clients.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="11" style="text-align: center; padding: 40px; opacity: 0.7;">
-                                📭 No clients added yet. Start scanning or add manually!
-                            </td>
-                        </tr>
-                    `;
-                } else {
-                    this.clients.forEach((client, index) => {
-                        const row = tbody.insertRow();
-                        const sourceClass = client.source.toLowerCase().includes('qr') ? 'source-qr' : 
-                                          client.source.toLowerCase().includes('ocr') ? 'source-ocr' : 'source-manual';
-                        
-                        const categoryBadge = client.category ? 
-                            `<span class="category-badge category-${client.category}">Option ${client.category}</span>` : 
-                            '<em>N/A</em>';
-                        
-                        row.innerHTML = `
-                            <td><strong>${index + 1}</strong></td>
-                            <td>${client.name || '<em>N/A</em>'}</td>
-                            <td>${client.email || '<em>N/A</em>'}</td>
-                            <td>${client.phone || '<em>N/A</em>'}</td>
-                            <td>${client.company || '<em>N/A</em>'}</td>
-                            <td>${categoryBadge}</td>
-                            <td>${client.linkedIn ? `<a href="${client.linkedIn}" target="_blank" class="linkedin-link">🔗 LinkedIn</a>` : '<em>N/A</em>'}</td>
-                            <td class="mobile-hide"><span class="source-badge ${sourceClass}">${client.source}</span></td>
-                            <td class="mobile-hide">${client.timestamp}</td>
-                            <td>
-                                <button class="btn btn-sm btn-primary edit-btn" data-index="${index}" style="padding: 6px 10px; font-size: 0.8rem;">
-                                    ✏️ Edit
-                                </button>
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-danger delete-btn" data-index="${index}" title="Delete this record" style="padding: 6px 10px; font-size: 0.8rem;">
-                                    ❌ Delete
-                                </button>
-                            </td>
-                        `;
-                        
-                        row.style.animation = 'fadeInUp 0.5s ease-out';
-                    });
+                if (!stats) {
+                    console.warn('Client stats element not found');
+                    return;
                 }
                 
                 // Update stats
@@ -3171,24 +3265,6 @@
                     🤖 OCR: ${ocrCount} | 
                     ✍️ Manual: ${manualCount}
                 `;
-                
-                // Add event listeners for edit buttons
-                document.querySelectorAll('.edit-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const index = parseInt(e.target.closest('.edit-btn').dataset.index);
-                        console.log('Edit button clicked for index:', index);
-                        this.editClient(index);
-                    });
-                });
-
-                // Add event listeners for delete buttons
-                document.querySelectorAll('.delete-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const index = parseInt(e.target.closest('.delete-btn').dataset.index);
-                        console.log('Delete button clicked for index:', index);
-                        this.deleteClient(index);
-                    });
-                });
             }
 
             exportToCSV() {
@@ -3225,6 +3301,100 @@
                 this.showStatus('📊 Data exported successfully!', 'success');
             }
 
+            exportToPDF() {
+                if (this.clients.length === 0) {
+                    this.showStatus('❌ No data to export', 'error');
+                    return;
+                }
+
+                this.showStatus('📄 Generating PDF...', 'info');
+
+                try {
+                    // Create PDF using jsPDF
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    
+                    // Set up PDF content
+                    const title = 'Exhibition Card Reader Pro - Client Data';
+                    const date = new Date().toLocaleDateString();
+                    const totalClients = this.clients.length;
+                    
+                    // Add title
+                    doc.setFontSize(20);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(title, 20, 20);
+                    
+                    // Add date and total
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'normal');
+                    doc.text(`Generated on: ${date}`, 20, 35);
+                    doc.text(`Total Clients: ${totalClients}`, 20, 45);
+                    
+                    // Add statistics
+                    const qrCount = this.clients.filter(c => c.source.toLowerCase().includes('qr')).length;
+                    const ocrCount = this.clients.filter(c => c.source.toLowerCase().includes('ocr')).length;
+                    const manualCount = this.clients.filter(c => c.source === 'Manual Entry').length;
+                    
+                    doc.text('Statistics:', 20, 60);
+                    doc.text(`- QR Code Scans: ${qrCount}`, 25, 70);
+                    doc.text(`- OCR Scans: ${ocrCount}`, 25, 80);
+                    doc.text(`- Manual Entries: ${manualCount}`, 25, 90);
+                    
+                    // Add client data
+                    let yPosition = 110;
+                    doc.setFontSize(14);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Client Details:', 20, yPosition);
+                    yPosition += 10;
+                    
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'normal');
+                    
+                    this.clients.forEach((client, index) => {
+                        // Check if we need a new page
+                        if (yPosition > 250) {
+                            doc.addPage();
+                            yPosition = 20;
+                        }
+                        
+                        doc.setFont(undefined, 'bold');
+                        doc.text(`${index + 1}. ${client.name || 'N/A'}`, 20, yPosition);
+                        yPosition += 7;
+                        
+                        doc.setFont(undefined, 'normal');
+                        doc.text(`Email: ${client.email || 'N/A'}`, 25, yPosition);
+                        yPosition += 5;
+                        doc.text(`Phone: ${client.phone || 'N/A'}`, 25, yPosition);
+                        yPosition += 5;
+                        doc.text(`Company: ${client.company || 'N/A'}`, 25, yPosition);
+                        yPosition += 5;
+                        doc.text(`Category: ${client.category ? `Option ${client.category}` : 'N/A'}`, 25, yPosition);
+                        yPosition += 5;
+                        doc.text(`Source: ${client.source}`, 25, yPosition);
+                        yPosition += 5;
+                        doc.text(`Added: ${client.timestamp}`, 25, yPosition);
+                        yPosition += 10;
+                    });
+                    
+                    // Save the PDF
+                    const filename = `exhibition-clients-${new Date().toISOString().split('T')[0]}.pdf`;
+                    doc.save(filename);
+                    
+                    this.showStatus('📄 PDF exported successfully!', 'success');
+                    
+                } catch (error) {
+                    console.error('PDF generation error:', error);
+                    this.showStatus('❌ PDF generation failed. Please try again.', 'error');
+                }
+            }
+
+
+
+            viewSavedData() {
+                // Open saved data page in new tab
+                window.open('saved_data.html', '_blank');
+            }
+
             deleteClient(index) {
                 if (index < 0 || index >= this.clients.length) {
                     this.showStatus('❌ Invalid client index', 'error');
@@ -3237,7 +3407,7 @@
                 if (confirmDelete) {
                     this.clients.splice(index, 1);
                     this.saveClients();
-                    this.updateClientsTable();
+                    this.updateClientStats();
                     this.showStatus(`🗑️ Deleted client: ${client.name || 'Unknown'}`, 'success');
                 }
             }
@@ -3251,9 +3421,13 @@
                 if (confirm(`🗑️ Are you sure you want to clear all ${this.clients.length} client records? This action cannot be undone.`)) {
                     this.clients = [];
                     this.saveClients();
-                    this.updateClientsTable();
+                    this.updateClientStats();
                     this.showStatus('🗑️ All client data cleared', 'info');
                 }
+            }
+
+            getClients() {
+                return this.clients;
             }
 
             loadClients() {
@@ -3817,7 +3991,7 @@
                 this.saveClients();
                 
                 // Update display
-                this.updateClientsTable();
+                this.updateClientStats();
                 
                 // Close modal
                 document.querySelector('.modal').remove();
@@ -4164,6 +4338,19 @@
         // Initialize the application when the page loads
         document.addEventListener('DOMContentLoaded', () => {
             try {
+                // Check if required elements exist before initializing
+                const requiredElements = [
+                    'startCamera', 'captureImage', 'restartCamera', 'fileInput', 
+                    'manualForm', 'searchLinkedIn', 'exportData', 'exportPDF', 
+                    'viewSavedData', 'exportCRM', 'clearData', 'qrModeBtn', 
+                    'imageModeBtn', 'uploadArea', 'qr-reader'
+                ];
+                
+                const missingElements = requiredElements.filter(id => !document.getElementById(id));
+                if (missingElements.length > 0) {
+                    console.warn('Missing elements:', missingElements);
+                }
+                
                 new ExhibitionCardReaderPro();
                 console.log('🚀 Exhibition Card Reader Pro initialized successfully!');
             } catch (error) {
@@ -4173,6 +4360,16 @@
                         <h1>❌ Application Error</h1>
                         <p>Failed to initialize the card reader. Please refresh the page.</p>
                         <p style="font-size: 0.9rem; opacity: 0.8;">Error: ${error.message}</p>
+                        <button onclick="location.reload()" style="
+                            background: linear-gradient(135deg, #667eea, #764ba2);
+                            color: white;
+                            border: none;
+                            padding: 15px 30px;
+                            border-radius: 25px;
+                            cursor: pointer;
+                            font-size: 1rem;
+                            margin-top: 20px;
+                        ">🔄 Refresh Page</button>
                     </div>
                 `;
             }

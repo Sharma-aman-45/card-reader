@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved Data - Exhibition Card Reader Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .background-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
+            font-weight: 700;
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 25px;
+            padding: 35px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        }
+
+        .card h2 {
+            color: white;
+            margin-bottom: 25px;
+            font-size: 1.6rem;
+            text-align: center;
+            font-weight: 600;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.3);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #00c851, #007e33);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+        }
+
+        .btn.info {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+        }
+
+        .table-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .stats {
+            background: rgba(255,255,255,0.1);
+            padding: 15px 25px;
+            border-radius: 15px;
+            color: white;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        th, td {
+            padding: 15px 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        th {
+            background: linear-gradient(135deg, rgba(102,126,234,0.8), rgba(118,75,162,0.8));
+            font-weight: 600;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        tr:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .linkedin-link {
+            color: #00d4ff;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .linkedin-link:hover {
+            color: #00ff88;
+            text-shadow: 0 0 5px rgba(0,255,136,0.5);
+        }
+
+        .status-message {
+            padding: 20px;
+            border-radius: 15px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .success {
+            background: rgba(0, 200, 81, 0.2);
+            color: #00ff88;
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+        }
+
+        .error {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff6b6b;
+            border: 2px solid rgba(255, 107, 107, 0.3);
+            box-shadow: 0 0 20px rgba(255, 68, 68, 0.2);
+        }
+
+        .info {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .source-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 2px;
+        }
+
+        .source-qr {
+            background: linear-gradient(135deg, #00c851, #007e33);
+            color: white;
+        }
+
+        .source-ocr {
+            background: linear-gradient(135deg, #ff8800, #cc6600);
+            color: white;
+        }
+
+        .source-manual {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 2px;
+        }
+
+        .category-1 {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+
+        .category-2 {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .category-3 {
+            background: linear-gradient(135deg, #45b7d1, #96c93d);
+            color: white;
+        }
+
+        .category-4 {
+            background: linear-gradient(135deg, #f9ca24, #f0932b);
+            color: white;
+        }
+
+        .navigation {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .navigation .btn {
+            margin: 0 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            table {
+                font-size: 0.85rem;
+            }
+            
+            th, td {
+                padding: 10px 8px;
+            }
+            
+            .table-controls {
+                flex-direction: column;
+            }
+            
+            .stats {
+                margin-left: 0;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .clients-table {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 800px;
+                font-size: 0.75rem;
+            }
+            
+            th, td {
+                padding: 8px 6px;
+                white-space: nowrap;
+            }
+            
+            .table-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+            
+            .stats {
+                font-size: 0.8rem;
+                padding: 10px 15px;
+            }
+            
+            .mobile-hide {
+                display: none;
+            }
+            
+            .source-badge {
+                font-size: 0.7rem;
+                padding: 2px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-animation"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>💾 Saved Data Viewer</h1>
+            <p>View and export your collected business card data</p>
+        </div>
+
+        <div class="navigation">
+            <a href="index.html" class="btn">🏠 Back to Scanner</a>
+            <button class="btn success" onclick="exportToPDF()">📄 Export to PDF</button>
+            <button class="btn info" onclick="exportToCSV()">📊 Export to CSV</button>
+            <button class="btn danger" onclick="clearAllData()">🗑️ Clear All Data</button>
+        </div>
+
+        <div class="card">
+            <h2>👥 Collected Clients Database</h2>
+            
+            <div class="table-controls">
+                <div class="stats" id="clientStats">
+                    📊 Total Clients: 0
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table id="clientsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>👤 Name</th>
+                            <th>📧 Email</th>
+                            <th>📞 Phone</th>
+                            <th>🏢 Company</th>
+                            <th>📂 Category</th>
+                            <th>💼 LinkedIn</th>
+                            <th class="mobile-hide">🔍 Source</th>
+                            <th class="mobile-hide">⏰ Added</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clientsTableBody">
+                        <!-- Data will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="statusMessage"></div>
+    </div>
+
+    <script>
+        class SavedDataViewer {
+            constructor() {
+                this.clients = this.loadClients();
+                this.updateClientsTable();
+            }
+
+            loadClients() {
+                try {
+                    const stored = localStorage.getItem('exhibitionCardReaderClients');
+                    return stored ? JSON.parse(stored) : [];
+                } catch (error) {
+                    console.error('Error loading clients:', error);
+                    return [];
+                }
+            }
+
+            updateClientsTable() {
+                const tbody = document.getElementById('clientsTableBody');
+                const stats = document.getElementById('clientStats');
+                
+                tbody.innerHTML = '';
+                
+                if (this.clients.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 40px; opacity: 0.7;">
+                                📭 No clients found. Go back to the scanner to add some data!
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    this.clients.forEach((client, index) => {
+                        const row = tbody.insertRow();
+                        const sourceClass = client.source.toLowerCase().includes('qr') ? 'source-qr' : 
+                                          client.source.toLowerCase().includes('ocr') ? 'source-ocr' : 'source-manual';
+                        
+                        const categoryBadge = client.category ? 
+                            `<span class="category-badge category-${client.category}">Option ${client.category}</span>` : 
+                            '<em>N/A</em>';
+                        
+                        row.innerHTML = `
+                            <td><strong>${index + 1}</strong></td>
+                            <td>${client.name || '<em>N/A</em>'}</td>
+                            <td>${client.email || '<em>N/A</em>'}</td>
+                            <td>${client.phone || '<em>N/A</em>'}</td>
+                            <td>${client.company || '<em>N/A</em>'}</td>
+                            <td>${categoryBadge}</td>
+                            <td>${client.linkedIn ? `<a href="${client.linkedIn}" target="_blank" class="linkedin-link">🔗 LinkedIn</a>` : '<em>N/A</em>'}</td>
+                            <td class="mobile-hide"><span class="source-badge ${sourceClass}">${client.source}</span></td>
+                            <td class="mobile-hide">${client.timestamp}</td>
+                        `;
+                        
+                        row.style.animation = 'fadeInUp 0.5s ease-out';
+                    });
+                }
+                
+                // Update stats
+                const qrCount = this.clients.filter(c => c.source.toLowerCase().includes('qr')).length;
+                const ocrCount = this.clients.filter(c => c.source.toLowerCase().includes('ocr')).length;
+                const manualCount = this.clients.filter(c => c.source === 'Manual Entry').length;
+                
+                stats.innerHTML = `
+                    📊 Total: ${this.clients.length} | 
+                    📱 QR: ${qrCount} | 
+                    🤖 OCR: ${ocrCount} | 
+                    ✍️ Manual: ${manualCount}
+                `;
+            }
+
+            showStatus(message, type) {
+                const statusEl = document.getElementById('statusMessage');
+                statusEl.innerHTML = `<div class="status-message ${type}">${message}</div>`;
+                
+                // Auto-hide success and info messages after 5 seconds
+                if (type === 'success' || type === 'info') {
+                    setTimeout(() => {
+                        if (statusEl.innerHTML.includes(message)) {
+                            statusEl.innerHTML = '';
+                        }
+                    }, 5000);
+                }
+            }
+
+            exportToCSV() {
+                if (this.clients.length === 0) {
+                    this.showStatus('❌ No data to export', 'error');
+                    return;
+                }
+                
+                const headers = ['Name', 'Email', 'Phone', 'Company', 'Category', 'LinkedIn', 'Source', 'Timestamp'];
+                const csvContent = [
+                    headers.join(','),
+                    ...this.clients.map(client => [
+                        `"${(client.name || '').replace(/"/g, '""')}"`,
+                        `"${(client.email || '').replace(/"/g, '""')}"`,
+                        `"${(client.phone || '').replace(/"/g, '""')}"`,
+                        `"${(client.company || '').replace(/"/g, '""')}"`,
+                        `"${(client.category ? `Option ${client.category}` : '').replace(/"/g, '""')}"`,
+                        `"${(client.linkedIn || '').replace(/"/g, '""')}"`,
+                        `"${client.source.replace(/"/g, '""')}"`,
+                        `"${client.timestamp.replace(/"/g, '""')}"`
+                    ].join(','))
+                ].join('\n');
+                
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `exhibition-clients-${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                this.showStatus('📊 Data exported to CSV successfully!', 'success');
+            }
+
+            exportToPDF() {
+                if (this.clients.length === 0) {
+                    this.showStatus('❌ No data to export', 'error');
+                    return;
+                }
+
+                this.showStatus('📄 Generating PDF...', 'info');
+
+                try {
+                    // Create PDF using jsPDF
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    
+                    // Set up PDF content
+                    const title = 'Exhibition Card Reader Pro - Client Data';
+                    const date = new Date().toLocaleDateString();
+                    const totalClients = this.clients.length;
+                    
+                    // Add title
+                    doc.setFontSize(20);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(title, 20, 20);
+                    
+                    // Add date and total
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'normal');
+                    doc.text(`Generated on: ${date}`, 20, 35);
+                    doc.text(`Total Clients: ${totalClients}`, 20, 45);
+                    
+                    // Add statistics
+                    const qrCount = this.clients.filter(c => c.source.toLowerCase().includes('qr')).length;
+                    const ocrCount = this.clients.filter(c => c.source.toLowerCase().includes('ocr')).length;
+                    const manualCount = this.clients.filter(c => c.source === 'Manual Entry').length;
+                    
+                    doc.text('Statistics:', 20, 60);
+                    doc.text(`- QR Code Scans: ${qrCount}`, 25, 70);
+                    doc.text(`- OCR Scans: ${ocrCount}`, 25, 80);
+                    doc.text(`- Manual Entries: ${manualCount}`, 25, 90);
+                    
+                    // Add client data
+                    let yPosition = 110;
+                    doc.setFontSize(14);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Client Details:', 20, yPosition);
+                    yPosition += 10;
+                    
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'normal');
+                    
+                    this.clients.forEach((client, index) => {
+                        // Check if we need a new page
+                        if (yPosition > 250) {
+                            doc.addPage();
+                            yPosition = 20;
+                        }
+                        
+                        doc.setFont(undefined, 'bold');
+                        doc.text(`${index + 1}. ${client.name || 'N/A'}`, 20, yPosition);
+                        yPosition += 7;
+                        
+                        doc.setFont(undefined, 'normal');
+                        doc.text(`Email: ${client.email || 'N/A'}`, 25, yPosition);
+                        yPosition += 5;
+                        doc.text(`Phone: ${client.phone || 'N/A'}`, 25, yPosition);
+                        yPosition += 5;
+                        doc.text(`Company: ${client.company || 'N/A'}`, 25, yPosition);
+                        yPosition += 5;
+                        doc.text(`Category: ${client.category ? `Option ${client.category}` : 'N/A'}`, 25, yPosition);
+                        yPosition += 5;
+                        doc.text(`Source: ${client.source}`, 25, yPosition);
+                        yPosition += 5;
+                        doc.text(`Added: ${client.timestamp}`, 25, yPosition);
+                        yPosition += 10;
+                    });
+                    
+                    // Save the PDF
+                    const filename = `exhibition-clients-${new Date().toISOString().split('T')[0]}.pdf`;
+                    doc.save(filename);
+                    
+                    this.showStatus('📄 PDF exported successfully!', 'success');
+                    
+                } catch (error) {
+                    console.error('PDF generation error:', error);
+                    this.showStatus('❌ PDF generation failed. Please try again.', 'error');
+                }
+            }
+
+
+
+            clearAllData() {
+                if (this.clients.length === 0) {
+                    this.showStatus('❌ No data to clear', 'error');
+                    return;
+                }
+                
+                if (confirm(`🗑️ Are you sure you want to clear all ${this.clients.length} client records? This action cannot be undone.`)) {
+                    this.clients = [];
+                    localStorage.setItem('exhibitionCardReaderClients', JSON.stringify([]));
+                    this.updateClientsTable();
+                    this.showStatus('🗑️ All client data cleared', 'info');
+                }
+            }
+        }
+
+        // Initialize the viewer when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                window.savedDataViewer = new SavedDataViewer();
+                console.log('📊 Saved Data Viewer initialized successfully!');
+            } catch (error) {
+                console.error('❌ Error initializing saved data viewer:', error);
+                document.body.innerHTML = `
+                    <div style="text-align: center; padding: 50px; color: white;">
+                        <h1>❌ Application Error</h1>
+                        <p>Failed to initialize the saved data viewer. Please refresh the page.</p>
+                        <p style="font-size: 0.9rem; opacity: 0.8;">Error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+
+        // Global functions for button clicks
+        function exportToPDF() {
+            if (window.savedDataViewer) {
+                window.savedDataViewer.exportToPDF();
+            }
+        }
+
+        function exportToCSV() {
+            if (window.savedDataViewer) {
+                window.savedDataViewer.exportToCSV();
+            }
+        }
+
+        function clearAllData() {
+            if (window.savedDataViewer) {
+                window.savedDataViewer.clearAllData();
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</body>
+</html> 
