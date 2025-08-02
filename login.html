@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Exhibition Card Reader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f0f0f0 0%, #dadb73 50%, #ff8a53 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .logo {
+            margin-bottom: 30px;
+        }
+
+        .logo img {
+            height: 80px;
+            width: auto;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #ff8800;
+            box-shadow: 0 0 15px rgba(255, 136, 0, 0.3);
+        }
+
+        .role-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .role-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .role-btn.active {
+            background: #ff8800;
+            color: white;
+            border-color: #ff8800;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: #ff8800;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .login-btn:hover {
+            background: #e67700;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 136, 0, 0.4);
+        }
+
+        .login-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            color: #ff4444;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .success-message {
+            color: #00c851;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .demo-credentials {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 136, 0, 0.1);
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+
+        .demo-credentials h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .demo-credentials p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .back-link {
+            margin-top: 20px;
+        }
+
+        .back-link a {
+            color: #ff8800;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <img src="header image.jpeg" alt="Logo" height="80px">
+        </div>
+        
+        <h1>🔐 Login</h1>
+        <p class="subtitle">Access Exhibition Card Reader</p>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">👤 Username</label>
+                <input type="text" id="username" placeholder="Enter username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">🔒 Password</label>
+                <input type="password" id="password" placeholder="Enter password" required>
+            </div>
+
+            <div class="role-selector">
+                <button type="button" class="role-btn" data-role="user">👥 User</button>
+                <button type="button" class="role-btn active" data-role="admin">👑 Admin</button>
+            </div>
+
+            <button type="submit" class="login-btn" id="loginBtn">
+                🚀 Login
+            </button>
+        </form>
+
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+        <div id="successMessage" class="success-message" style="display: none;"></div>
+
+        
+
+        <div class="back-link">
+            <a href="index.html">← Back to Scanner</a>
+        </div>
+    </div>
+
+    <script>
+        class LoginManager {
+            constructor() {
+                this.currentRole = 'admin';
+                this.credentials = {
+                    admin: { username: 'admin', password: 'honey@reader' },
+                    user: { username: 'user', password: 'user123' }
+                };
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.checkExistingSession();
+            }
+
+            setupEventListeners() {
+                // Role selector
+                document.querySelectorAll('.role-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentRole = e.target.dataset.role;
+                    });
+                });
+
+                // Login form
+                document.getElementById('loginForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleLogin();
+                });
+            }
+
+            handleLogin() {
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value.trim();
+                const loginBtn = document.getElementById('loginBtn');
+
+                // Validate inputs
+                if (!username || !password) {
+                    this.showError('Please fill in all fields');
+                    return;
+                }
+
+                // Disable button during login
+                loginBtn.disabled = true;
+                loginBtn.textContent = '🔐 Logging in...';
+
+                // Simulate login delay
+                setTimeout(() => {
+                    if (this.validateCredentials(username, password, this.currentRole)) {
+                        this.loginSuccess(username, this.currentRole);
+                    } else {
+                        this.showError('Invalid credentials. Please try again.');
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = '🚀 Login';
+                    }
+                }, 1000);
+            }
+
+            validateCredentials(username, password, role) {
+                const credentials = this.credentials[role];
+                return username === credentials.username && password === credentials.password;
+            }
+
+            loginSuccess(username, role) {
+                // Store session data
+                const sessionData = {
+                    username: username,
+                    role: role,
+                    loginTime: new Date().toISOString(),
+                    isAuthenticated: true
+                };
+                localStorage.setItem('exhibitionCardReaderSession', JSON.stringify(sessionData));
+
+                this.showSuccess(`Welcome ${username}! Redirecting...`);
+
+                // Redirect based on role
+                setTimeout(() => {
+                    if (role === 'admin') {
+                        window.location.href = 'admin_dashboard.html';
+                    } else {
+                        window.location.href = 'user_dashboard.html';
+                    }
+                }, 1500);
+            }
+
+            checkExistingSession() {
+                const session = localStorage.getItem('exhibitionCardReaderSession');
+                if (session) {
+                    const sessionData = JSON.parse(session);
+                    if (sessionData.isAuthenticated) {
+                        // Redirect to appropriate dashboard
+                        if (sessionData.role === 'admin') {
+                            window.location.href = 'admin_dashboard.html';
+                        } else {
+                            window.location.href = 'user_dashboard.html';
+                        }
+                    }
+                }
+            }
+
+            showError(message) {
+                const errorDiv = document.getElementById('errorMessage');
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                document.getElementById('successMessage').style.display = 'none';
+            }
+
+            showSuccess(message) {
+                const successDiv = document.getElementById('successMessage');
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+                document.getElementById('errorMessage').style.display = 'none';
+            }
+        }
+
+        // Initialize login manager
+        new LoginManager();
+    </script>
+</body>
+</html> 

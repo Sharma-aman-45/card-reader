@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - Exhibition Card Reader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f0f0f0 0%, #dadb73 50%, #ff8a53 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-section img {
+            height: 50px;
+            width: auto;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-badge {
+            background: #666;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .logout-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #cc0000;
+            transform: translateY(-2px);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .dashboard-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .card-content {
+            margin-bottom: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 136, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #ff8800;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .btn {
+            background: #ff8800;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: #e67700;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 136, 0, 0.4);
+        }
+
+        .btn.secondary {
+            background: #666;
+        }
+
+        .btn.secondary:hover {
+            background: #555;
+        }
+
+        .btn.disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn.disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00c851;
+        }
+
+        .status-indicator.warning {
+            background: #ff8800;
+        }
+
+        .status-indicator.error {
+            background: #ff4444;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert.info {
+            background: rgba(255, 136, 0, 0.1);
+            border: 1px solid #ff8800;
+            color: #ff8800;
+        }
+
+        .alert.warning {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid #ffc107;
+            color: #ffc107;
+        }
+
+        .restricted-feature {
+            opacity: 0.6;
+            position: relative;
+        }
+
+        .restricted-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4444;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="header image.jpeg" alt="Logo" height="50px">
+                <div>
+                    <h2>👥 User Dashboard</h2>
+                    <p>Limited Access Control Panel</p>
+                </div>
+            </div>
+            <div class="user-info">
+                <span class="user-badge">👥 User</span>
+                <span id="userUsername">User</span>
+                <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="alert info">
+            <strong>User Access:</strong> You have limited access to the system. Contact an administrator for CRM integration and advanced features.
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Scanner Access -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    📱 Scanner Access
+                </div>
+                <div class="card-content">
+                    <p>Access the main card scanner to scan and save business cards.</p>
+                    <a href="index.html" class="btn">🔍 Open Scanner</a>
+                </div>
+            </div>
+
+            <!-- Data Viewing -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    📊 Data Viewing
+                </div>
+                <div class="card-content">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="totalClients">0</div>
+                            <div class="stat-label">Total Clients</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="todayScans">0</div>
+                            <div class="stat-label">Today's Scans</div>
+                        </div>
+                    </div>
+                    <a href="saved_data.html" class="btn">📋 View All Data</a>
+                    <button class="btn secondary" onclick="exportUserData()">📤 Export Data</button>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    ⚙️ System Status
+                </div>
+                <div class="card-content">
+                    <ul class="feature-list">
+                        <li>
+                            <span class="status-indicator"></span>
+                            Scanner System: Active
+                        </li>
+                        <li>
+                            <span class="status-indicator"></span>
+                            OCR Engine: Active
+                        </li>
+                        <li>
+                            <span class="status-indicator"></span>
+                            Mindee API: Active
+                        </li>
+                        <li>
+                            <span class="status-indicator"></span>
+                            Data Storage: Active
+                        </li>
+                        <li>
+                            <span class="status-indicator warning"></span>
+                            CRM Integration: Restricted
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    ⚡ Quick Actions
+                </div>
+                <div class="card-content">
+                    <button class="btn" onclick="exportToCSV()">📊 Export CSV</button>
+                    <button class="btn" onclick="exportToPDF()">📄 Export PDF</button>
+                    <button class="btn secondary" onclick="backupUserData()">💾 Backup Data</button>
+                </div>
+            </div>
+
+            <!-- CRM Integration (Restricted) -->
+            <div class="dashboard-card restricted-feature">
+                <div class="restricted-badge">🔒 Restricted</div>
+                <div class="card-header">
+                    🔗 CRM Integration
+                </div>
+                <div class="card-content">
+                    <p>CRM integration is restricted for user accounts. Contact an administrator for access.</p>
+                    <button class="btn disabled" onclick="requestCRMAccess()">🔗 Request Access</button>
+                </div>
+            </div>
+
+            <!-- User Settings -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    ⚙️ User Settings
+                </div>
+                <div class="card-content">
+                    <p>Manage your account settings and preferences.</p>
+                    <button class="btn" onclick="openUserSettings()">⚙️ Settings</button>
+                    <button class="btn secondary" onclick="viewUserActivity()">📋 Activity Log</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class UserDashboard {
+            constructor() {
+                this.checkAuthentication();
+                this.loadDashboardData();
+                this.init();
+            }
+
+            checkAuthentication() {
+                const session = localStorage.getItem('exhibitionCardReaderSession');
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const sessionData = JSON.parse(session);
+                if (!sessionData.isAuthenticated || sessionData.role !== 'user') {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // Update UI with user info
+                document.getElementById('userUsername').textContent = sessionData.username;
+            }
+
+            loadDashboardData() {
+                // Load client data
+                const clients = JSON.parse(localStorage.getItem('exhibitionCardReaderClients') || '[]');
+                document.getElementById('totalClients').textContent = clients.length;
+
+                // Calculate today's scans
+                const today = new Date().toDateString();
+                const todayScans = clients.filter(client => {
+                    const clientDate = new Date(client.timestamp).toDateString();
+                    return clientDate === today;
+                }).length;
+                document.getElementById('todayScans').textContent = todayScans;
+            }
+
+            init() {
+                // Set up event listeners
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                // Add any additional event listeners here
+            }
+        }
+
+        // Global functions
+        function exportUserData() {
+            const clients = JSON.parse(localStorage.getItem('exhibitionCardReaderClients') || '[]');
+            if (clients.length === 0) {
+                showAlert('No data to export', 'warning');
+                return;
+            }
+
+            // Export as JSON
+            const dataStr = JSON.stringify(clients, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `user_data_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        function exportToCSV() {
+            const clients = JSON.parse(localStorage.getItem('exhibitionCardReaderClients') || '[]');
+            if (clients.length === 0) {
+                showAlert('No data to export', 'warning');
+                return;
+            }
+
+            const headers = ['Name', 'Email', 'Phone', 'Company', 'Category', 'LinkedIn', 'Notes', 'Source', 'Timestamp'];
+            const csvContent = [
+                headers.join(','),
+                ...clients.map(client => [
+                    `"${(client.name || '').replace(/"/g, '""')}"`,
+                    `"${(client.email || '').replace(/"/g, '""')}"`,
+                    `"${(client.phone || '').replace(/"/g, '""')}"`,
+                    `"${(client.company || '').replace(/"/g, '""')}"`,
+                    `"${(client.category ? `Option ${client.category}` : '').replace(/"/g, '""')}"`,
+                    `"${(client.linkedIn || '').replace(/"/g, '""')}"`,
+                    `"${(client.notes || '').replace(/"/g, '""')}"`,
+                    `"${client.source.replace(/"/g, '""')}"`,
+                    `"${client.timestamp.replace(/"/g, '""')}"`
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `user_data_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        function exportToPDF() {
+            showAlert('📄 Redirecting to PDF export...', 'info');
+            // Redirect to saved_data.html for PDF generation
+            window.open('saved_data.html', '_blank');
+        }
+
+        function backupUserData() {
+            const clients = JSON.parse(localStorage.getItem('exhibitionCardReaderClients') || '[]');
+            if (clients.length === 0) {
+                showAlert('No data to backup', 'warning');
+                return;
+            }
+
+            const backup = {
+                clients,
+                backupDate: new Date().toISOString(),
+                version: '1.0',
+                userType: 'user'
+            };
+
+            const dataStr = JSON.stringify(backup, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `user_backup_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        function requestCRMAccess() {
+            showAlert('📧 CRM access request sent to administrator', 'info');
+        }
+
+        function openUserSettings() {
+            showAlert('⚙️ User settings functionality coming soon!', 'info');
+        }
+
+        function viewUserActivity() {
+            showAlert('📋 Activity log functionality coming soon!', 'info');
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type}`;
+            alertDiv.textContent = message;
+            
+            // Insert at the top of the container
+            const container = document.querySelector('.container');
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        function logout() {
+            localStorage.removeItem('exhibitionCardReaderSession');
+            window.location.href = 'login.html';
+        }
+
+        // Initialize dashboard
+        new UserDashboard();
+    </script>
+</body>
+</html> 

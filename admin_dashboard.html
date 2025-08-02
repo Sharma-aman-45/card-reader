@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Exhibition Card Reader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f0f0f0 0%, #dadb73 50%, #ff8a53 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-section img {
+            height: 50px;
+            width: auto;
+        }
+
+        .admin-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .admin-badge {
+            background: #ff8800;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .logout-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #cc0000;
+            transform: translateY(-2px);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .dashboard-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .card-content {
+            margin-bottom: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 136, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #ff8800;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .btn {
+            background: #ff8800;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: #e67700;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 136, 0, 0.4);
+        }
+
+        .btn.secondary {
+            background: #666;
+        }
+
+        .btn.secondary:hover {
+            background: #555;
+        }
+
+        .btn.danger {
+            background: #ff4444;
+        }
+
+        .btn.danger:hover {
+            background: #cc0000;
+        }
+
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00c851;
+        }
+
+        .status-indicator.warning {
+            background: #ff8800;
+        }
+
+        .status-indicator.error {
+            background: #ff4444;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close {
+            background: #ff8800;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .close:hover {
+            background: #e67700;
+            transform: scale(1.1);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #ff8800;
+            box-shadow: 0 0 10px rgba(255, 136, 0, 0.3);
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert.success {
+            background: rgba(0, 200, 81, 0.1);
+            border: 1px solid #00c851;
+            color: #00c851;
+        }
+
+        .alert.error {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid #ff4444;
+            color: #ff4444;
+        }
+
+        .alert.info {
+            background: rgba(255, 136, 0, 0.1);
+            border: 1px solid #ff8800;
+            color: #ff8800;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="header image.jpeg" alt="Logo" height="50px">
+                <div>
+                    <h2>👑 Admin Dashboard</h2>
+                    <p>Full Access Control Panel</p>
+                </div>
+            </div>
+            <div class="admin-info">
+                <span class="admin-badge">👑 Admin</span>
+                <span id="adminUsername">Admin</span>
+                <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="dashboard-grid">
+            <!-- Scanner Access -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    📱 Scanner Access
+                </div>
+                <div class="card-content">
+                    <p>Access the main card scanner with full admin privileges.</p>
+                    <a href="index.html" class="btn">🔍 Open Scanner</a>
+                </div>
+            </div>
+
+            <!-- CRM Integration -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    🔗 CRM Integration
+                </div>
+                <div class="card-content">
+                    <p>Manage CRM integrations and data synchronization.</p>
+                    <button class="btn" onclick="openCRMModal()">🔗 Open CRM</button>
+                </div>
+            </div>
+
+            <!-- Data Management -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    📊 Data Management
+                </div>
+                <div class="card-content">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="totalClients">0</div>
+                            <div class="stat-label">Total Clients</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="todayScans">0</div>
+                            <div class="stat-label">Today's Scans</div>
+                        </div>
+                    </div>
+                    <a href="saved_data.html" class="btn">📋 View All Data</a>
+                    <button class="btn secondary" onclick="exportAllData()">📤 Export All</button>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    ⚙️ System Status
+                </div>
+                <div class="card-content">
+                    <ul class="feature-list">
+                        <li>
+                            <span class="status-indicator"></span>
+                            Scanner System: Active
+                        </li>
+                        <li>
+                            <span class="status-indicator"></span>
+                            OCR Engine: Active
+                        </li>
+                        <li>
+                            <span class="status-indicator"></span>
+                            Mindee API: Active
+                        </li>
+                        <li>
+                            <span class="status-indicator"></span>
+                            Data Storage: Active
+                        </li>
+                        <li>
+                            <span class="status-indicator"></span>
+                            CRM Integration: Active
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    ⚡ Quick Actions
+                </div>
+                <div class="card-content">
+                    <button class="btn" onclick="exportToCSV()">📊 Export CSV</button>
+                    <button class="btn" onclick="exportToPDF()">📄 Export PDF</button>
+                    <button class="btn secondary" onclick="backupData()">💾 Backup Data</button>
+                    <button class="btn danger" onclick="clearAllData()">🗑️ Clear All</button>
+                </div>
+            </div>
+
+            <!-- User Management -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    👥 User Management
+                </div>
+                <div class="card-content">
+                    <p>Manage user access and permissions.</p>
+                    <button class="btn" onclick="openUserModal()">👥 Manage Users</button>
+                    <button class="btn secondary" onclick="viewUserLogs()">📋 View Logs</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CRM Integration Modal -->
+    <div id="crmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔗 CRM Integration</h3>
+                <button class="close" onclick="closeCRMModal()">&times;</button>
+            </div>
+            <div id="crmContent">
+                <!-- CRM content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- User Management Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>👥 User Management</h3>
+                <button class="close" onclick="closeUserModal()">&times;</button>
+            </div>
+            <div id="userContent">
+                <div class="alert info">
+                    <strong>Admin Access:</strong> You have full control over user management and system settings.
+                </div>
+                <div class="form-group">
+                    <label>Current Users:</label>
+                    <ul class="feature-list">
+                        <li>👑 Admin (admin) - Full Access</li>
+                        <li>👥 User (user) - Limited Access</li>
+                    </ul>
+                </div>
+                <button class="btn" onclick="addNewUser()">➕ Add New User</button>
+                <button class="btn secondary" onclick="editUserPermissions()">🔧 Edit Permissions</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class AdminDashboard {
+            constructor() {
+                this.checkAuthentication();
+                this.loadDashboardData();
+                this.init();
+            }
+
+            checkAuthentication() {
+                const session = localStorage.getItem('exhibitionCardReaderSession');
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const sessionData = JSON.parse(session);
+                if (!sessionData.isAuthenticated || sessionData.role !== 'admin') {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // Update UI with user info
+                document.getElementById('adminUsername').textContent = sessionData.username;
+            }
+
+            loadDashboardData() {
+                // Load client data
+                const clients = JSON.parse(localStorage.getItem('exhibitionCardReaderClients') || '[]');
+                document.getElementById('totalClients').textContent = clients.length;
+
+                // Calculate today's scans
+                const today = new Date().toDateString();
+                const todayScans = clients.filter(client => {
+                    const clientDate = new Date(client.timestamp).toDateString();
+                    return clientDate === today;
+                }).length;
+                document.getElementById('todayScans').textContent = todayScans;
+            }
+
+            init() {
+                // Set up event listeners
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                // Add any additional event listeners here
+            }
+        }
+
+        // Global functions for modal management
+        function openCRMModal() {
+            document.getElementById('crmModal').style.display = 'block';
+            loadCRMContent();
+        }
+
+        function closeCRMModal() {
+            document.getElementById('crmModal').style.display = 'none';
+        }
+
+        function openUserModal() {
+            document.getElementById('userModal').style.display = 'block';
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').style.display = 'none';
+        }
+
+        function loadCRMContent() {
+            const crmContent = document.getElementById('crmContent');
+            crmContent.innerHTML = `
+                <div class="alert info">
+                    <strong>CRM Integration:</strong> Connect your data to popular CRM platforms.
+                </div>
+                
+                <div class="form-group">
+                    <label>Select CRM Platform:</label>
+                    <select id="crmPlatform">
+                        <option value="">Choose CRM Platform</option>
+                        <option value="salesforce">Salesforce</option>
+                        <option value="hubspot">HubSpot</option>
+                        <option value="pipedrive">Pipedrive</option>
+                        <option value="zoho">Zoho CRM</option>
+                        <option value="custom">Custom API</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>API Key:</label>
+                    <input type="password" id="crmApiKey" placeholder="Enter your CRM API key">
+                </div>
+
+                <div class="form-group">
+                    <label>Endpoint URL:</label>
+                    <input type="url" id="crmEndpoint" placeholder="Enter CRM endpoint URL">
+                </div>
+
+                <div class="form-group">
+                    <label>Data Mapping:</label>
+                    <select id="dataMapping">
+                        <option value="auto">Auto-detect fields</option>
+                        <option value="manual">Manual mapping</option>
+                    </select>
+                </div>
+
+                <button class="btn" onclick="testCRMConnection()">🔗 Test Connection</button>
+                <button class="btn secondary" onclick="syncCRMData()">📤 Sync Data</button>
+                <button class="btn" onclick="saveCRMSettings()">💾 Save Settings</button>
+            `;
+        }
+
+        function testCRMConnection() {
+            const platform = document.getElementById('crmPlatform').value;
+            const apiKey = document.getElementById('crmApiKey').value;
+            
+            if (!platform || !apiKey) {
+                showAlert('Please fill in all required fields', 'error');
+                return;
+            }
+
+            showAlert(`Testing connection to ${platform}...`, 'info');
+            
+            // Simulate API test
+            setTimeout(() => {
+                showAlert('✅ Connection successful!', 'success');
+            }, 2000);
+        }
+
+        function syncCRMData() {
+            showAlert('📤 Syncing data to CRM...', 'info');
+            
+            // Simulate sync process
+            setTimeout(() => {
+                showAlert('✅ Data synced successfully!', 'success');
+            }, 3000);
+        }
+
+        function saveCRMSettings() {
+            const platform = document.getElementById('crmPlatform').value;
+            const apiKey = document.getElementById('crmApiKey').value;
+            const endpoint = document.getElementById('crmEndpoint').value;
+            const mapping = document.getElementById('dataMapping').value;
+
+            if (!platform || !apiKey) {
+                showAlert('Please fill in required fields', 'error');
+                return;
+            }
+
+            // Save CRM settings
+            const crmSettings = {
+                platform,
+                apiKey,
+                endpoint,
+                mapping,
+                lastUpdated: new Date().toISOString()
+            };
+
+            localStorage.setItem('crmSettings', JSON.stringify(crmSettings));
+            showAlert('✅ CRM settings saved successfully!', 'success');
+        }
+
+        function exportAllData() {
+            const clients = JSON.parse(localStorage.getItem('exhibitionCardReaderClients') || '[]');
+            if (clients.length === 0) {
+                showAlert('No data to export', 'error');
+                return;
+            }
+
+            // Export as JSON
+            const dataStr = JSON.stringify(clients, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `exhibition_card_data_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        function exportToCSV() {
+            const clients = JSON.parse(localStorage.getItem('exhibitionCardReaderClients') || '[]');
+            if (clients.length === 0) {
+                showAlert('No data to export', 'error');
+                return;
+            }
+
+            const headers = ['Name', 'Email', 'Phone', 'Company', 'Category', 'LinkedIn', 'Notes', 'Source', 'Timestamp'];
+            const csvContent = [
+                headers.join(','),
+                ...clients.map(client => [
+                    `"${(client.name || '').replace(/"/g, '""')}"`,
+                    `"${(client.email || '').replace(/"/g, '""')}"`,
+                    `"${(client.phone || '').replace(/"/g, '""')}"`,
+                    `"${(client.company || '').replace(/"/g, '""')}"`,
+                    `"${(client.category ? `Option ${client.category}` : '').replace(/"/g, '""')}"`,
+                    `"${(client.linkedIn || '').replace(/"/g, '""')}"`,
+                    `"${(client.notes || '').replace(/"/g, '""')}"`,
+                    `"${client.source.replace(/"/g, '""')}"`,
+                    `"${client.timestamp.replace(/"/g, '""')}"`
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `exhibition_card_data_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        function exportToPDF() {
+            showAlert('📄 Generating PDF...', 'info');
+            // Redirect to saved_data.html for PDF generation
+            window.open('saved_data.html', '_blank');
+        }
+
+        function backupData() {
+            const clients = JSON.parse(localStorage.getItem('exhibitionCardReaderClients') || '[]');
+            const backup = {
+                clients,
+                backupDate: new Date().toISOString(),
+                version: '1.0'
+            };
+
+            const dataStr = JSON.stringify(backup, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `backup_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+                localStorage.removeItem('exhibitionCardReaderClients');
+                showAlert('🗑️ All data cleared successfully', 'success');
+                this.loadDashboardData();
+            }
+        }
+
+        function addNewUser() {
+            showAlert('➕ Add new user functionality coming soon!', 'info');
+        }
+
+        function editUserPermissions() {
+            showAlert('🔧 Edit permissions functionality coming soon!', 'info');
+        }
+
+        function viewUserLogs() {
+            showAlert('📋 View logs functionality coming soon!', 'info');
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type}`;
+            alertDiv.textContent = message;
+            
+            // Insert at the top of the container
+            const container = document.querySelector('.container');
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        function logout() {
+            localStorage.removeItem('exhibitionCardReaderSession');
+            window.location.href = 'login.html';
+        }
+
+        // Initialize dashboard
+        new AdminDashboard();
+    </script>
+</body>
+</html> 

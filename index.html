@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background: linear-gradient(135deg, #f0f0f0 0%, #dadb73 50%, #ff8a53 100%);
             min-height: 100vh;
             color: #333;
             overflow-x: hidden;
@@ -27,7 +27,7 @@
             width: 100%;
             height: 100%;
             z-index: -1;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background: linear-gradient(135deg, #fffcfc 0%, #cbd478 20%, #ff996a 100%);
             background-size: 400% 400%;
             animation: gradientShift 15s ease infinite;
         }
@@ -278,9 +278,9 @@
         }
 
         .mode-btn.active {
-            background: linear-gradient(135deg, #00c851, #007e33);
-            border-color: #00c851;
-            box-shadow: 0 4px 15px rgba(0,200,81,0.3);
+            background: linear-gradient(135deg, #e8ff1a,  #ff8800);
+            border-color:  #ff8800;
+            box-shadow: 0 4px 15px rgba(200, 113, 0, 0.822);
         }
 
         .mode-btn:hover {
@@ -289,12 +289,13 @@
         }
 
         .mode-btn.active:hover {
-            background: linear-gradient(135deg, #00d861, #008e43);
-            box-shadow: 0 6px 20px rgba(0,200,81,0.4);
+            background: linear-gradient(135deg, #e8ff1a,  #ff8800);
+            box-shadow: 0 6px 20px rgba(200, 113, 0, 0.822);
         }
 
         .btn.success {
-            background: linear-gradient(135deg, #00c851, #007e33);
+            background:  #ff8800;
+            color: white;
         }
 
         .btn.danger {
@@ -332,8 +333,8 @@
 
         .form-group input:focus {
             outline: none;
-            border-color: #00ff88;
-            box-shadow: 0 0 20px rgba(0,255,136,0.3);
+            border-color: #ffee00;
+            box-shadow: 0 4px 15px rgba(200, 113, 0, 0.822);
             background: rgba(255,255,255,0.15);
         }
 
@@ -378,7 +379,7 @@
         }
 
         th {
-            background: linear-gradient(135deg, rgba(102,126,234,0.8), rgba(118,75,162,0.8));
+            background: linear-gradient(135deg, #e8ff1a,  #ff8800);
             font-weight: 600;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
@@ -388,15 +389,15 @@
         }
 
         .linkedin-link {
-            color: #00d4ff;
+            color: #fbff00;
             text-decoration: none;
             font-weight: 600;
             transition: color 0.3s ease;
         }
 
         .linkedin-link:hover {
-            color: #00ff88;
-            text-shadow: 0 0 5px rgba(0,255,136,0.5);
+            color: #ffbb00;
+            text-shadow: 0 0 5px rgba(200, 113, 0, 0.822);
         }
 
         .status-message {
@@ -415,10 +416,10 @@
         }
 
         .success {
-            background: rgba(0, 200, 81, 0.2);
-            color: #00ff88;
-            border: 2px solid rgba(0, 255, 136, 0.3);
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+            background:  #ff8800;
+            color: white;
+            border: 2px solid rgba(200, 113, 0, 0.822);
+            box-shadow: 0 0 20px rgba(200, 113, 0, 0.822);
         }
 
         .error {
@@ -429,10 +430,10 @@
         }
 
         .info {
-            background: rgba(0, 212, 255, 0.2);
-            color: #00d4ff;
-            border: 2px solid rgba(0, 212, 255, 0.3);
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+            background:  #ff8800;
+            color: white;
+            border: 2px solid rgba(200, 113, 0, 0.822);
+            box-shadow: 0 0 20px rgba(200, 113, 0, 0.822);
         }
 
         .file-input {
@@ -448,7 +449,7 @@
 
         .spinner {
             border: 4px solid rgba(255,255,255,0.2);
-            border-top: 4px solid #00ff88;
+            border-top: 4px solid #fbff00;
             border-radius: 50%;
             width: 50px;
             height: 50px;
@@ -481,17 +482,17 @@
         }
 
         .source-qr {
-            background: linear-gradient(135deg, #00c851, #007e33);
+            background: linear-gradient(135deg, #e8ff1a,  #ff8800);
             color: white;
         }
 
         .source-ocr {
-            background: linear-gradient(135deg, #ff8800, #cc6600);
+            background: linear-gradient(135deg, #e8ff1a,  #ff8800);
             color: white;
         }
 
         .source-manual {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #e8ff1a,  #ff8800);
             color: white;
         }
 
@@ -580,78 +581,7 @@
             }
         }
 
-        /* CRM Integration Styles */
-        .crm-tabs {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid rgba(255,255,255,0.1);
-            padding-bottom: 10px;
-        }
-        
-        .crm-tab {
-            background: rgba(255,255,255,0.1);
-            border: none;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
-        }
-        
-        .crm-tab:hover {
-            background: rgba(255,255,255,0.2);
-            transform: translateY(-2px);
-        }
-        
-        .crm-tab.active {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            box-shadow: 0 4px 15px rgba(76,175,80,0.3);
-        }
-        
-        .crm-tab-content {
-            display: none;
-            padding: 20px 0;
-        }
-        
-        .crm-tab-content.active {
-            display: block;
-        }
-        
-        .crm-tab-content h4 {
-            color: white;
-            margin-bottom: 10px;
-            font-size: 1.1rem;
-        }
-        
-        .crm-tab-content p {
-            color: rgba(255,255,255,0.8);
-            margin-bottom: 20px;
-            font-size: 0.9rem;
-        }
-        
-        .crm-status {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.1);
-        }
-        
-        .crm-status.success {
-            background: rgba(76,175,80,0.2);
-            border: 1px solid rgba(76,175,80,0.3);
-        }
-        
-        .crm-status.error {
-            background: rgba(244,67,54,0.2);
-            border: 1px solid rgba(244,67,54,0.3);
-        }
-        
-        .crm-status.info {
-            background: rgba(33,150,243,0.2);
-            border: 1px solid rgba(33,150,243,0.3);
-        }
+
 
         /* Category Selection Styles */
         .category-select {
@@ -668,8 +598,8 @@
 
         .category-select:focus {
             outline: none;
-            border-color: #00ff88;
-            box-shadow: 0 0 15px rgba(0,255,136,0.3);
+            border-color: #fffb00;
+            box-shadow: 0 0 15px rgba(200, 113, 0, 0.822);
         }
 
         .category-select option {
@@ -708,10 +638,10 @@
 
         /* Enhanced Drag and Drop Styles */
         .upload-area.dragover {
-            border-color: #00ff88;
-            background: rgba(0,255,136,0.15);
+            border-color: #ffee00;
+            background: rgba(200, 113, 0, 0.822);
             transform: scale(1.05);
-            box-shadow: 0 0 30px rgba(0,255,136,0.4);
+            box-shadow: 0 0 30px rgba(200, 113, 0, 0.822);
         }
 
         .upload-area.dragover .icon {
@@ -735,9 +665,9 @@
         }
 
         .qr-reader-enhanced.dragover {
-            border: 3px solid #00ff88;
-            box-shadow: 0 0 30px rgba(0,255,136,0.6);
-            background: rgba(0,255,136,0.1);
+            border: 3px solid #ffee00;
+            box-shadow: 0 0 30px rgba(200, 113, 0, 0.822);
+            background: rgba(200, 113, 0, 0.822);
             transform: scale(1.02);
         }
 
@@ -786,7 +716,7 @@
             width: 18px;
             height: 18px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #00ff88, #00cc66);
+            background: linear-gradient(135deg, #e8ff1a,  #ff8800);
             cursor: pointer;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
@@ -795,7 +725,7 @@
             width: 18px;
             height: 18px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #00ff88, #00cc66);
+            background: linear-gradient(135deg, #e8ff1a,  #ff8800);
             cursor: pointer;
             border: none;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
@@ -829,6 +759,7 @@
             border-color: rgba(255,255,255,0.5);
             box-shadow: 0 0 20px rgba(0,255,136,0.2);
         }
+      
 
 
     </style>
@@ -838,8 +769,8 @@
     
     <div class="container">
         <div class="header">
-            <h1>🚀 Exhibition Card Reader Pro</h1>
-            <p>Advanced QR & Business Card Scanner with AI-Powered Data Extraction</p>
+            <img src="header image.jpeg" alt="" height="200px" width="50%">   
+            <h5>🚀 Exhibition Card Reader </h5> 
         </div>
 
         <div class="main-content">
@@ -858,8 +789,8 @@
                             <button id="imageModeBtn" class="btn mode-btn" style="margin-left: 10px;">🤖 AI Business Card Scanner</button>
                         </div>
                         <div style="text-align: center;">
-                            <button id="startCamera" class="btn">🔴 Start Camera</button>
-                            <button id="captureImage" class="btn" disabled>📸 Capture & Analyze</button>
+                            <button id="startCamera" class="btn"style="margin-top: 10px; background: #ff8800;">🔴 Start Camera</button>
+                            <button id="captureImage" class="btn" style="margin-top: 10px; background: #ff8800;" >📸 Capture & Analyze</button>
                             <button id="restartCamera" class="btn" style="margin-top: 10px; background: #ff8800;">🔄 Restart Camera</button>
                         </div>
                     </div>
@@ -880,7 +811,7 @@
                         Supports QR codes, business cards, and contact images
                     </p>
                     <input type="file" id="fileInput" class="file-input" accept="image/*">
-                    <button class="btn" onclick="document.getElementById('fileInput').click()">
+                    <button class="btn" style="margin-top: 10px; background: #ff8800;" onclick="document.getElementById('fileInput').click()">
                         Choose File
                     </button>
                 </div>
@@ -1022,16 +953,17 @@
                         <label for="manualCategory">📂 Category:</label>
                         <select id="manualCategory" class="category-select">
                             <option value="">Select Category</option>
-                            <option value="1">Option 1</option>
-                            <option value="2">Option 2</option>
-                            <option value="3">Option 3</option>
-                            <option value="4">Option 4</option>
+                            <option value="1">General</option>
+                            <option value="2">Business</option>
+                            <option value="3">Franchise</option>
+                            <option value="4">Investors</option>
+                            <option value="4">Others</option>
                         </select>
                     </div>
                     
                     <div style="text-align: center; margin-top: 30px;">
                         <button type="submit" class="btn success">➕ Add Client</button>
-                        <button type="button" id="searchLinkedIn" class="btn">🔍 Find LinkedIn</button>
+                        <button type="button" id="searchLinkedIn" class="btn" style="margin-top: 10px; background: #ff8800;">🔍 Find LinkedIn</button>
                     </div>
                 </form>
             </div>
@@ -1041,26 +973,26 @@
         <div class="card">
             <h2>⚡ Quick Actions</h2>
             
-            <div class="table-controls" style="justify-content: center; gap: 15px;">
-                <button id="viewSavedData" class="btn text-white" style="background: #9c27b0;">💾 View Saved Data</button>
-                <button id="exportData" class="btn success text-white">📊 Export CSV</button>
-                <button id="exportPDF" class="btn info text-white">📄 Export PDF</button>
-                <button id="exportCRM" class="btn text-white" style="background: #4CAF50;">🔗 CRM Integration</button>
-                <div class="stats" id="clientStats">
-                    📊 Total Clients: 0
-                </div>
-            </div>
+                          <div class="table-controls" style="justify-content: center; gap: 15px;">
+                  <button id="viewSavedData" class="btn text-white" style="background: #ff8800;">💾 View Saved Data</button>
+                  <button id="exportData" class="btn success text-white">📊 Export CSV</button>
+                  <button id="exportPDF" class="btn info text-white">📄 Export PDF</button>
+                  <a href="login.html" class="btn text-white" style="background: #ff8800; text-decoration: none;">🔐 Login</a>
+                  <div class="stats" id="clientStats">
+                      📊 Total Clients: 0
+                  </div>
+              </div>
             
             <div style="text-align: center; margin-top: 20px; color: white; opacity: 0.8;">
                 <p>📝 All scanned data is automatically saved. Use the buttons above to view, export, or integrate your data.</p>
-                <p style="margin-top: 10px; font-size: 0.9rem; color: #4CAF50;">🤖 Mindee AI is active for enhanced business card extraction</p>
+               
             </div>
         </div>
         <div id="crmModal" class="modal" style="display: none; margin-top: 20px;">
             <div class="modal-content" style="max-width: 600px;">
                 <div class="modal-header">
                     <h3>🔗 CRM Integration</h3>
-                    <span class="close" onclick="document.getElementById('crmModal').style.display='none'">&times;</span>
+                    <span class="close" style="height: 30px; width: 60px; margin-bottom: 10px; background-color: #ff8800; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="document.getElementById('crmModal').style.display='none'">close &times;</span>
                 </div>
                 <div class="modal-body">
                     <div class="crm-tabs">
@@ -1479,7 +1411,7 @@
                 safeAddEventListener('exportData', 'click', () => this.exportToCSV());
                 safeAddEventListener('exportPDF', 'click', () => this.exportToPDF());
                 safeAddEventListener('viewSavedData', 'click', () => this.viewSavedData());
-                safeAddEventListener('exportCRM', 'click', () => this.showCRMIntegration());
+    
                 safeAddEventListener('clearData', 'click', () => this.clearAllData());
                 
                 // Scan mode toggle listeners
@@ -4128,337 +4060,7 @@
                 console.log('Client updated:', updatedClient);
             }
 
-            // CRM Integration Methods
-            showCRMIntegration() {
-                document.getElementById('crmModal').style.display = 'block';
-                this.setupCRMTabs();
-            }
 
-            setupCRMTabs() {
-                const tabs = document.querySelectorAll('.crm-tab');
-                const contents = document.querySelectorAll('.crm-tab-content');
-                
-                tabs.forEach(tab => {
-                    tab.addEventListener('click', () => {
-                        const targetTab = tab.getAttribute('data-tab');
-                        
-                        // Remove active class from all tabs and contents
-                        tabs.forEach(t => t.classList.remove('active'));
-                        contents.forEach(c => c.classList.remove('active'));
-                        
-                        // Add active class to clicked tab and corresponding content
-                        tab.classList.add('active');
-                        document.getElementById(targetTab).classList.add('active');
-                    });
-                });
-            }
-
-            showCRMStatus(message, type = 'info') {
-                const statusDiv = document.getElementById('crmStatus');
-                const contentDiv = statusDiv.querySelector('.status-content');
-                
-                contentDiv.innerHTML = message;
-                statusDiv.className = `crm-status ${type}`;
-                statusDiv.style.display = 'block';
-                
-                setTimeout(() => {
-                    statusDiv.style.display = 'none';
-                }, 5000);
-            }
-
-            async exportToSalesforce() {
-                const instance = document.getElementById('sfInstance').value.trim();
-                const token = document.getElementById('sfToken').value.trim();
-                const objectType = document.getElementById('sfObject').value;
-                
-                if (!instance || !token) {
-                    this.showCRMStatus('❌ Please enter Salesforce instance URL and access token', 'error');
-                    return;
-                }
-                
-                this.showCRMStatus('🔄 Exporting to Salesforce...', 'info');
-                
-                try {
-                    const clients = this.getClients();
-                    let successCount = 0;
-                    let errorCount = 0;
-                    
-                    for (const client of clients) {
-                        try {
-                            const data = {
-                                FirstName: client.name?.split(' ')[0] || '',
-                                LastName: client.name?.split(' ').slice(1).join(' ') || '',
-                                Email: client.email || '',
-                                Phone: client.phone || '',
-                                Company: client.company || '',
-                                LeadSource: 'Exhibition Card Reader',
-                                Description: `Category: ${client.category ? `Option ${client.category}` : 'N/A'}\nLinkedIn: ${client.linkedIn || 'N/A'}`
-                            };
-                            
-                            const response = await fetch(`${instance}/services/data/v52.0/sobjects/${objectType}`, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(data)
-                            });
-                            
-                            if (response.ok) {
-                                successCount++;
-                            } else {
-                                errorCount++;
-                                console.error('Salesforce API error:', await response.text());
-                            }
-                        } catch (error) {
-                            errorCount++;
-                            console.error('Error exporting client to Salesforce:', error);
-                        }
-                    }
-                    
-                    this.showCRMStatus(`✅ Successfully exported ${successCount} clients to Salesforce${errorCount > 0 ? ` (${errorCount} failed)` : ''}`, 'success');
-                } catch (error) {
-                    this.showCRMStatus(`❌ Error exporting to Salesforce: ${error.message}`, 'error');
-                }
-            }
-
-            async exportToHubSpot() {
-                const apiKey = document.getElementById('hsApiKey').value.trim();
-                
-                if (!apiKey) {
-                    this.showCRMStatus('❌ Please enter HubSpot API key', 'error');
-                    return;
-                }
-                
-                this.showCRMStatus('🔄 Exporting to HubSpot...', 'info');
-                
-                try {
-                    const clients = this.getClients();
-                    let successCount = 0;
-                    let errorCount = 0;
-                    
-                    for (const client of clients) {
-                        try {
-                            const data = {
-                                properties: {
-                                    firstname: client.name?.split(' ')[0] || '',
-                                    lastname: client.name?.split(' ').slice(1).join(' ') || '',
-                                    email: client.email || '',
-                                    phone: client.phone || '',
-                                    company: client.company || '',
-                                    lead_status: 'NEW',
-                                    hs_lead_status: 'NEW',
-                                    source: 'Exhibition Card Reader',
-                                    category: client.category ? `Option ${client.category}` : 'N/A'
-                                }
-                            };
-                            
-                            const response = await fetch('https://api.hubapi.com/crm/v3/objects/contacts', {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${apiKey}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(data)
-                            });
-                            
-                            if (response.ok) {
-                                successCount++;
-                            } else {
-                                errorCount++;
-                                console.error('HubSpot API error:', await response.text());
-                            }
-                        } catch (error) {
-                            errorCount++;
-                            console.error('Error exporting client to HubSpot:', error);
-                        }
-                    }
-                    
-                    this.showCRMStatus(`✅ Successfully exported ${successCount} clients to HubSpot${errorCount > 0 ? ` (${errorCount} failed)` : ''}`, 'success');
-                } catch (error) {
-                    this.showCRMStatus(`❌ Error exporting to HubSpot: ${error.message}`, 'error');
-                }
-            }
-
-            async exportToPipedrive() {
-                const token = document.getElementById('pdToken').value.trim();
-                const stage = document.getElementById('pdStage').value;
-                
-                if (!token) {
-                    this.showCRMStatus('❌ Please enter Pipedrive API token', 'error');
-                    return;
-                }
-                
-                this.showCRMStatus('🔄 Exporting to Pipedrive...', 'info');
-                
-                try {
-                    const clients = this.getClients();
-                    let successCount = 0;
-                    let errorCount = 0;
-                    
-                    for (const client of clients) {
-                        try {
-                            const data = {
-                                name: client.name || 'Unknown Contact',
-                                email: [{
-                                    value: client.email || '',
-                                    primary: true,
-                                    label: 'work'
-                                }],
-                                phone: [{
-                                    value: client.phone || '',
-                                    primary: true,
-                                    label: 'work'
-                                }],
-                                org_name: client.company || '',
-                                add_time: new Date().toISOString()
-                            };
-                            
-                            const response = await fetch('https://api.pipedrive.com/v1/persons', {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(data)
-                            });
-                            
-                            if (response.ok) {
-                                successCount++;
-                            } else {
-                                errorCount++;
-                                console.error('Pipedrive API error:', await response.text());
-                            }
-                        } catch (error) {
-                            errorCount++;
-                            console.error('Error exporting client to Pipedrive:', error);
-                        }
-                    }
-                    
-                    this.showCRMStatus(`✅ Successfully exported ${successCount} clients to Pipedrive${errorCount > 0 ? ` (${errorCount} failed)` : ''}`, 'success');
-                } catch (error) {
-                    this.showCRMStatus(`❌ Error exporting to Pipedrive: ${error.message}`, 'error');
-                }
-            }
-
-            async exportToZoho() {
-                const token = document.getElementById('zohoToken').value.trim();
-                const module = document.getElementById('zohoModule').value;
-                
-                if (!token) {
-                    this.showCRMStatus('❌ Please enter Zoho CRM access token', 'error');
-                    return;
-                }
-                
-                this.showCRMStatus('🔄 Exporting to Zoho CRM...', 'info');
-                
-                try {
-                    const clients = this.getClients();
-                    let successCount = 0;
-                    let errorCount = 0;
-                    
-                    for (const client of clients) {
-                        try {
-                            const data = {
-                                data: [{
-                                    First_Name: client.name?.split(' ')[0] || '',
-                                    Last_Name: client.name?.split(' ').slice(1).join(' ') || '',
-                                    Email: client.email || '',
-                                    Phone: client.phone || '',
-                                    Company: client.company || '',
-                                    Lead_Source: 'Exhibition Card Reader',
-                                    Category: client.category ? `Option ${client.category}` : 'N/A'
-                                }]
-                            };
-                            
-                            const response = await fetch(`https://www.zohoapis.com/crm/v3/${module}`, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Zoho-oauthtoken ${token}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(data)
-                            });
-                            
-                            if (response.ok) {
-                                successCount++;
-                            } else {
-                                errorCount++;
-                                console.error('Zoho API error:', await response.text());
-                            }
-                        } catch (error) {
-                            errorCount++;
-                            console.error('Error exporting client to Zoho CRM:', error);
-                        }
-                    }
-                    
-                    this.showCRMStatus(`✅ Successfully exported ${successCount} clients to Zoho CRM${errorCount > 0 ? ` (${errorCount} failed)` : ''}`, 'success');
-                } catch (error) {
-                    this.showCRMStatus(`❌ Error exporting to Zoho CRM: ${error.message}`, 'error');
-                }
-            }
-
-            async exportToCustomAPI() {
-                const endpoint = document.getElementById('customEndpoint').value.trim();
-                const apiKey = document.getElementById('customApiKey').value.trim();
-                const method = document.getElementById('customMethod').value;
-                
-                if (!endpoint) {
-                    this.showCRMStatus('❌ Please enter API endpoint', 'error');
-                    return;
-                }
-                
-                this.showCRMStatus('🔄 Exporting to Custom API...', 'info');
-                
-                try {
-                    const clients = this.getClients();
-                    let successCount = 0;
-                    let errorCount = 0;
-                    
-                    for (const client of clients) {
-                        try {
-                            const data = {
-                                name: client.name || '',
-                                email: client.email || '',
-                                phone: client.phone || '',
-                                company: client.company || '',
-                                category: client.category ? `Option ${client.category}` : 'N/A',
-                                linkedin: client.linkedIn || '',
-                                source: client.source || 'Exhibition Card Reader',
-                                timestamp: client.timestamp || new Date().toISOString()
-                            };
-                            
-                            const headers = {
-                                'Content-Type': 'application/json'
-                            };
-                            
-                            if (apiKey) {
-                                headers['Authorization'] = `Bearer ${apiKey}`;
-                            }
-                            
-                            const response = await fetch(endpoint, {
-                                method: method,
-                                headers: headers,
-                                body: JSON.stringify(data)
-                            });
-                            
-                            if (response.ok) {
-                                successCount++;
-                            } else {
-                                errorCount++;
-                                console.error('Custom API error:', await response.text());
-                            }
-                        } catch (error) {
-                            errorCount++;
-                            console.error('Error exporting client to Custom API:', error);
-                        }
-                    }
-                    
-                    this.showCRMStatus(`✅ Successfully exported ${successCount} clients to Custom API${errorCount > 0 ? ` (${errorCount} failed)` : ''}`, 'success');
-                } catch (error) {
-                    this.showCRMStatus(`❌ Error exporting to Custom API: ${error.message}`, 'error');
-                }
-            }
         }
 
         // Initialize the application when the page loads
@@ -4468,7 +4070,7 @@
                 const requiredElements = [
                     'startCamera', 'captureImage', 'restartCamera', 'fileInput', 
                     'manualForm', 'searchLinkedIn', 'exportData', 'exportPDF', 
-                    'viewSavedData', 'exportCRM', 'clearData', 'qrModeBtn', 
+                    'viewSavedData', 'clearData', 'qrModeBtn', 
                     'imageModeBtn', 'uploadArea', 'qr-reader'
                 ];
                 
@@ -4518,128 +4120,6 @@
         });
     </script>
     
-    <!-- CRM Integration Modal -->
-    <div id="crmModal" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 600px;">
-            <div class="modal-header">
-                <h3>🔗 CRM Integration</h3>
-                <span class="close" onclick="document.getElementById('crmModal').style.display='none'">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="crm-tabs">
-                    <button class="crm-tab active" data-tab="salesforce">Salesforce</button>
-                    <button class="crm-tab" data-tab="hubspot">HubSpot</button>
-                    <button class="crm-tab" data-tab="pipedrive">Pipedrive</button>
-                    <button class="crm-tab" data-tab="zoho">Zoho CRM</button>
-                    <button class="crm-tab" data-tab="custom">Custom API</button>
-                </div>
-                
-                <div class="crm-content">
-                    <!-- Salesforce Tab -->
-                    <div id="salesforce" class="crm-tab-content active">
-                        <h4>Salesforce Integration</h4>
-                        <p>Export data to Salesforce as leads or contacts.</p>
-                        <div class="form-group">
-                            <label>Instance URL:</label>
-                            <input type="text" id="sfInstance" placeholder="https://yourcompany.salesforce.com" />
-                        </div>
-                        <div class="form-group">
-                            <label>Access Token:</label>
-                            <input type="password" id="sfToken" placeholder="Your Salesforce access token" />
-                        </div>
-                        <div class="form-group">
-                            <label>Object Type:</label>
-                            <select id="sfObject">
-                                <option value="Lead">Lead</option>
-                                <option value="Contact">Contact</option>
-                            </select>
-                        </div>
-                        <button class="btn success" onclick="app.exportToSalesforce()">Export to Salesforce</button>
-                    </div>
-                    
-                    <!-- HubSpot Tab -->
-                    <div id="hubspot" class="crm-tab-content">
-                        <h4>HubSpot Integration</h4>
-                        <p>Export data to HubSpot as contacts.</p>
-                        <div class="form-group">
-                            <label>API Key:</label>
-                            <input type="password" id="hsApiKey" placeholder="Your HubSpot API key" />
-                        </div>
-                        <div class="form-group">
-                            <label>Pipeline:</label>
-                            <select id="hsPipeline">
-                                <option value="default">Default Pipeline</option>
-                            </select>
-                        </div>
-                        <button class="btn success" onclick="app.exportToHubSpot()">Export to HubSpot</button>
-                    </div>
-                    
-                    <!-- Pipedrive Tab -->
-                    <div id="pipedrive" class="crm-tab-content">
-                        <h4>Pipedrive Integration</h4>
-                        <p>Export data to Pipedrive as persons.</p>
-                        <div class="form-group">
-                            <label>API Token:</label>
-                            <input type="password" id="pdToken" placeholder="Your Pipedrive API token" />
-                        </div>
-                        <div class="form-group">
-                            <label>Deal Stage:</label>
-                            <select id="pdStage">
-                                <option value="new">New</option>
-                                <option value="qualified">Qualified</option>
-                                <option value="proposal">Proposal</option>
-                            </select>
-                        </div>
-                        <button class="btn success" onclick="app.exportToPipedrive()">Export to Pipedrive</button>
-                    </div>
-                    
-                    <!-- Zoho CRM Tab -->
-                    <div id="zoho" class="crm-tab-content">
-                        <h4>Zoho CRM Integration</h4>
-                        <p>Export data to Zoho CRM as leads.</p>
-                        <div class="form-group">
-                            <label>Access Token:</label>
-                            <input type="password" id="zohoToken" placeholder="Your Zoho CRM access token" />
-                        </div>
-                        <div class="form-group">
-                            <label>Module:</label>
-                            <select id="zohoModule">
-                                <option value="Leads">Leads</option>
-                                <option value="Contacts">Contacts</option>
-                            </select>
-                        </div>
-                        <button class="btn success" onclick="app.exportToZoho()">Export to Zoho CRM</button>
-                        </div>
-                    
-                    <!-- Custom API Tab -->
-                    <div id="custom" class="crm-tab-content">
-                        <h4>Custom API Integration</h4>
-                        <p>Export data to your custom CRM via API.</p>
-                        <div class="form-group">
-                            <label>API Endpoint:</label>
-                            <input type="text" id="customEndpoint" placeholder="https://your-crm-api.com/contacts" />
-                        </div>
-                        <div class="form-group">
-                            <label>API Key (Optional):</label>
-                            <input type="password" id="customApiKey" placeholder="Your API key" />
-                        </div>
-                        <div class="form-group">
-                            <label>Request Method:</label>
-                            <select id="customMethod">
-                                <option value="POST">POST</option>
-                                <option value="PUT">PUT</option>
-                                <option value="PATCH">PATCH</option>
-                            </select>
-                        </div>
-                        <button class="btn success" onclick="app.exportToCustomAPI()">Export to Custom API</button>
-                    </div>
-                </div>
-                
-                <div class="crm-status" id="crmStatus" style="display: none;">
-                    <div class="status-content"></div>
-                </div>
-            </div>
-        </div>
-    </div>
+
 </body>
 </html>

@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background: linear-gradient(135deg, #f0f0f0 0%, #dfe233 50%, #ff8a53 100%);
             min-height: 100vh;
             color: #333;
             overflow-x: hidden;
@@ -26,7 +26,7 @@
             width: 100%;
             height: 100%;
             z-index: -1;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background: linear-gradient(135deg, #fffcfc 0%, #cbd478 20%, #ff996a 100%);
             background-size: 400% 400%;
             animation: gradientShift 15s ease infinite;
         }
@@ -105,8 +105,7 @@
         }
 
         .btn {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
+            background: linear-gradient(135deg, #fffcfc 0%, #cbd478 20%, #ff996a 100%);
             border: none;
             padding: 15px 30px;
             border-radius: 50px;
@@ -118,6 +117,7 @@
             box-shadow: 0 8px 25px rgba(0,0,0,0.2);
             position: relative;
             overflow: hidden;
+            color: white;
         }
 
         .btn::before {
@@ -151,15 +151,14 @@
         }
 
         .btn.success {
-            background: linear-gradient(135deg, #00c851, #007e33);
-        }
+            background: linear-gradient(135deg, #f0f0f0 0%, #dfe233 50%, #ff8a53 100%);}
 
         .btn.danger {
             background: linear-gradient(135deg, #ff4444, #cc0000);
         }
 
         .btn.info {
-            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            background: linear-gradient(135deg, #f0f0f0 0%, #dfe233 50%, #ff8a53 100%);
         }
 
         .table-controls {
@@ -197,7 +196,7 @@
         }
 
         th {
-            background: linear-gradient(135deg, rgba(102,126,234,0.8), rgba(118,75,162,0.8));
+            background: linear-gradient(135deg, #f0f0f0 0%, #dfe233 50%, #ff8a53 100%);
             font-weight: 600;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
@@ -214,8 +213,8 @@
         }
 
         .linkedin-link:hover {
-            color: #00ff88;
-            text-shadow: 0 0 5px rgba(0,255,136,0.5);
+            color: #d8d647;
+            text-shadow: 0 0 5px rgba(255, 166, 0, 0.5);
         }
 
         .status-message {
@@ -234,10 +233,10 @@
         }
 
         .success {
-            background: rgba(0, 200, 81, 0.2);
-            color: #00ff88;
-            border: 2px solid rgba(0, 255, 136, 0.3);
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+            background:  #ff8800;
+            color: white;
+            border: 2px solid rgba(200, 113, 0, 0.822);
+            box-shadow: 0 0 20px rgba(200, 113, 0, 0.822);
         }
 
         .error {
@@ -274,7 +273,7 @@
         }
 
         .source-manual {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #ff8800, #cc6600);
             color: white;
         }
 
@@ -395,9 +394,9 @@
 
         <div class="navigation">
             <a href="index.html" class="btn">🏠 Back to Scanner</a>
-            <button class="btn success " onclick="exportToPDF()">📄 Export to PDF</button>
-            <button class="btn info" onclick="exportToCSV()">📊 Export to CSV</button>
-            <button class="btn danger" onclick="clearAllData()">🗑️ Clear All Data</button>
+            <button class="btn success " style="background: #ff8800;" onclick="exportToPDF()">📄 Export to PDF</button>
+            <button class="btn info" style="background: #ff8800; color: white;" onclick="exportToCSV()">📊 Export to CSV</button>
+            <button class="btn danger" style="background: #ff8800;" onclick="clearAllData()">🗑️ Clear All Data</button>
         </div>
 
         <div class="card">
@@ -783,6 +782,7 @@
                     justify-content: center;
                     z-index: 9999;
                     backdrop-filter: blur(5px);
+                    color: black
                 `;
                 
                 modal.innerHTML = `
@@ -947,16 +947,17 @@
                                         padding: 12px 15px;
                                         border: 2px solid rgba(255,255,255,0.2);
                                         border-radius: 10px;
-                                        background: rgba(255,255,255,0.1);
-                                        color: white;
+                                        background: white;
+                                        color: black;
                                         font-size: 1rem;
                                         transition: all 0.3s ease;
                                     ">
                                         <option value="">Select Category</option>
-                                        <option value="1" ${client.category === '1' ? 'selected' : ''}>Option 1</option>
-                                        <option value="2" ${client.category === '2' ? 'selected' : ''}>Option 2</option>
-                                        <option value="3" ${client.category === '3' ? 'selected' : ''}>Option 3</option>
-                                        <option value="4" ${client.category === '4' ? 'selected' : ''}>Option 4</option>
+                                        <option value="1" ${client.category === '1' ? 'selected' : ''}>General</option>
+                                        <option value="2" ${client.category === '2' ? 'selected' : ''}>Business</option>
+                                        <option value="3" ${client.category === '3' ? 'selected' : ''}>Franchise</option>
+                                        <option value="4" ${client.category === '4' ? 'selected' : ''}>Investors</option>
+                                        <option value="4" ${client.category === '5' ? 'selected' : ''}>Others</option>
                                     </select>
                                 </div>
                                 
