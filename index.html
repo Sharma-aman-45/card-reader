@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #f0f0f0 0%, #dadb73 50%, #ff8a53 100%);
+            background:  #fdb26c;
             min-height: 100vh;
             color: #333;
             overflow-x: hidden;
@@ -27,7 +27,7 @@
             width: 100%;
             height: 100%;
             z-index: -1;
-            background: linear-gradient(135deg, #fffcfc 0%, #cbd478 20%, #ff996a 100%);
+            
             background-size: 400% 400%;
             animation: gradientShift 15s ease infinite;
         }
@@ -337,7 +337,12 @@
             box-shadow: 0 4px 15px rgba(200, 113, 0, 0.822);
             background: rgba(255,255,255,0.15);
         }
-
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #ffee00;
+            box-shadow: 0 4px 15px rgba(200, 113, 0, 0.822);
+            background: rgba(255,255,255,0.15);
+        }
         .clients-table {
             grid-column: 1 / -1;
             overflow-x: auto;
@@ -941,7 +946,7 @@
                     </div>
                     <div class="form-group">
                         <label for="manualNotes">📝 Notes:</label>
-                        <input type="text" id="manualNotes" placeholder="Enter notes (optional)">
+                         <textarea name="" id="manualNotes" placeholder="Enter notes (optional)" style="width: 100%; height: 100px; border-radius: 2px; border: 1px solid #cccccc; padding: 10px; margin-top: 10px; background: transparent;"></textarea>
                     </div>
                     
                     <div class="form-group">
