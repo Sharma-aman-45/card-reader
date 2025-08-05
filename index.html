@@ -783,29 +783,27 @@
             <div class="card">
                 <h2>📱 Smart Scanner</h2>
                 <div class="scanner-section">
-                    <div id="qr-reader" style="width:100%;max-width:400px;margin:0 auto;"></div>
+                    <div class="camera-container">
+                        <video id="video" autoplay playsinline></video>
                         <div class="camera-placeholder" id="cameraPlaceholder">
                             <div class="icon">📷</div>
-                            <div>Click "Start Camera" to begin scanning</div>
+                            <div>Click "Start Camera" to begin scanning business cards</div>
                         </div>
+                    </div>
                     <div style="margin: 20px 0;">
-                        <div class="scan-mode-buttons" style="margin-bottom: 15px; text-align: center;">
-                            <button id="qrModeBtn" class="btn mode-btn active" style="margin-right: 10px;">🔲 QR Code Mode</button>
-                            <button id="imageModeBtn" class="btn mode-btn" style="margin-left: 10px;">🤖 AI Business Card Scanner</button>
-                        </div>
                         <div style="text-align: center;">
-                            <button id="startCamera" class="btn"style="margin-top: 10px; background: #ff8800;">🔴 Start Camera</button>
-                            <button id="captureImage" class="btn" style="margin-top: 10px; background: #ff8800;" >📸 Capture & Analyze</button>
-                            <button id="restartCamera" class="btn" style="margin-top: 10px; background: #ff8800;">🔄 Restart Camera</button>
+                            <button id="startCamera" class="btn" style="margin-top: 10px; background: #ff8800;">🔴 Start Camera</button>
+                            <button id="captureImage" class="btn" style="margin-top: 10px; background: #ff8800;">📸 Capture & Analyze</button>
+                            <button id="stopCamera" class="btn" style="margin-top: 10px; background: #ff8800;">⏹️ Stop Camera</button>
                         </div>
                     </div>
                     <div class="detection-info">
-                        <strong>🤖 Smart Detection:</strong> 
+                        <strong>🤖 Business Card Scanner:</strong> 
                         <ul style="margin: 10px 0; padding-left: 20px;">
-                            <li><strong>QR Mode:</strong> Scans QR codes for vCard and contact data</li>
-                            <li><strong>AI Business Card Scanner:</strong> Captures image, shows preview, and uses AI vision for accurate data extraction</li>
+                            <li><strong>Camera Capture:</strong> Take photos of business cards for data extraction</li>
+                            <li><strong>Drag & Drop:</strong> Upload business card images for processing</li>
                         </ul>
-                        AI-powered extraction with image preview and confirmation. Falls back to OCR if needed.
+                        AI-powered extraction with immediate field population. Review and save your data.
                     </div>
                 </div>
 
@@ -821,101 +819,23 @@
                     </button>
                 </div>
 
-                <!-- Image Editor Section -->
-                <div class="image-editor" id="imageEditor" style="display: none;">
-                    <h3 style="color: white; margin-bottom: 20px; text-align: center;">🖼️ Image Editor</h3>
-                    
-                    <div class="editor-container" style="
-                        background: rgba(255,255,255,0.1);
-                        border-radius: 15px;
-                        padding: 20px;
-                        margin-bottom: 20px;
-                        backdrop-filter: blur(10px);
-                        border: 1px solid rgba(255,255,255,0.2);
-                    ">
-                        <div class="canvas-container" style="
-                            position: relative;
-                            margin: 0 auto;
-                            max-width: 100%;
-                            text-align: center;
-                        ">
-                            <canvas id="editorCanvas" style="
-                                max-width: 100%;
-                                max-height: 400px;
-                                border: 2px solid rgba(255,255,255,0.3);
-                                border-radius: 10px;
-                            "></canvas>
-                        </div>
-                        
-                        <div class="editor-controls" style="
-                            margin-top: 20px;
-                            display: grid;
-                            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                            gap: 15px;
-                        ">
 
-                            
-                            <!-- Brightness Controls -->
-                            <div class="control-group" style="
-                                background: rgba(255,255,255,0.05);
-                                padding: 15px;
-                                border-radius: 10px;
-                                border: 1px solid rgba(255,255,255,0.1);
-                            ">
-                                <h4 style="color: white; margin-bottom: 10px; font-size: 0.9rem;">💡 Brightness</h4>
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <span style="color: white; font-size: 0.8rem;">-</span>
-                                    <input type="range" id="brightnessSlider" min="-100" max="100" value="0" style="
-                                        flex: 1;
-                                        height: 6px;
-                                        border-radius: 3px;
-                                        background: rgba(255,255,255,0.2);
-                                        outline: none;
-                                        -webkit-appearance: none;
-                                    ">
-                                    <span style="color: white; font-size: 0.8rem;">+</span>
-                                </div>
-                                <div style="text-align: center; margin-top: 5px;">
-                                    <span id="brightnessValue" style="color: white; font-size: 0.8rem;">0%</span>
-                                </div>
-                            </div>
-                            
-                            <!-- Rotation Controls -->
-                            <div class="control-group" style="
-                                background: rgba(255,255,255,0.05);
-                                padding: 15px;
-                                border-radius: 10px;
-                                border: 1px solid rgba(255,255,255,0.1);
-                            ">
-                                <h4 style="color: white; margin-bottom: 10px; font-size: 0.8rem;">🔄 Rotate</h4>
-                                <div style="display: flex; gap: 10px; justify-content: center;">
-                                    <button id="rotateLeftBtn" class="btn mode-btn" style="padding: 8px 12px;">↶ -90°</button>
-                                    <button id="rotateRightBtn" class="btn mode-btn" style="padding: 8px 12px;">↷ +90°</button>
-                                </div>
-                                <div style="text-align: center; margin-top: 10px;">
-                                    <button id="resetRotationBtn" class="btn mode-btn" style="padding: 6px 10px; font-size: 0.8rem;">Reset</button>
-                                </div>
-                            </div>
-                            
-                            <!-- Action Buttons -->
-                            <div class="control-group" style="
-                                background: rgba(255,255,255,0.05);
-                                padding: 15px;
-                                border-radius: 10px;
-                                border: 1px solid rgba(255,255,255,0.1);
-                            ">
-                                <h4 style="color: white; margin-bottom: 10px; font-size: 0.9rem;">⚡ Actions</h4>
-                                <button id="processEditedBtn" class="btn success" style="margin: 5px; width: 100%;">Process Image</button>
-                                <button id="resetEditorBtn" class="btn danger" style="margin: 5px; width: 100%;">Reset All</button>
-                                <button id="testProcessBtn" class="btn" style="margin: 5px; width: 100%; background: #ff8800;">Test Process</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="processing" id="processing">
                     <div class="spinner"></div>
                     <p>🔍 Analyzing image and extracting contact data...</p>
+                </div>
+
+                <!-- Result Display Section -->
+                <div id="resultDisplay" style="display: none; background: rgba(255,255,255,0.1); border-radius: 15px; padding: 20px; margin: 20px 0; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);">
+                    <h3 style="color: white; margin-bottom: 15px; text-align: center;">📋 Extracted Data</h3>
+                    <div id="extractedData" style="color: white; font-size: 0.9rem;">
+                        <!-- Extracted data will be displayed here -->
+                    </div>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <button id="useExtractedData" class="btn success" style="margin: 5px;" onclick="">✅ Use This Data</button>
+                        <button id="discardData" class="btn danger" style="margin: 5px;">❌ Discard</button>
+                    </div>
                 </div>
 
                 <div id="statusMessage"></div>
@@ -1118,11 +1038,14 @@
     </div>
 
     <!-- Libraries -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
+    <!-- Enhanced OCR Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+    <script src="https://unpkg.com/opencv.js@1.2.1/opencv.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="main.js"></script>
+   
+
 
     <script>
         // Helper class for the efficient name extraction
@@ -1362,29 +1285,14 @@
             constructor() {
                 try {
                     this.clients = this.loadClients();
-                    this.html5QrCode = null;
+                    this.stream = null;
                     this.cameraStarted = false;
-                    this.lastScanResult = null;
-                    this.currentScanMode = 'qr'; // 'qr' or 'image'
                     this.isCapturing = false; // Prevent multiple captures
-                    
-                    // Image Editor Properties
-                    this.editorCanvas = null;
-                    this.editorCtx = null;
-                    this.originalImage = null;
-                    this.currentImage = null;
-                    this.rotation = 0;
-                    this.brightness = 0;
-                    
-                    // Initialize Mindee API directly
-                    this.mindeeAPI = new MindeeAPI('4ac6925023b8961a6475865dd6ed9853');
-                    this.mindeeAPIKey = '4ac6925023b8961a6475865dd6ed9853';
+                    this.extractedData = null; // Store extracted data
                     
                     this.initializeEventListeners();
                     this.updateClientStats();
                     this.setupDragAndDrop();
-                    this.updateScanModeUI();
-                    this.initializeImageEditor();
                 } catch (error) {
                     console.error('Error in constructor:', error);
                     throw error;
@@ -1404,8 +1312,8 @@
 
                 // Camera and capture controls
                 safeAddEventListener('startCamera', 'click', () => this.startCamera());
-                safeAddEventListener('captureImage', 'click', () => this.captureAndAnalyzeImage());
-                safeAddEventListener('restartCamera', 'click', () => this.restartCamera());
+                safeAddEventListener('captureImage', 'click', () => this.captureImage());
+                safeAddEventListener('stopCamera', 'click', () => this.stopCamera());
                 
                 // File upload and form
                 safeAddEventListener('fileInput', 'change', (e) => this.handleFileUpload(e));
@@ -1419,28 +1327,13 @@
     
                 safeAddEventListener('clearData', 'click', () => this.clearAllData());
                 
-                // Scan mode toggle listeners
-                safeAddEventListener('qrModeBtn', 'click', () => this.setScanMode('qr'));
-                safeAddEventListener('imageModeBtn', 'click', () => this.setScanMode('image'));
-                
-                // Image Editor Event Listeners
-                safeAddEventListener('brightnessSlider', 'input', (e) => this.adjustBrightness(e.target.value));
-                safeAddEventListener('rotateLeftBtn', 'click', () => this.rotateImage(-90));
-                safeAddEventListener('rotateRightBtn', 'click', () => this.rotateImage(90));
-                safeAddEventListener('resetRotationBtn', 'click', () => this.resetRotation());
-                safeAddEventListener('processEditedBtn', 'click', () => this.processEditedImage());
-                safeAddEventListener('resetEditorBtn', 'click', () => this.resetEditor());
-                safeAddEventListener('testProcessBtn', 'click', () => this.testProcessImage());
-                
-                // Mindee API is now initialized directly in constructor
-                
-                // Global drag and drop fallback for QR reader area
-                this.setupGlobalDragAndDrop();
+                // Result display controls
+                safeAddEventListener('useExtractedData', 'click', () => this.useExtractedData());
+                safeAddEventListener('discardData', 'click', () => this.discardData());
             }
 
             setupDragAndDrop() {
                 const uploadArea = document.getElementById('uploadArea');
-                const qrReader = document.getElementById('qr-reader');
                 
                 // Check if upload area exists
                 if (!uploadArea) {
@@ -1456,7 +1349,7 @@
                 ['dragenter', 'dragover'].forEach(eventName => {
                     uploadArea.addEventListener(eventName, () => {
                         uploadArea.classList.add('dragover');
-                        this.showStatus('📁 Drop your image here to process!', 'info');
+                        this.showStatus('📁 Drop your business card image here!', 'info');
                     }, false);
                 });
 
@@ -1468,13 +1361,8 @@
                     const files = e.dataTransfer.files;
                     console.log('Drop event triggered, files:', files);
                     if (files.length > 0) {
-                        this.showStatus('📁 File dropped, loading into editor...', 'info');
-                        this.loadImageIntoEditor(files[0]).then(() => {
-                            this.showStatus('🖼️ Image loaded in editor. Edit the image or click "Process Image" to extract data.', 'info');
-                        }).catch(error => {
-                            console.error('Error loading dropped image into editor:', error);
-                            this.showStatus('❌ Error loading image into editor', 'error');
-                        });
+                        this.showStatus('📁 File dropped, processing business card...', 'info');
+                        this.processImageFile(files[0]);
                         // Clear any file input to ensure fresh state
                         const fileInput = document.getElementById('fileInput');
                         if (fileInput) {
@@ -1482,136 +1370,268 @@
                         }
                     }
                 }, false);
-
-                // Enhanced drag and drop for QR reader area with better error handling
-                if (qrReader) {
-                    qrReader.classList.add('qr-reader-enhanced');
-                    
-                    // Create a more robust drop overlay
-                    const dropOverlay = document.createElement('div');
-                    dropOverlay.className = 'drop-overlay';
-                    dropOverlay.innerHTML = `
-                        <div style="text-align: center; padding: 20px;">
-                            <div style="font-size: 3rem; margin-bottom: 10px;">📁</div>
-                            <div style="font-weight: 600; margin-bottom: 5px;">Drop Image Here</div>
-                            <div style="font-size: 0.9rem; opacity: 0.8;">to scan QR code or business card</div>
-                        </div>
-                    `;
-                    qrReader.appendChild(dropOverlay);
-
-                    // Enhanced event handling with better error handling and retry logic
-                    const handleDragEnter = (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        qrReader.classList.add('dragover');
-                        this.showStatus('📱 Drop image to scan QR code or business card!', 'info');
-                    };
-
-                    const handleDragOver = (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        qrReader.classList.add('dragover');
-                    };
-
-                    const handleDragLeave = (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        // Only remove dragover if we're leaving the element entirely
-                        if (!qrReader.contains(e.relatedTarget)) {
-                            qrReader.classList.remove('dragover');
-                        }
-                    };
-
-                    const handleDrop = async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        qrReader.classList.remove('dragover');
-                        
-                        const files = e.dataTransfer.files;
-                        if (files.length > 0) {
-                            const file = files[0];
-                            if (file.type.startsWith('image/')) {
-                                this.showStatus('📱 Processing dropped image...', 'info');
-                                try {
-                                    // Try QR scan first
-                                    let qrText = null;
-                                    try {
-                                        const html5QrCodeFile = new Html5Qrcode();
-                                        qrText = await html5QrCodeFile.scanFile(file, true);
-                                        console.log('QR scan result:', qrText);
-                                    } catch (qrError) {
-                                        console.log('QR scan failed, will try OCR:', qrError);
-                                    }
-                                    
-                                    if (qrText) {
-                                        console.log('QR code found, processing...');
-                                        const contactFound = await this.processQRResult(qrText, 'Drop QR');
-                                        if (!contactFound) {
-                                            // QR found but no contact info, run OCR
-                                            console.log('QR found but no contact info, running OCR...');
-                                            const reader = new FileReader();
-                                            reader.onload = async (ev) => {
-                                                await this.analyzeImageWithOCR(ev.target.result, 'Drop OCR');
-                                            };
-                                            reader.readAsDataURL(file);
-                                        }
-                                    } else {
-                                        // No QR found, load into editor for business card processing
-                                        console.log('No QR found, loading into editor for business card processing...');
-                                        await this.loadImageIntoEditor(file);
-                                        this.showStatus('🖼️ Image loaded in editor. Use the controls to enhance and process the business card.', 'info');
-                                    }
-                                } catch (error) {
-                                    console.error('Error processing dropped file:', error);
-                                    this.showStatus('❌ Error processing dropped image. Trying fallback...', 'error');
-                                    
-                                    // Fallback: load into editor
-                                    try {
-                                        await this.loadImageIntoEditor(file);
-                                        this.showStatus('🖼️ Image loaded in editor as fallback. Try processing from here.', 'info');
-                                    } catch (fallbackError) {
-                                        console.error('Fallback also failed:', fallbackError);
-                                        this.showStatus('❌ Failed to process image. Please try a different image.', 'error');
-                                    }
-                                }
-                            } else {
-                                this.showStatus('❌ Please drop an image file', 'error');
-                            }
-                        }
-                    };
-
-                    // Add event listeners with error handling and retry logic
-                    try {
-                        qrReader.addEventListener('dragenter', handleDragEnter, false);
-                        qrReader.addEventListener('dragover', handleDragOver, false);
-                        qrReader.addEventListener('dragleave', handleDragLeave, false);
-                        qrReader.addEventListener('drop', handleDrop, false);
-                        
-                        // Also add a fallback for the entire scanner section
-                        const scannerSection = qrReader.closest('.scanner-section');
-                        if (scannerSection) {
-                            scannerSection.addEventListener('drop', handleDrop, false);
-                        }
-                        
-                        // Add global document drop handler as ultimate fallback
-                        document.addEventListener('drop', (e) => {
-                            // Only handle if drop is in our application area
-                            if (e.target.closest('.container') || e.target.closest('#qr-reader')) {
-                                handleDrop(e);
-                            }
-                        }, false);
-                        
-                    } catch (error) {
-                        console.error('Error setting up QR reader drag and drop:', error);
-                        // Fallback: add basic drop handling
-                        qrReader.addEventListener('drop', handleDrop, false);
-                    }
-                }
             }
 
             preventDefaults(e) {
                 e.preventDefault();
                 e.stopPropagation();
+            }
+
+            async startCamera() {
+                try {
+                    this.stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: 'environment' } 
+                    });
+                    
+                    const video = document.getElementById('video');
+                    video.srcObject = this.stream;
+                    document.getElementById('cameraPlaceholder').style.display = 'none';
+                    document.getElementById('captureImage').disabled = false;
+                    document.getElementById('startCamera').disabled = true;
+                    
+                    this.cameraStarted = true;
+                    this.showStatus('📷 Camera started! Position the business card and click "Capture & Analyze"', 'success');
+                } catch (error) {
+                    this.showStatus('❌ Camera access denied: ' + error.message, 'error');
+                }
+            }
+
+            stopCamera() {
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+                
+                document.getElementById('video').srcObject = null;
+                document.getElementById('cameraPlaceholder').style.display = 'flex';
+                document.getElementById('captureImage').disabled = true;
+                document.getElementById('startCamera').disabled = false;
+                
+                this.cameraStarted = false;
+                this.showStatus('⏹️ Camera stopped', 'info');
+            }
+
+            async captureImage() {
+    if (this.isProcessing) {
+        this.showStatus('⏳ Already processing, please wait...', 'info');
+        return;
+    }
+
+    if (!this.cameraStarted) {
+        this.showStatus('❌ Camera not started', 'error');
+        return;
+    }
+
+    this.isProcessing = true;
+    this.showStatus('📸 Capturing image...', 'info');
+
+    try {
+        const video = document.getElementById('video');
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+        const file = new File([blob], 'captured-card.jpg', { type: 'image/jpeg' });
+        
+        // Process and save the image
+        await this.processImageFile(file);
+    } catch (error) {
+        this.showStatus('❌ Failed to capture image: ' + error.message, 'error');
+        this.isProcessing = false;
+    }
+}
+
+            handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    this.processImageFile(file);
+                    event.target.value = ''; // Clear input
+                }
+            }
+
+            async processImageFile(file) {
+    if (!file.type.startsWith('image/')) {
+        this.showStatus('❌ Please upload a valid image file', 'error');
+        return;
+    }
+
+    this.isProcessing = true;
+    this.showProcessing(true);
+    this.showStatus('🔍 Analyzing business card...', 'info');
+
+    try {
+        // Extract text using OCR
+        const text = await this.extractTextFromImage(file);
+        console.log('Extracted text:', text);
+
+        // Parse and display results
+        const contactData = this.parseContactData(text);
+        this.displayExtractedData(contactData);
+
+        // Add this line to automatically save the extracted data
+        if (contactData.name || contactData.email || contactData.phone) {
+            this.addClient({
+                ...contactData,
+                source: 'Image Upload',
+                timestamp: new Date().toLocaleString()
+            });
+        }
+
+        this.showStatus('✅ Data extracted and saved successfully!', 'success');
+    } catch (error) {
+        console.error('Processing error:', error);
+        this.showStatus('❌ Failed to process image: ' + error.message, 'error');
+    } finally {
+        this.isProcessing = false;
+        this.showProcessing(false);
+    }
+}
+
+            async extractTextFromImage(file) {
+                return new Promise((resolve, reject) => {
+                    Tesseract.recognize(file, 'eng', {
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                this.showStatus(`🔍 OCR Progress: ${Math.round(m.progress * 100)}%`, 'info');
+                            }
+                        }
+                    }).then(({ data: { text } }) => {
+                        resolve(text);
+                    }).catch(reject);
+                });
+            }
+
+            parseContactData(text) {
+                const data = {
+                    name: '',
+                    email: '',
+                    phone: '',
+                    company: '',
+                    jobTitle: '',
+                    website: '',
+                    address: '',
+                    notes: ''
+                };
+
+                const lines = text.split('\n').filter(line => line.trim().length > 0);
+
+                // Extract email
+                const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+                if (emailMatch) {
+                    data.email = emailMatch[0];
+                }
+
+                // Extract phone numbers
+                const phoneMatches = text.match(/(?:\+?[\d\s\-\(\)]{10,20})/g);
+                if (phoneMatches && phoneMatches.length > 0) {
+                    data.phone = phoneMatches[0].trim();
+                }
+
+                // Extract website
+                const websiteMatch = text.match(/https?:\/\/[^\s]+/g);
+                if (websiteMatch) {
+                    data.website = websiteMatch[0];
+                }
+
+                // Extract name (usually in first few lines, properly capitalized)
+                for (let i = 0; i < Math.min(3, lines.length); i++) {
+                    const line = lines[i].trim();
+                    if (line && /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}$/.test(line)) {
+                        data.name = line;
+                        break;
+                    }
+                }
+
+                // Extract company (look for company patterns)
+                const companyPatterns = [
+                    /(.*?)\s+(Inc\.?|LLC|Corp\.?|Ltd\.?|Company|Co\.?|Corporation|Group|Solutions|Services|Technologies|Tech|Systems)/i,
+                    /^[A-Z][a-zA-Z\s&]+(?:Inc\.?|LLC|Corp\.?|Ltd\.?)$/i
+                ];
+
+                for (const line of lines) {
+                    for (const pattern of companyPatterns) {
+                        const match = line.match(pattern);
+                        if (match && !data.company) {
+                            data.company = line.trim();
+                            break;
+                        }
+                    }
+                    if (data.company) break;
+                }
+
+                // Extract job title (look for common job titles)
+                const jobTitles = ['CEO', 'CTO', 'CFO', 'Manager', 'Director', 'President', 'Vice President', 'VP', 'Senior', 'Lead', 'Head of', 'Chief'];
+                for (const line of lines) {
+                    for (const title of jobTitles) {
+                        if (line.toLowerCase().includes(title.toLowerCase())) {
+                            data.jobTitle = line.trim();
+                            break;
+                        }
+                    }
+                    if (data.jobTitle) break;
+                }
+
+                // Extract address (lines with street patterns)
+                const addressPatterns = [/street/i, /avenue/i, /road/i, /drive/i, /lane/i, /blvd/i, /suite/i, /apt/i];
+                for (const line of lines) {
+                    if (addressPatterns.some(pattern => pattern.test(line))) {
+                        data.address = line.trim();
+                        break;
+                    }
+                }
+
+                return data;
+            }
+
+            displayExtractedData(data) {
+                this.extractedData = data;
+                const resultDiv = document.getElementById('resultDisplay');
+                const dataDiv = document.getElementById('extractedData');
+                
+                let html = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
+                
+                Object.entries(data).forEach(([key, value]) => {
+                    if (value) {
+                        const label = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+                        html += `<div><strong>${label}:</strong> ${value}</div>`;
+                    }
+                });
+                
+                html += '</div>';
+                
+                if (Object.values(data).some(v => v)) {
+                    dataDiv.innerHTML = html;
+                    resultDiv.style.display = 'block';
+                } else {
+                    dataDiv.innerHTML = '<p style="text-align: center; opacity: 0.7;">No data could be extracted from this image.</p>';
+                    resultDiv.style.display = 'block';
+                }
+            }
+
+            useExtractedData() {
+                if (this.extractedData) {
+                    this.populateForm(this.extractedData);
+                    document.getElementById('resultDisplay').style.display = 'none';
+                    this.showStatus('✅ Data applied to form! Review and save.', 'success');
+                }
+            }
+
+            discardData() {
+                this.extractedData = null;
+                document.getElementById('resultDisplay').style.display = 'none';
+                this.showStatus('🗑️ Extracted data discarded', 'info');
+            }
+
+            populateForm(data) {
+                Object.keys(data).forEach(key => {
+                    const element = document.getElementById(key);
+                    if (element && data[key]) {
+                        element.value = data[key];
+                    }
+                });
             }
 
             /**
@@ -1660,276 +1680,9 @@
                 }
             }
 
-            /**
-             * Set the current scan mode and update UI
-             */
-            setScanMode(mode) {
-                this.currentScanMode = mode;
-                this.updateScanModeUI();
-                
-                const modeText = mode === 'qr' ? 'QR Code' : 'Business Card';
-                this.showStatus(`🔄 Switched to ${modeText} scanning mode`, 'info');
-                
-                // Stop camera if running to apply new mode
-                if (this.cameraStarted) {
-                    this.stopCamera();
-                }
-            }
 
-            /**
-             * Restart camera for continued use
-             */
-            async restartCamera() {
-                console.log('Restarting camera...');
-                await this.stopCamera();
-                
-                // Small delay to ensure clean restart
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                // Reset capture state
-                this.isCapturing = false;
-                this.lastScanResult = null;
-                
-                // Restart camera
-                await this.startCamera();
-            }
 
-            /**
-             * Update the scan mode UI buttons
-             */
-            updateScanModeUI() {
-                const qrBtn = document.getElementById('qrModeBtn');
-                const imageBtn = document.getElementById('imageModeBtn');
-                const captureBtn = document.getElementById('captureImage');
-                
-                if (this.currentScanMode === 'qr') {
-                    qrBtn.classList.add('active');
-                    imageBtn.classList.remove('active');
-                    // Enable capture button in QR mode when camera is started
-                    captureBtn.disabled = !this.cameraStarted;
-                } else {
-                    imageBtn.classList.add('active');
-                    qrBtn.classList.remove('active');
-                    // Enable capture button in business card mode when camera is started
-                    captureBtn.disabled = !this.cameraStarted;
-                }
-                
-                console.log('Mode updated:', this.currentScanMode, 'Capture enabled:', !captureBtn.disabled);
-            }
 
-            /**
-             * Capture and analyze image for both QR and business card scanning
-             */
-            async captureAndAnalyzeImage() {
-                console.log('captureAndAnalyzeImage called');
-                
-                // Prevent multiple captures
-                if (this.isCapturing) {
-                    this.showStatus('⏳ Already capturing, please wait...', 'warning');
-                    return;
-                }
-                
-                // Check if camera is started
-                if (!this.cameraStarted) {
-                    this.showStatus('❌ Camera not started. Please start camera first.', 'error');
-                    return;
-                }
-                
-                this.isCapturing = true;
-                
-                try {
-                    const modeText = this.currentScanMode === 'qr' ? 'QR code' : 'business card';
-                    this.showStatus(`📸 Preparing to capture ${modeText}...`, 'info');
-                    
-                    // Show countdown for user feedback
-                    for (let i = 2; i > 0; i--) {
-                        this.showStatus(`📸 Capturing in ${i} seconds...`, 'info');
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                    }
-                    
-                    this.showStatus(`📸 Capturing ${modeText}...`, 'info');
-                    
-                    // Get the video element from html5-qrcode
-                    const videoElement = document.querySelector('#qr-reader video');
-                    console.log('Video element found:', videoElement);
-                    
-                    if (!videoElement) {
-                        this.showStatus('❌ Camera not ready for capture - no video element found', 'error');
-                        this.isCapturing = false;
-                        return;
-                    }
-                    
-                    // Additional check to ensure video is playing
-                    if (videoElement.readyState < 2) {
-                        this.showStatus('⏳ Camera still initializing, please wait...', 'info');
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                    }
-                    
-                    // Create canvas and capture frame
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = videoElement.videoWidth;
-                    canvas.height = videoElement.videoHeight;
-                    
-                    console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
-                    console.log('Video dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
-                    
-                    if (canvas.width === 0 || canvas.height === 0) {
-                        this.showStatus('❌ Video not ready - dimensions are zero', 'error');
-                        this.isCapturing = false;
-                        return;
-                    }
-                    
-                    ctx.drawImage(videoElement, 0, 0);
-                    console.log('Frame captured successfully');
-                    
-                    // Process based on current mode
-                    if (this.currentScanMode === 'qr') {
-                        // QR Mode: Process the captured frame for QR codes
-                        this.showStatus('🔍 Analyzing captured image for QR codes...', 'info');
-                        
-                        // Try to scan QR from the captured canvas
-                        try {
-                            const html5QrCodeFile = new Html5Qrcode();
-                            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
-                            const qrText = await html5QrCodeFile.scanFile(blob, true);
-                            
-                            if (qrText) {
-                                console.log('QR found in captured image:', qrText);
-                                await this.processQRResult(qrText, 'QR Camera Capture');
-                            } else {
-                                this.showStatus('❌ No QR code found in captured image', 'error');
-                            }
-                        } catch (qrError) {
-                            console.log('QR scan failed, trying OCR:', qrError);
-                            this.showStatus('🔄 No QR found, running OCR on captured image...', 'info');
-                            await this.analyzeImageWithOCR(canvas.toDataURL(), 'QR Camera OCR');
-                        }
-                        
-                        this.stopCamera();
-                        this.isCapturing = false;
-                        
-                        // Restart camera for continued use
-                        setTimeout(() => {
-                            this.restartCamera();
-                        }, 1000);
-                        
-                    } else {
-                        // Business Card Mode: Load into editor
-                        canvas.toBlob(async (blob) => {
-                            console.log('Blob created:', blob);
-                            if (blob) {
-                                console.log('Blob size:', blob.size, 'bytes');
-                                console.log('Loading captured image into editor...');
-                                try {
-                                    // Create a file from the blob to load into editor
-                                    const file = new File([blob], 'captured-image.jpg', { type: 'image/jpeg' });
-                                    await this.loadImageIntoEditor(file);
-                                    console.log('Image loaded into editor successfully');
-                                    this.stopCamera();
-                                    
-                                    // Restart camera for continued use
-                                    setTimeout(() => {
-                                        this.restartCamera();
-                                    }, 1000);
-                                } catch (error) {
-                                    console.error('Error loading captured image into editor:', error);
-                                    this.showStatus('❌ Error loading captured image into editor: ' + error.message, 'error');
-                                }
-                            } else {
-                                console.error('Failed to create blob from canvas');
-                                this.showStatus('❌ Failed to create image from camera', 'error');
-                            }
-                            this.isCapturing = false; // Reset capture flag
-                        }, 'image/jpeg', 0.9);
-                    }
-                    
-                } catch (error) {
-                    this.showStatus('❌ Failed to capture image: ' + error.message, 'error');
-                    this.isCapturing = false; // Reset capture flag on error
-                }
-            }
-
-            async startCamera() {
-                // Reset camera state if it was previously stopped
-                if (this.cameraStarted) {
-                    console.log('Camera already started, restarting...');
-                    await this.stopCamera();
-                }
-                
-                if (!this.html5QrCode) {
-                    this.html5QrCode = new Html5Qrcode("qr-reader");
-                }
-
-                document.getElementById('cameraPlaceholder').style.display = 'none';
-                document.getElementById('startCamera').disabled = true;
-                
-                // Enable capture button in both modes when camera is started
-                const captureBtn = document.getElementById('captureImage');
-                captureBtn.disabled = false;
-                console.log('Capture button enabled:', !captureBtn.disabled, 'Mode:', this.currentScanMode);
-                    
-                try {
-                    const devices = await Html5Qrcode.getCameras();
-                    if (devices && devices.length) {
-                        const config = this.currentScanMode === 'qr' 
-                            ? { fps: 10, qrbox: 250 }
-                            : { fps: 10, qrbox: { width: 400, height: 300 } };
-                            
-                        await this.html5QrCode.start(
-                            { facingMode: "environment" },
-                            config,
-                            (decodedText, decodedResult) => {
-                                // Store QR result but don't process automatically
-                                if (this.lastScanResult !== decodedText) {
-                                    this.lastScanResult = decodedText;
-                                    console.log('QR detected:', decodedText);
-                                    // Don't auto-process - wait for capture button
-                                }
-                            },
-                            (errorMessage) => {
-                                // Handle scan errors
-                            }
-                        );
-                        this.cameraStarted = true;
-                        const modeText = this.currentScanMode === 'qr' ? 'QR codes' : 'business cards';
-                        this.showStatus(`📷 Camera started! Point at ${modeText} and click "Capture & Analyze".`, 'success');
-                        
-                        // Add instruction for both modes
-                        setTimeout(() => {
-                            const instruction = this.currentScanMode === 'qr' 
-                                ? 'Click "Capture & Analyze" when QR code is visible'
-                                : 'Click "Capture & Analyze" when business card is positioned';
-                            this.showStatus(`✅ Camera ready! ${instruction}`, 'success');
-                        }, 2000);
-                    } else {
-                        this.showStatus('❌ No camera found.', 'error');
-                    }
-                } catch (err) {
-                    this.showStatus('❌ Camera error: ' + err.message, 'error');
-                }
-            }
-
-            async stopCamera() {
-                if (this.html5QrCode && this.cameraStarted) {
-                    try {
-                        await this.html5QrCode.stop();
-                        this.cameraStarted = false;
-                        document.getElementById('cameraPlaceholder').style.display = 'flex';
-                        document.getElementById('startCamera').disabled = false;
-                        document.getElementById('captureImage').disabled = true;
-                        this.showStatus('⏹️ Camera stopped', 'info');
-                        console.log('Camera stopped successfully');
-                    } catch (error) {
-                        console.error('Error stopping camera:', error);
-                        // Reset state even if stop fails
-                        this.cameraStarted = false;
-                        document.getElementById('cameraPlaceholder').style.display = 'flex';
-                        document.getElementById('startCamera').disabled = false;
-                        document.getElementById('captureImage').disabled = true;
-                    }
-                }
-            }
 
             async captureAndAnalyze() {
                 if (!this.cameraStarted) {
@@ -1971,70 +1724,270 @@
             }
 
             async scanQRCodeFromImage(imageDataUrl) {
+        console.log('Starting enhanced QR code scanning...');
+        
+        try {
+            // Method 1: HTML5-QRCode (most reliable for files)
+            const html5Result = await this.tryHtml5QrCode(imageDataUrl);
+            if (html5Result) {
+                console.log('✅ HTML5-QRCode succeeded');
+                return html5Result;
+            }
+
+            // Method 2: QR-Scanner library (if available)
+            const qrScannerResult = await this.tryQrScanner(imageDataUrl);
+            if (qrScannerResult) {
+                console.log('✅ QR-Scanner succeeded');
+                return qrScannerResult;
+            }
+
+            // Method 3: jsQR with multiple image variations
+            const jsQrResult = await this.tryJsQRWithVariations(imageDataUrl);
+            if (jsQrResult) {
+                console.log('✅ jsQR with variations succeeded');
+                return jsQrResult;
+            }
+
+            // Method 4: Try with different image formats
+            const formatResult = await this.tryDifferentFormats(imageDataUrl);
+            if (formatResult) {
+                console.log('✅ Format conversion succeeded');
+                return formatResult;
+            }
+
+            console.log('❌ All QR scanning methods failed');
+            return null;
+
+        } catch (error) {
+            console.error('QR scanning error:', error);
+            return null;
+        }
+    }
+    async tryHtml5QrCode(imageDataUrl) {
+        if (!this.qrLibraries.html5QrCode) return null;
+
+        try {
+            const html5QrCode = new this.qrLibraries.html5QrCode("qr-reader");
+            
+            // Convert data URL to blob
+            const response = await fetch(imageDataUrl);
+            const blob = await response.blob();
+            
+            // Try with different configurations
+            const configs = [
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                { fps: 10, qrbox: { width: 150, height: 150 } },
+                { fps: 10, qrbox: { width: 350, height: 350 } },
+                { fps: 5, aspectRatio: 1.0 }
+            ];
+
+            for (const config of configs) {
                 try {
-                    // Try html5-qrcode first
-                    const html5QrCodeFile = new Html5Qrcode();
-                    const blob = await (await fetch(imageDataUrl)).blob();
-                    const qrText = await html5QrCodeFile.scanFile(blob, true);
-                    return qrText;
+                    const result = await html5QrCode.scanFile(blob, true);
+                    if (result) return result;
                 } catch (e) {
-                    console.log('html5-qrcode failed, trying jsQR fallback:', e);
-                    // Fallback to jsQR
-                    return new Promise((resolve) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            const ctx = canvas.getContext('2d');
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                            ctx.drawImage(img, 0, 0);
-                            
-                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                            const code = jsQR(imageData.data, imageData.width, imageData.height);
-                            
-                            resolve(code ? code.data : null);
-                        };
-                        img.onerror = () => resolve(null);
-                        img.src = imageDataUrl;
-                    });
+                    continue;
                 }
             }
+            return null;
+        } catch (error) {
+            console.log('HTML5-QRCode failed:', error);
+            return null;
+        }
+    }
+    async tryQrScanner(imageDataUrl) {
+        if (!this.qrLibraries.qrScanner) return null;
 
-            async processQRResult(qrText, source, imageData = null) {
-                console.log('Processing QR result:', qrText);
-                const clientData = this.parseQRData(qrText);
-                console.log('Extracted client data:', clientData);
+        try {
+            const img = await this.createImageFromDataUrl(imageDataUrl);
+            const result = await this.qrLibraries.qrScanner.scanImage(img);
+            return result;
+        } catch (error) {
+            console.log('QR-Scanner failed:', error);
+            return null;
+        }
+    }async tryJsQRWithVariations(imageDataUrl) {
+        if (!this.qrLibraries.jsQR) return null;
+
+        try {
+            const img = await this.createImageFromDataUrl(imageDataUrl);
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            // Create multiple image variations
+            const variations = await this.createImageVariations(canvas, ctx);
+
+            // Try each variation
+            for (let i = 0; i < variations.length; i++) {
+                const imageData = variations[i];
+                const code = this.qrLibraries.jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert"
+                });
                 
-                if (clientData.name || clientData.email || clientData.phone) {
-                    // Add image data to client data
-                    if (imageData) {
-                        clientData.imageData = imageData;
-                    }
-                    await this.addClientWithLinkedInSearch(clientData, source);
-                    this.showStatus('✅ Client data extracted and added successfully! Source: ' + source, 'success');
-                } else {
-                    this.showStatus('🔄 QR found but no contact info, running OCR...', 'info');
-                    // For file uploads, we need to get the original image data for OCR
-                    // This will be handled in the calling method
-                    return false; // Indicate no contact info found
+                if (code && code.data) {
+                    console.log(`jsQR succeeded with variation ${i}`);
+                    return code.data;
                 }
-                return true; // Indicate contact info was found
             }
 
-            handleFileUpload(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    // Load image into editor first
-                    this.loadImageIntoEditor(file).then(() => {
-                        this.showStatus('🖼️ Image loaded in editor. Edit the image or click "Process Image" to extract data.', 'info');
-                    }).catch(error => {
-                        console.error('Error loading image into editor:', error);
-                        this.showStatus('❌ Error loading image into editor', 'error');
-                    });
-                    // Clear the file input to allow re-uploading the same file
-                    event.target.value = '';
+            // Try with inversionAttempts
+            const originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const codeWithInversion = this.qrLibraries.jsQR(
+                originalImageData.data, 
+                originalImageData.width, 
+                originalImageData.height, 
+                {
+                    inversionAttempts: "attemptBoth"
+                }
+            );
+            
+            if (codeWithInversion && codeWithInversion.data) {
+                console.log('jsQR succeeded with inversion attempts');
+                return codeWithInversion.data;
+            }
+
+            return null;
+        } catch (error) {
+            console.log('jsQR with variations failed:', error);
+            return null;
+        }
+    }
+
+    async tryDifferentFormats(imageDataUrl) {
+        try {
+            const img = await this.createImageFromDataUrl(imageDataUrl);
+            const formats = ['image/png', 'image/jpeg', 'image/webp'];
+            
+            for (const format of formats) {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    
+                    const newDataUrl = canvas.toDataURL(format, 0.95);
+                    const result = await this.tryJsQRWithVariations(newDataUrl);
+                    
+                    if (result) {
+                        console.log(`Format conversion to ${format} succeeded`);
+                        return result;
+                    }
+                } catch (formatError) {
+                    continue;
                 }
             }
+            return null;
+        } catch (error) {
+            console.log('Format conversion failed:', error);
+            return null;
+        }
+    }
+    preprocessImage(canvas, ctx) {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Convert to grayscale and increase contrast
+        for (let i = 0; i < data.length; i += 4) {
+            const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+            
+            // Increase contrast
+            const contrast = 1.5;
+            const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+            const enhancedGray = Math.min(255, Math.max(0, factor * (gray - 128) + 128));
+            
+            data[i] = enhancedGray;     // Red
+            data[i + 1] = enhancedGray; // Green
+            data[i + 2] = enhancedGray; // Blue
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+        return imageData;
+    }
+
+    // Create multiple variations of the image for better detection
+    async createImageVariations(originalCanvas, originalCtx) {
+        const variations = [];
+        const width = originalCanvas.width;
+        const height = originalCanvas.height;
+
+        // Original image
+        variations.push(originalCtx.getImageData(0, 0, width, height));
+
+        // Preprocessed image
+        const preprocessedCanvas = document.createElement('canvas');
+        const preprocessedCtx = preprocessedCanvas.getContext('2d');
+        preprocessedCanvas.width = width;
+        preprocessedCanvas.height = height;
+        preprocessedCtx.drawImage(originalCanvas, 0, 0);
+        variations.push(this.preprocessImage(preprocessedCanvas, preprocessedCtx));
+
+        // Inverted image (for cases where QR code is white on black)
+        const invertedCanvas = document.createElement('canvas');
+        const invertedCtx = invertedCanvas.getContext('2d');
+        invertedCanvas.width = width;
+        invertedCanvas.height = height;
+        invertedCtx.drawImage(originalCanvas, 0, 0);
+        const invertedImageData = invertedCtx.getImageData(0, 0, width, height);
+        const invertedData = invertedImageData.data;
+        
+        for (let i = 0; i < invertedData.length; i += 4) {
+            invertedData[i] = 255 - invertedData[i];         // Red
+            invertedData[i + 1] = 255 - invertedData[i + 1]; // Green
+            invertedData[i + 2] = 255 - invertedData[i + 2]; // Blue
+        }
+        invertedCtx.putImageData(invertedImageData, 0, 0);
+        variations.push(invertedImageData);
+
+        // Scaled versions for small QR codes
+        if (width > 400 || height > 400) {
+            const scaledCanvas = document.createElement('canvas');
+            const scaledCtx = scaledCanvas.getContext('2d');
+            scaledCanvas.width = width * 1.5;
+            scaledCanvas.height = height * 1.5;
+            scaledCtx.imageSmoothingEnabled = false;
+            scaledCtx.drawImage(originalCanvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+            variations.push(scaledCtx.getImageData(0, 0, scaledCanvas.width, scaledCanvas.height));
+        }
+
+        return variations;
+    }
+
+    createImageFromDataUrl(dataUrl) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = dataUrl;
+        });
+    }
+
+
+    validateClientData(clientData) {
+        if (!clientData || typeof clientData !== 'object') {
+            return false;
+        }
+
+        // Check if at least one valid contact field exists
+        const hasName = clientData.name && clientData.name.trim().length > 0;
+        const hasEmail = clientData.email && this.isValidEmail(clientData.email);
+        const hasPhone = clientData.phone && clientData.phone.trim().length > 0;
+
+        return hasName || hasEmail || hasPhone;
+    }
+
+    isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+
+
 
             /**
              * Process business card with AI vision for better accuracy
@@ -2325,12 +2278,12 @@
             }
 
             /**
-             * Extract business card data using AI vision
+             * Extract business card data using enhanced OCR
              */
-            async extractBusinessCardDataWithAI(base64Image) {
+            async extractBusinessCardDataWithOCR(base64Image) {
                 try {
                     // Show processing status
-                    this.showStatus('🤖 AI processing image with enhanced OCR...', 'info');
+                    this.showStatus('🔍 Processing image with enhanced OCR...', 'info');
                     
                     // Create a temporary canvas to process the image
                     const canvas = document.createElement('canvas');
@@ -2347,16 +2300,16 @@
                             Tesseract.recognize(canvas, 'eng', {
                                 logger: m => {
                                     if (m.status === 'recognizing text') {
-                                        this.showStatus(`🤖 AI Processing: ${Math.round(m.progress * 100)}%`, 'info');
+                                        this.showStatus(`🔍 OCR Processing: ${Math.round(m.progress * 100)}%`, 'info');
                                     }
                                 },
                                 // Enhanced OCR settings for business cards
                                 tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@.-_+() ',
                                 preserve_interword_spaces: '1'
                             }).then(({ data: { text } }) => {
-                                console.log('AI OCR Text:', text);
+                                console.log('OCR Text:', text);
                                 
-                                // Enhanced extraction with AI-like patterns
+                                // Enhanced extraction with improved patterns
                                 const clientData = this.extractBusinessCardDataFromText(text);
                                 
                                 // Verify extracted data quality
@@ -2364,17 +2317,17 @@
                                 console.log('Data verification score:', verificationScore);
                                 
                                 if (verificationScore >= 0.6) {
-                                    this.showStatus('✅ AI extraction completed with high confidence', 'success');
+                                    this.showStatus('✅ OCR extraction completed with high confidence', 'success');
                                 } else if (verificationScore >= 0.3) {
-                                    this.showStatus('⚠️ AI extraction completed with medium confidence', 'info');
+                                    this.showStatus('⚠️ OCR extraction completed with medium confidence', 'info');
                                 } else {
-                                    this.showStatus('❌ AI extraction completed with low confidence', 'warning');
+                                    this.showStatus('❌ OCR extraction completed with low confidence', 'warning');
                                 }
                                 
                                 resolve(clientData);
                             }).catch(error => {
-                                console.error('AI OCR Error:', error);
-                                this.showStatus('❌ AI processing failed, trying fallback...', 'error');
+                                console.error('OCR Error:', error);
+                                this.showStatus('❌ OCR processing failed', 'error');
                                 resolve(null);
                             });
                         };
@@ -2382,7 +2335,7 @@
                     });
                     
                 } catch (error) {
-                    console.error('AI extraction error:', error);
+                    console.error('OCR extraction error:', error);
                     return null;
                 }
             }
@@ -2579,223 +2532,9 @@
 
 
 
-            async processImageFile(file) {
-                console.log('Processing file:', file.name, file.type);
-                
-                if (!file.type.startsWith('image/')) {
-                    this.showStatus('❌ Please upload a valid image file.', 'error');
-                    return;
-                }
 
-                // Clear file input to allow re-uploading the same file
-                this.clearFileInput();
 
-                // Add timestamp to ensure unique processing
-                const timestamp = Date.now();
-                console.log(`Processing file at timestamp: ${timestamp}`);
 
-                this.showProcessing(true);
-                this.showStatus(`🔍 Analyzing image for QR codes and text... (${timestamp})`, 'info');
-                
-                try {
-                    // Try QR scan from file using html5-qrcode
-                    const html5QrCodeFile = new Html5Qrcode();
-                    const qrText = await html5QrCodeFile.scanFile(file, true);
-                    
-                    if (qrText) {
-                        console.log('QR found:', qrText);
-                        // Convert file to base64 for image storage
-                        const base64Image = await this.fileToBase64(file);
-                        const contactFound = await this.processQRResult(qrText, 'File QR', base64Image);
-                        if (!contactFound) {
-                            // QR found but no contact info, run OCR on the file
-                            console.log('No contact info in QR, running OCR on file');
-                const reader = new FileReader();
-                            reader.onload = async (ev) => {
-                                await this.analyzeImageWithOCR(ev.target.result, 'File OCR', base64Image);
-                };
-                reader.readAsDataURL(file);
-                        }
-                    } else {
-                        console.log('No QR found, trying OCR');
-                        this.showStatus('🔄 No QR found, running OCR...', 'info');
-                        const reader = new FileReader();
-                        reader.onload = async (ev) => {
-                            await this.analyzeImageWithOCR(ev.target.result, 'File OCR');
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                } catch (err) {
-                    console.log('html5-qrcode file scan failed, trying jsQR fallback:', err);
-                    // Fallback to jsQR for file scanning
-                    try {
-                        const reader = new FileReader();
-                        reader.onload = async (ev) => {
-                            const qrResult = await this.scanQRCodeFromImage(ev.target.result);
-                    if (qrResult) {
-                                console.log('QR found with jsQR fallback:', qrResult);
-                                const contactFound = await this.processQRResult(qrResult, 'File QR (jsQR)', ev.target.result);
-                                if (!contactFound) {
-                                    // QR found but no contact info, run OCR
-                                    console.log('No contact info in QR, running OCR');
-                                    await this.analyzeImageWithOCR(ev.target.result, 'File OCR', ev.target.result);
-                                }
-                        } else {
-                                console.log('No QR found with jsQR, trying OCR');
-                                this.showStatus('🔄 No QR found, running OCR...', 'info');
-                                await this.analyzeImageWithOCR(ev.target.result, 'File OCR', ev.target.result);
-                            }
-                        };
-                        reader.readAsDataURL(file);
-                    } catch (fallbackErr) {
-                        console.error('Both QR methods failed:', fallbackErr);
-                        this.showStatus('❌ Error analyzing file: ' + (fallbackErr.message || 'Unknown error'), 'error');
-                    }
-                } finally {
-                    this.showProcessing(false);
-                }
-            }
-
-            parseQRData(qrText) {
-                const clientData = { name: '', email: '', phone: '', company: '', notes: '' };
-                console.log('Parsing QR text:', qrText);
-                
-                // Initialize the efficient name extractor
-                const nameExtractor = new EfficientNameExtractor();
-                
-                // Check if it's a vCard format
-                if (qrText.startsWith('BEGIN:VCARD')) {
-                    console.log('Detected vCard format');
-                    const lines = qrText.split('\n');
-                    lines.forEach(line => {
-                        const cleanLine = line.trim();
-                        if (cleanLine.startsWith('FN:')) clientData.name = cleanLine.substring(3);
-                        if (cleanLine.startsWith('N:')) {
-                            const nameParts = cleanLine.substring(2).split(';');
-                            if (!clientData.name && nameParts.length >= 2) {
-                                clientData.name = `${nameParts[1]} ${nameParts[0]}`.trim();
-                            }
-                        }
-                        if (cleanLine.startsWith('EMAIL:') || cleanLine.includes('EMAIL:')) {
-                            const emailMatch = cleanLine.match(/EMAIL[^:]*:(.*)/i);
-                            if (emailMatch) clientData.email = emailMatch[1].trim();
-                        }
-                        if (cleanLine.startsWith('TEL:') || cleanLine.includes('TEL:')) {
-                            const telMatch = cleanLine.match(/TEL[^:]*:(.*)/i);
-                            if (telMatch) clientData.phone = telMatch[1].trim();
-                        }
-                        if (cleanLine.startsWith('ORG:')) clientData.company = cleanLine.substring(4);
-                    });
-                } else {
-                    console.log('Parsing as plain text with enhanced extraction');
-                    
-                    // Extract all possible emails and phones
-                    const allEmails = this.extractEmails(qrText);
-                    const allPhones = this.extractPhoneNumbers(qrText);
-                    
-                    // Select the best email and phone
-                    if (allEmails.length > 0) {
-                        clientData.email = allEmails[0];
-                        console.log('Found primary email:', clientData.email);
-                        
-                        // If we have multiple emails, consider adding secondary to notes
-                        if (allEmails.length > 1) {
-                            clientData.notes = `Additional emails: ${allEmails.slice(1).join(', ')}`;
-                            console.log('Found additional emails:', allEmails.slice(1));
-                        }
-                    }
-                    
-                    if (allPhones.length > 0) {
-                        clientData.phone = allPhones[0];
-                        console.log('Found primary phone:', clientData.phone);
-                        
-                        // If we have multiple phones, consider adding secondary to notes
-                        if (allPhones.length > 1) {
-                            const phoneNote = `Additional phones: ${allPhones.slice(1).join(', ')}`;
-                            clientData.notes = clientData.notes 
-                                ? `${clientData.notes}; ${phoneNote}`
-                                : phoneNote;
-                            console.log('Found additional phones:', allPhones.slice(1));
-                        }
-                    }
-                    
-                    // Extract name with context awareness
-                    clientData.name = this.extractNameWithContext(qrText);
-                    if (clientData.name) {
-                        console.log('Found name with context:', clientData.name);
-                    }
-                    
-                    // Enhanced company extraction for QR codes
-                    const lines = qrText.split('\n').filter(line => line.trim().length > 0);
-                    const companyPatterns = [
-                        // vCard ORG field (highest priority)
-                        /^ORG:(.+)$/i,
-                        // Company patterns with suffixes
-                        /(.*?)\s+(Inc\.?|LLC|Corp\.?|Ltd\.?|Company|Co\.?|Corporation|Group|Solutions|Services|Technologies|Tech|Systems|Associates|Partners|Consulting)(?!\w)/i,
-                        // Standalone company names
-                        /^[A-Z][a-zA-Z\s&]+(?:Inc\.?|LLC|Corp\.?|Ltd\.?)$/i,
-                        // Lines that look like company names (no email/phone patterns)
-                        /^[A-Z][a-zA-Z\s&]{2,}$/i
-                    ];
-                    
-                    for (const line of lines) {
-                        const cleanLine = line.trim();
-                        
-                        // Skip if line contains email or phone patterns
-                        if (cleanLine.includes('@') || /\d{7,}/.test(cleanLine)) {
-                            continue;
-                        }
-                        
-                        for (const pattern of companyPatterns) {
-                            const match = cleanLine.match(pattern);
-                            if (match && !clientData.company) {
-                                let companyName = match[1] || match[0];
-                                // Clean up the company name
-                                companyName = companyName.replace(/^ORG:\s*/i, '').trim();
-                                if (companyName.length > 2) {
-                                    clientData.company = companyName;
-                                    console.log('Found company:', clientData.company);
-                                    break;
-                                }
-                            }
-                        }
-                        if (clientData.company) break;
-                    }
-                    
-                    // If we have email but no name, try to extract name from email prefix
-                    if (clientData.email && !clientData.name) {
-                        const emailPrefix = clientData.email.split('@')[0];
-                        const nameFromEmail = emailPrefix
-                            .replace(/[^a-zA-Z]/g, ' ')
-                            .replace(/\s+/g, ' ')
-                            .trim();
-                        
-                        if (nameFromEmail.split(' ').length <= 3) {
-                            const nameCheck = nameExtractor.extractName(nameFromEmail);
-                            if (nameCheck.confidence >= 4) {
-                                clientData.name = nameCheck.name;
-                                console.log('Extracted name from email:', clientData.name);
-                            }
-                        }
-                    }
-                    
-                    // Check if it's just a URL or error code (no contact info)
-                    const isUrl = qrText.match(/^https?:\/\//);
-                    const isErrorCode = qrText.match(/^(ERROR|FAIL|INVALID)/i);
-                    
-                    if (isUrl && !clientData.name && !clientData.email && !clientData.phone) {
-                        // If it's just a URL, try to extract domain as company
-                        const domainMatch = qrText.match(/https?:\/\/([^\/]+)/);
-                        if (domainMatch) {
-                            clientData.company = domainMatch[1].replace('www.', '');
-                            console.log('Extracted company from URL:', clientData.company);
-                        }
-                    }
-                }
-                
-                console.log('Final extracted data:', clientData);
-                return clientData;
-            }
 
             /**
              * Optimized phone number extraction with multiple number handling
@@ -3164,22 +2903,12 @@
             async analyzeImageWithOCR(imageData, source, storedImageData = null) {
                 try {
                     console.log('Starting OCR analysis for source:', source);
-                    this.showStatus('🤖 Performing text recognition...', 'info');
+                    this.showStatus('🔍 Performing text recognition...', 'info');
                     
-                    const { data: { text } } = await Tesseract.recognize(imageData, 'eng', {
-                        logger: m => {
-                            if (m.status === 'recognizing text') {
-                                this.showStatus(`🔍 OCR Progress: ${Math.round(m.progress * 100)}%`, 'info');
-                            }
-                        }
-                    });
+                    // Use the enhanced OCR method
+                    const clientData = await this.extractBusinessCardDataWithOCR(imageData);
                     
-                    console.log('OCR text extracted:', text);
-                    const clientData = this.extractClientDataFromText(text);
-                    console.log('Extracted client data:', clientData);
-                    
-                    // Allow adding if at least email, name, or phone is found
-                    if (clientData.email || clientData.name || clientData.phone) {
+                    if (clientData && (clientData.email || clientData.name || clientData.phone)) {
                         console.log('Contact info found, adding client...');
                         // Add image data to client data
                         if (storedImageData) {
@@ -3281,19 +3010,28 @@
             }
 
             addClient(clientData) {
-                const client = {
-                    id: Date.now(),
-                    ...clientData,
-                    timestamp: new Date().toLocaleString(),
-                    imageData: clientData.imageData || null, // Store the image data
-                    notes: clientData.notes || '' // Add notes field
-                };
-                
-                this.clients.push(client);
-                this.saveClients();
-                this.updateClientStats();
-            }
+    // Validate the client data
+    if (!this.validateClientData(clientData)) {
+        console.error('Invalid client data:', clientData);
+        this.showStatus('❌ Invalid client data - not saved', 'error');
+        return;
+    }
 
+    const client = {
+        id: Date.now(),
+        ...clientData,
+        timestamp: new Date().toLocaleString(),
+        imageData: clientData.imageData || null,
+        notes: clientData.notes || ''
+    };
+    
+    this.clients.push(client);
+    this.saveClients();
+    this.updateClientStats();
+    
+    console.log('Client added:', client);
+    this.showStatus(`✅ Client ${client.name || ''} added successfully!`, 'success');
+}
             updateClientStats() {
                 const stats = document.getElementById('clientStats');
                 if (!stats) {
@@ -3530,53 +3268,13 @@
                 document.getElementById('processing').style.display = show ? 'block' : 'none';
             }
 
-            // ===== IMAGE EDITOR METHODS =====
+
             
-            initializeImageEditor() {
-                this.editorCanvas = document.getElementById('editorCanvas');
-                this.editorCtx = this.editorCanvas.getContext('2d');
-            }
 
-            /**
-             * Load image into editor
-             */
-            loadImageIntoEditor(imageFile) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            this.originalImage = img;
-                            this.currentImage = img;
-                            this.rotation = 0;
-                            this.brightness = 0;
-                            this.resetEditor();
-                            this.renderImage();
-                            this.showImageEditor();
-                            resolve();
-                        };
-                        img.onerror = reject;
-                        img.src = e.target.result;
-                    };
-                    reader.onerror = reject;
-                    reader.readAsDataURL(imageFile);
-                });
-            }
 
-            /**
-             * Show the image editor
-             */
-            showImageEditor() {
-                document.getElementById('imageEditor').style.display = 'block';
-                this.showStatus('🖼️ Image loaded in editor. Use the controls to enhance the image.', 'info');
-            }
 
-            /**
-             * Hide the image editor
-             */
-            hideImageEditor() {
-                document.getElementById('imageEditor').style.display = 'none';
-            }
+
+
 
             /**
              * Render the current image with all applied effects
@@ -4068,6 +3766,13 @@
 
         }
 
+        // Cleanup function for camera
+        function cleanupCamera() {
+            if (window.app && window.app.html5QrCode && window.app.cameraStarted) {
+                window.app.stopCamera();
+            }
+        }
+
         // Initialize the application when the page loads
         document.addEventListener('DOMContentLoaded', () => {
             try {
@@ -4084,7 +3789,7 @@
                     console.warn('Missing elements:', missingElements);
                 }
                 
-                new ExhibitionCardReaderPro();
+                window.app = new ExhibitionCardReaderPro();
                 console.log('🚀 Exhibition Card Reader Pro initialized successfully!');
             } catch (error) {
                 console.error('❌ Error initializing application:', error);
@@ -4107,6 +3812,10 @@
                 `;
             }
         });
+
+        // Add cleanup on page unload
+        window.addEventListener('beforeunload', cleanupCamera);
+        window.addEventListener('pagehide', cleanupCamera);
 
         // Add some helpful keyboard shortcuts
         document.addEventListener('keydown', (e) => {

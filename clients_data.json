@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1754304489.735577,
+    "name": "Sample Contact",
+    "email": "sample@example.com",
+    "phone": "+1-555-0123",
+    "company": "Sample Company",
+    "website": "",
+    "job_title": "",
+    "linkedin": "",
+    "category": "",
+    "notes": "",
+    "source": "Manual Entry",
+    "timestamp": "2025-08-04T16:18:09.735594",
+    "confidence": 0
+  },
+  {
+    "id": 1754304572.080167,
+    "name": "Sample Contact",
+    "email": "sample@example.com",
+    "phone": "+1-555-0123",
+    "company": "Sample Company",
+    "website": "",
+    "job_title": "",
+    "linkedin": "",
+    "category": "",
+    "notes": "",
+    "source": "Manual Entry",
+    "timestamp": "2025-08-04T16:19:32.080177",
+    "confidence": 0
+  }
+]
