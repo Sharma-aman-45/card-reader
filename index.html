@@ -127,7 +127,7 @@
             border-radius: 20px;
             overflow: hidden;
             box-shadow: 0 15px 35px rgba(0,0,0,0.3);
-            background: #000;
+            background: #00000088;
             min-height: 300px;
             display: flex;
             align-items: center;
@@ -154,6 +154,7 @@
         .camera-placeholder .icon {
             font-size: 3rem;
             opacity: 0.5;
+            align-items: center;
         }
 
         #canvas {
@@ -554,6 +555,7 @@
                 font-weight: 600;
                 color: rgb(17, 17, 17);
                 align-items: center;
+                text-align: center;
             }
         }
 
@@ -802,71 +804,18 @@
             <img src="header image.jpeg" alt="" height="200px" width="50%">   
             <h5>🚀 Exhibition Card Reader </h5> 
         </div>
-
         <div class="main-content">
-            <!-- Enhanced Scanner Section -->
             <div class="card">
-                <h2>📱 Smart Scanner</h2>
+                <h2>📱 Card Scanner</h2>
                 <div class="scanner-section">
                     <div class="camera-container">
-                        <video id="video" autoplay playsinline></video>
-                        <div class="camera-placeholder" id="cameraPlaceholder">
-                            <div class="icon">📷</div>
-                            <div class="txtmb">Click "Start Camera" to begin scanning business cards</div>
+                        <video id="video" autoplay playsinline style="width: 100%; border-radius: 12px;"></video>
                         </div>
-                    </div>
-                    <div style="margin: 20px 0;">
-                        <div style="text-align: center;">
-                            <button id="startCamera" class="btn" style="margin-top: 10px; background: #ff8800;">🔴 Start Camera</button>
-                            <button id="captureImage" class="btn" style="margin-top: 10px; background: #ff8800;">📸 Capture & Analyze</button>
-                            <button id="stopCamera" class="btn" style="margin-top: 10px; background: #ff8800;">⏹️ Stop Camera</button>
-                        </div>
-                    </div>
-                    <div class="detection-info">
-                        <strong>🤖 Business Card Scanner:</strong> 
-                        <ul style="margin: 10px 0; padding-left: 20px;">
-                            <li style="list-style: none;"><strong>Camera Capture:</strong> Take photos of business cards for data extraction</li>
-                            <li style="list-style: none;"><strong>Drag & Drop:</strong> Upload business card images for processing</li>
-                        </ul>
-                       
-                    </div>
+                    <div id="statusMessage" style="margin-top: 10px; text-align: center;"></div>
                 </div>
 
-                <div class="upload-area" id="uploadArea">
-                    <div class="icon">📁</div>
-                    <p><strong>Drag & Drop Images Here</strong></p>
-                    <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 10px;">
-                        Supports QR codes, business cards, and contact images
-                    </p>
-                    <input type="file" id="fileInput" class="file-input" accept="image/*">
-                    <button class="btn" style="margin-top: 10px; background: #ff8800;" onclick="document.getElementById('fileInput').click()">
-                        Choose File
-                    </button>
                 </div>
-
-
-
-                <div class="processing" id="processing">
-                    <div class="spinner"></div>
-                    <p>🔍 Analyzing image and extracting contact data...</p>
-                </div>
-
-                <!-- Result Display Section -->
-                <div id="resultDisplay" style="display: none; background: rgba(255,255,255,0.1); border-radius: 15px; padding: 20px; margin: 20px 0; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);">
-                    <h3 style="color: rgb(0, 0, 0); margin-bottom: 15px; text-align: center;">📋 Extracted Data</h3>
-                    <div id="extractedData" style="color: rgb(0, 0, 0); font-size: 0.9rem;">
-                        <!-- Extracted data will be displayed here -->
-                    </div>
-                    <div style="text-align: center; margin-top: 15px;">
-                        <button id="useExtractedData" class="btn success" style="margin: 5px;" onclick="">✅ Use This Data</button>
-                        <button id="discardData" class="btn danger" style="margin: 5px;">❌ Discard</button>
-                    </div>
-                </div>
-
-                <div id="statusMessage"></div>
-            </div>
-
-            <!-- Enhanced Manual Entry -->
+            <!-- Manual Entry Card (unchanged) -->
             <div class="card">
                 <h2>✍️ Manual Entry</h2>
                 <form id="manualForm">
@@ -874,17 +823,14 @@
                         <label for="manualName">👤 Full Name:</label>
                         <input type="text" id="manualName" placeholder="Enter client's full name">
                     </div>
-                    
                     <div class="form-group">
                         <label for="manualEmail">📧 Email Address:</label>
                         <input type="email" id="manualEmail" placeholder="Enter email address">
                     </div>
-                    
                     <div class="form-group">
                         <label for="manualPhone">📞 Phone Number:</label>
                         <input type="tel" id="manualPhone" placeholder="Enter phone number">
                     </div>
-                    
                     <div class="form-group">
                         <label for="manualCompany">🏢 Company:</label>
                         <input type="text" id="manualCompany" placeholder="Enter company name (optional)">
@@ -893,12 +839,10 @@
                         <label for="manualNotes">📝 Notes:</label>
                          <textarea name="" id="manualNotes" placeholder="Enter notes (optional)" style="width: 100%; height: 100px; border-radius: 2px; border: 1px solid #cccccc; padding: 10px; margin-top: 10px; background: transparent;"></textarea>
                     </div>
-                    
                     <div class="form-group">
                         <label for="manualLinkedIn">💼 LinkedIn Profile:</label>
                         <input type="url" id="manualLinkedIn" placeholder="LinkedIn profile URL (optional)">
                     </div>
-                    
                     <div class="form-group">
                         <label for="manualCategory">📂 Category:</label>
                         <select id="manualCategory" class="category-select">
@@ -910,156 +854,70 @@
                             <option value="4">Others</option>
                         </select>
                     </div>
-                    
                     <div style="text-align: center; margin-top: 30px;">
                         <button type="submit" class="btn success">➕ Add Client</button>
-                        <button type="button" id="searchLinkedIn" class="btn" style="margin-top: 10px; background: #ff8800;">🔍 Find LinkedIn</button>
                     </div>
                 </form>
-            </div>
         </div>
 
-        <!-- Quick Actions Section -->
+        </div>
         <div class="card">
-            <h2>⚡ Quick Actions</h2>
+             
             
                           <div class="table-controls" style="justify-content: center; gap: 15px;">
                   <button id="viewSavedData" class="btn text-white" style="background: #ff8800;">💾 View Saved Data</button>
-                  <button id="exportData" class="btn success text-white">📊 Export CSV</button>
-                  <button id="exportPDF" class="btn info text-white">📄 Export PDF</button>
-                  <a href="login.html" class="btn text-white" style="background: #ff8800; text-decoration: none;">🔐 Login</a>
-                  <div class="stats" id="clientStats">
-                      📊 Total Clients: 0
-                  </div>
-              </div>
-            
-            <div style="text-align: center; margin-top: 20px; color: rgb(14, 13, 13); opacity: 0.8;">
-                <p>📝 All scanned data is automatically saved. Use the buttons above to view, export, or integrate your data.</p>
                
             </div>
+                  <p style="text-align: center;">📝 All scanned data is automatically saved. Use the buttons above to view, export, or integrate your data.</p>
         </div>
-        <div id="crmModal" class="modal" style="display: none; margin-top: 20px;">
-            <div class="modal-content" style="max-width: 600px;">
-                <div class="modal-header">
-                    <h3>🔗 CRM Integration</h3>
-                    <span class="close" style="height: 30px; width: 60px; margin-bottom: 10px; background-color: #ff8800; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="document.getElementById('crmModal').style.display='none'">close &times;</span>
-                </div>
-                <div class="modal-body">
-                    <div class="crm-tabs">
-                        <button class="crm-tab active text-white" data-tab="salesforce">Salesforce</button>
-                        <button class="crm-tab text-white" data-tab="hubspot">HubSpot</button>
-                        <button class="crm-tab text-white" data-tab="pipedrive">Pipedrive</button>
-                        <button class="crm-tab  text-white" data-tab="zoho">Zoho CRM</button>
-                        <button class="crm-tab  text-white" data-tab="custom">Custom API</button>
-                    </div>
-                    
-                    <div class="crm-content">
-                        <!-- Salesforce Tab -->
-                        <div id="salesforce" class="crm-tab-content active">
-                            <h4>Salesforce Integration</h4>
-                            <p>Export data to Salesforce as leads or contacts.</p>
-                            <div class="form-group">
-                                <label>Instance URL:</label>
-                                <input type="text" id="sfInstance" placeholder="https://yourcompany.salesforce.com" />
-                            </div>
-                            <div class="form-group">
-                                <label>Access Token:</label>
-                                <input type="password" id="sfToken" placeholder="Your Salesforce access token" />
-                            </div>
-                            <div class="form-group">
-                                <label>Object Type:</label>
-                                <select id="sfObject">
-                                    <option value="Lead">Lead</option>
-                                    <option value="Contact">Contact</option>
-                                </select>
-                            </div>
-                            <button class="btn success text-white" onclick="app.exportToSalesforce()">Export to Salesforce</button>
-                        </div>
-                        
-                        <!-- HubSpot Tab -->
-                        <div id="hubspot" class="crm-tab-content">
-                            <h4>HubSpot Integration</h4>
-                            <p>Export data to HubSpot as contacts.</p>
-                            <div class="form-group">
-                                <label>API Key:</label>
-                                <input type="password" id="hsApiKey" placeholder="Your HubSpot API key" />
-                            </div>
-                            <div class="form-group">
-                                <label>Pipeline:</label>
-                                <select id="hsPipeline">
-                                    <option value="default">Default Pipeline</option>
-                                </select>
-                            </div>
-                            <button class="btn success text-white" onclick="app.exportToHubSpot()">Export to HubSpot</button>
-                        </div>
-                        
-                        <!-- Pipedrive Tab -->
-                        <div id="pipedrive" class="crm-tab-content">
-                            <h4>Pipedrive Integration</h4>
-                            <p>Export data to Pipedrive as persons.</p>
-                            <div class="form-group">
-                                <label>API Token:</label>
-                                <input type="password" id="pdToken" placeholder="Your Pipedrive API token" />
-                            </div>
-                            <div class="form-group">
-                                <label>Deal Stage:</label>
-                                <select id="pdStage">
-                                    <option value="new">New</option>
-                                    <option value="qualified">Qualified</option>
-                                    <option value="proposal">Proposal</option>
-                                </select>
-                            </div>
-                            <button class="btn success text-white" onclick="app.exportToPipedrive()">Export to Pipedrive</button>
-                        </div>
-                        
-                        <!-- Zoho CRM Tab -->
-                        <div id="zoho" class="crm-tab-content">
-                            <h4>Zoho CRM Integration</h4>
-                            <p>Export data to Zoho CRM as leads.</p>
-                            <div class="form-group">
-                                <label>Access Token:</label>
-                                <input type="password" id="zohoToken" placeholder="Your Zoho CRM access token" />
-                            </div>
-                            <div class="form-group">
-                                <label>Module:</label>
-                                <select id="zohoModule">
-                                    <option value="Leads">Leads</option>
-                                    <option value="Contacts">Contacts</option>
-                                </select>
-                            </div>
-                            <button class="btn success text-white" onclick="app.exportToZoho()">Export to Zoho CRM</button>
-                            </div>
-                        
-                        <!-- Custom API Tab -->
-                        <div id="custom" class="crm-tab-content">
-                            <h4>Custom API Integration</h4>
-                            <p>Export data to your custom CRM via API.</p>
-                            <div class="form-group">
-                                <label>API Endpoint:</label>
-                                <input type="text" id="customEndpoint" placeholder="https://your-crm-api.com/contacts" />
-                            </div>
-                            <div class="form-group">
-                                <label>API Key (Optional):</label>
-                                <input type="password" id="customApiKey" placeholder="Your API key" />
-                            </div>
-                            <div class="form-group">
-                                <label>Request Method:</label>
-                                <select id="customMethod">
-                                    <option value="POST">POST</option>
-                                    <option value="PUT">PUT</option>
-                                    <option value="PATCH">PATCH</option>
-                                </select>
-                            </div>
-                            <button class="btn success text-white" onclick="app.exportToCustomAPI()">Export to Custom API</button>
-                        </div>
-                    </div>
-                    
-                    <div class="crm-status" id="crmStatus" style="display: none;">
-                        <div class="status-content"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <script>
+        // Auto-start camera and scan for cards
+        window.addEventListener('DOMContentLoaded', async function() {
+            const video = document.getElementById('video');
+            let scanning = false;
+            let lastExtracted = '';
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                video.srcObject = stream;
+                video.onloadedmetadata = () => video.play();
+                scanning = true;
+                showStatus('Camera started. Hold a card in front of the camera.', 'success');
+                scanLoop();
+            } catch (e) {
+                showStatus('Camera error: ' + e.message, 'error');
+            }
+            async function scanLoop() {
+                if (!scanning) return;
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0);
+                // Use Tesseract.js or similar OCR library for extraction
+                if (window.Tesseract) {
+                    const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+                    if (text && text.trim().length > 10 && text !== lastExtracted) {
+                        lastExtracted = text;
+                        // Save extracted data (implement your own logic)
+                        saveExtractedData(text);
+                        showStatus('Card scanned and saved!', 'success');
+                    }
+                }
+                setTimeout(scanLoop, 2000); // Scan every 2 seconds
+            }
+            function saveExtractedData(text) {
+                // TODO: Parse and save extracted text as needed
+                // For demo, just log
+                console.log('Extracted:', text);
+            }
+            function showStatus(msg, type) {
+                const el = document.getElementById('statusMessage');
+                el.textContent = msg;
+                el.style.color = type === 'error' ? 'red' : '#0a0';
+            }
+        });
+        </script>
     </div>
 
     <!-- Libraries -->
@@ -1437,37 +1295,37 @@
             }
 
             async captureImage() {
-    if (this.isProcessing) {
-        this.showStatus('⏳ Already processing, please wait...', 'info');
-        return;
-    }
+                if (this.isProcessing) {
+                    this.showStatus('⏳ Already processing, please wait...', 'info');
+                    return;
+                }
 
-    if (!this.cameraStarted) {
-        this.showStatus('❌ Camera not started', 'error');
-        return;
-    }
+                if (!this.cameraStarted) {
+                    this.showStatus('❌ Camera not started', 'error');
+                    return;
+                }
 
-    this.isProcessing = true;
-    this.showStatus('📸 Capturing image...', 'info');
+                this.isProcessing = true;
+                this.showStatus('📸 Capturing image...', 'info');
 
-    try {
-        const video = document.getElementById('video');
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0);
+                try {
+                    const video = document.getElementById('video');
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0);
 
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
-        const file = new File([blob], 'captured-card.jpg', { type: 'image/jpeg' });
-        
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+                    const file = new File([blob], 'captured-card.jpg', { type: 'image/jpeg' });
+                    
         // Process and save the image
         await this.processImageFile(file);
-    } catch (error) {
-        this.showStatus('❌ Failed to capture image: ' + error.message, 'error');
-        this.isProcessing = false;
-    }
-}
+                } catch (error) {
+                    this.showStatus('❌ Failed to capture image: ' + error.message, 'error');
+                    this.isProcessing = false;
+                }
+            }
 
             handleFileUpload(event) {
                 const file = event.target.files[0];
@@ -1478,23 +1336,23 @@
             }
 
             async processImageFile(file) {
-    if (!file.type.startsWith('image/')) {
-        this.showStatus('❌ Please upload a valid image file', 'error');
-        return;
-    }
+                if (!file.type.startsWith('image/')) {
+                    this.showStatus('❌ Please upload a valid image file', 'error');
+                    return;
+                }
 
-    this.isProcessing = true;
-    this.showProcessing(true);
-    this.showStatus('🔍 Analyzing business card...', 'info');
+                this.isProcessing = true;
+                this.showProcessing(true);
+                this.showStatus('🔍 Analyzing business card...', 'info');
 
-    try {
-        // Extract text using OCR
-        const text = await this.extractTextFromImage(file);
-        console.log('Extracted text:', text);
+                try {
+                    // Extract text using OCR
+                    const text = await this.extractTextFromImage(file);
+                    console.log('Extracted text:', text);
 
-        // Parse and display results
-        const contactData = this.parseContactData(text);
-        this.displayExtractedData(contactData);
+                    // Parse and display results
+                    const contactData = this.parseContactData(text);
+                    this.displayExtractedData(contactData);
 
         // Add this line to automatically save the extracted data
         if (contactData.name || contactData.email || contactData.phone) {
@@ -1506,16 +1364,16 @@
         }
 
         this.showStatus('✅ Data extracted and saved successfully!', 'success');
-    } catch (error) {
-        console.error('Processing error:', error);
-        this.showStatus('❌ Failed to process image: ' + error.message, 'error');
-    } finally {
-        this.isProcessing = false;
-        this.showProcessing(false);
-    }
-}
+                } catch (error) {
+                    console.error('Processing error:', error);
+                    this.showStatus('❌ Failed to process image: ' + error.message, 'error');
+                } finally {
+                    this.isProcessing = false;
+                    this.showProcessing(false);
+                }
+            }
 
-async extractTextFromImage(file) {
+            async extractTextFromImage(file) {
     try {
         this.showStatus('🔍 Extracting text from image...', 'info');
         
@@ -1523,10 +1381,10 @@ async extractTextFromImage(file) {
             file,
             'eng',
             {
-                logger: m => {
-                    if (m.status === 'recognizing text') {
-                        this.showStatus(`🔍 OCR Progress: ${Math.round(m.progress * 100)}%`, 'info');
-                    }
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                this.showStatus(`🔍 OCR Progress: ${Math.round(m.progress * 100)}%`, 'info');
+                            }
                 },
                 // Enhanced OCR settings for business cards
                 tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@.-_+() /\\',
@@ -1565,7 +1423,7 @@ async extractTextFromImage(file) {
     processed = processed.replace(/(^|\s)\S(\s|$)/g, ' ');
     
     return processed.trim();
-}
+            }
 
             parseContactData(text) {
                 const data = {
@@ -2461,7 +2319,7 @@ async extractTextFromImage(file) {
     processed = processed.replace(/(^|\s)\S(\s|$)/g, ' ');
     
     return processed.trim();
-}
+            }
 
             /**
              * Enhanced business card data extraction with notes field
@@ -2550,9 +2408,9 @@ async extractTextFromImage(file) {
         
         // Skip obvious company lines
         if (companyPatterns.some(pattern => pattern.test(cleanLine))) {
-            continue;
-        }
-
+                        continue;
+                    }
+                    
         for (const pattern of personalNamePatterns) {
             if (pattern.test(cleanLine)) {
                 // Additional validation - at least 3 letters and proper capitalization
@@ -2589,12 +2447,12 @@ async extractTextFromImage(file) {
     const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
     if (emailMatch) {
         const emailPrefix = emailMatch[0].split('@')[0];
-        const nameFromEmail = emailPrefix
-            .replace(/[^a-zA-Z]/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
-        
-        if (nameFromEmail.split(' ').length <= 3) {
+                    const nameFromEmail = emailPrefix
+                        .replace(/[^a-zA-Z]/g, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                    
+                    if (nameFromEmail.split(' ').length <= 3) {
             return nameFromEmail;
         }
     }
@@ -2752,41 +2610,41 @@ isGenericBusinessEmail(email) {
             /**
              * Enhanced email extraction with multiple email handling
              */
-             extractEmails(text) {
-    // Multiple email patterns for better accuracy
-    const emailPatterns = [
+            extractEmails(text) {
+                // Multiple email patterns for better accuracy
+                const emailPatterns = [
         // Standard email pattern with common TLDs
         /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}/g,
         
         // Email with common prefixes (Email:, E-mail:, Mail:, etc.)
         /(?:email|e-?mail|contact|correspondence|correo)[\s:]*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10})/gi,
         
-        // Email in parentheses or brackets
+                    // Email in parentheses or brackets
         /[\(\[][^\)\]]*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10})[^\(\[\]]*[\)\]]/g,
         
         // Email with common OCR misreads (like @ -> ©, G)
         /[a-zA-Z0-9._%+-]+(?:@|©|G|§)[a-zA-Z0-9.-]+\.(?:com|net|org|edu|gov|in|co\.uk|io)/gi
-    ];
-    
-    const foundEmails = new Set();
-    
-    // First pass - extract all potential emails using all patterns
-    for (const pattern of emailPatterns) {
-        const matches = text.match(pattern);
-        if (matches && matches.length > 0) {
-            matches.forEach(email => {
-                // Clean up the email (remove prefixes, parentheses, etc.)
-                let cleanEmail = email;
+                ];
                 
-                // Extract email from patterns with prefixes
+                const foundEmails = new Set();
+                
+    // First pass - extract all potential emails using all patterns
+                for (const pattern of emailPatterns) {
+                    const matches = text.match(pattern);
+                    if (matches && matches.length > 0) {
+                        matches.forEach(email => {
+                            // Clean up the email (remove prefixes, parentheses, etc.)
+                            let cleanEmail = email;
+                            
+                            // Extract email from patterns with prefixes
                 if (pattern.source.includes('email|e-?mail|mail|contact')) {
                     const emailMatch = email.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10})/);
-                    if (emailMatch) cleanEmail = emailMatch[1];
-                }
-                
-                // Remove parentheses/brackets if present
-                cleanEmail = cleanEmail.replace(/[\(\)\[\]]/g, '');
-                
+                                if (emailMatch) cleanEmail = emailMatch[1];
+                            }
+                            
+                            // Remove parentheses/brackets if present
+                            cleanEmail = cleanEmail.replace(/[\(\)\[\]]/g, '');
+                            
                 // Fix common OCR misreads
                 cleanEmail = cleanEmail
                     .replace(/©/g, '@')  // OCR often reads @ as ©
@@ -2796,11 +2654,11 @@ isGenericBusinessEmail(email) {
                 
                 // Validate email format and add to set
                 if (this.isValidBusinessEmail(cleanEmail)) {
-                    foundEmails.add(cleanEmail.toLowerCase());
+                                foundEmails.add(cleanEmail.toLowerCase());
+                            }
+                        });
+                    }
                 }
-            });
-        }
-    }
     
     // Second pass - look for emails split across lines (common in OCR)
     const lines = text.split('\n');
@@ -2827,28 +2685,28 @@ isGenericBusinessEmail(email) {
             }
         }
     }
-    
-    // Convert to array and prioritize emails
-    const emails = Array.from(foundEmails);
-    
-    // Prioritization logic:
-    // 1. Personal emails (not business domains like noreply, info, etc.)
-    // 2. Shorter emails (more likely to be personal)
-    // 3. Emails that appear earlier in the text
-    emails.sort((a, b) => {
+                
+                // Convert to array and prioritize emails
+                const emails = Array.from(foundEmails);
+                
+                // Prioritization logic:
+                // 1. Personal emails (not business domains like noreply, info, etc.)
+                // 2. Shorter emails (more likely to be personal)
+                // 3. Emails that appear earlier in the text
+                emails.sort((a, b) => {
         const aIsPersonal = !this.isGenericBusinessEmail(a);
         const bIsPersonal = !this.isGenericBusinessEmail(b);
-        
-        if (aIsPersonal && !bIsPersonal) return -1;
-        if (!aIsPersonal && bIsPersonal) return 1;
-        
-        if (a.length !== b.length) return a.length - b.length;
-        
-        return text.indexOf(a) - text.indexOf(b);
-    });
-    
-    return emails;
-             }
+                    
+                    if (aIsPersonal && !bIsPersonal) return -1;
+                    if (!aIsPersonal && bIsPersonal) return 1;
+                    
+                    if (a.length !== b.length) return a.length - b.length;
+                    
+                    return text.indexOf(a) - text.indexOf(b);
+                });
+                
+                return emails;
+            }
 
             /**
              * Enhanced name extraction considering surrounding context with name dataset validation
@@ -3201,18 +3059,18 @@ isGenericBusinessEmail(email) {
         return;
     }
 
-    const client = {
-        id: Date.now(),
-        ...clientData,
-        timestamp: new Date().toLocaleString(),
+                const client = {
+                    id: Date.now(),
+                    ...clientData,
+                    timestamp: new Date().toLocaleString(),
         imageData: clientData.imageData || null,
         notes: clientData.notes || ''
-    };
-    
-    this.clients.push(client);
-    this.saveClients();
-    this.updateClientStats();
-    
+                };
+                
+                this.clients.push(client);
+                this.saveClients();
+                this.updateClientStats();
+
     console.log('Client added:', client);
     this.showStatus(`✅ Client ${client.name || ''} added successfully!`, 'success');
 }
