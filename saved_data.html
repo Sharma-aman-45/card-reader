@@ -343,6 +343,10 @@
                 margin-left: 0;
                 text-align: center;
             }
+            .btn{
+              margin: auto;
+            }
+        
         }
 
         @media (max-width: 600px) {
@@ -395,12 +399,12 @@
             <p>View and export your collected business card data</p>
         </div>
 
-        <div class="navigation">
-            <a href="/" class="btn" style="background: #ff8800;" >🏠 Back to Scanner</a>
-            <button class="btn success " style="background: #ff8800;" onclick="exportToPDF()">📄 Export to PDF</button>
-            <button class="btn info" style="background: #ff8800; color: white;" onclick="exportToCSV()">📊 Export to CSV</button>
-            <button class="btn danger" style="background: #ff8800;" onclick="clearAllData()">🗑️ Clear All Data</button>
-        </div>
+       <div class="navigation">
+            <a href="/" class="btn" style="background: #ff8800; margin-bottom: 20px;" >🏠 Back to Scanner</a>
+            <button class="btn success " style="background: #ff8800; margin-top:20px;" onclick="exportToPDF()">📄 Export to PDF</button>
+            <button class="btn info" style="background: #ff8800; color: white; margin-top:10px;" onclick="exportToCSV()">📊 Export to CSV</button>
+            <button class="btn danger" style="background: #ff8800; margin-top:10px;" onclick="clearAllData()">🗑️ Clear All Data</button>
+        </div> 
 
         <div class="card">
             <h2>👥 Collected Clients Database</h2>
