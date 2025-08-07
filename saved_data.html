@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background:    #fdb26c;
+            background:    #ffffff;
             min-height: 100vh;
             color: #333;
             overflow-x: hidden;
@@ -48,7 +48,7 @@
         .header {
             text-align: center;
             margin-bottom: 40px;
-            color: white;
+            color: rgb(7, 7, 7);
             animation: fadeInDown 1s ease-out;
         }
 
@@ -60,18 +60,20 @@
         .header h1 {
             font-size: 3rem;
             margin-bottom: 15px;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
+            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.521);
             font-weight: 700;
-            background: linear-gradient(45deg, #fff, #f0f0f0);
+            
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            color: black;
         }
 
         .header p {
             font-size: 1.2rem;
             opacity: 0.95;
             font-weight: 300;
+            color: black;
         }
 
         .card {
@@ -83,6 +85,7 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
             animation: fadeInUp 0.8s ease-out;
+            color: rgba(0, 0, 0, 0.144);
         }
 
         @keyframes fadeInUp {
@@ -96,7 +99,7 @@
         }
 
         .card h2 {
-            color: white;
+            color: rgba(26, 25, 25, 0.603);
             margin-bottom: 25px;
             font-size: 1.6rem;
             text-align: center;
@@ -173,7 +176,7 @@
             background: rgba(255,255,255,0.1);
             padding: 15px 25px;
             border-radius: 15px;
-            color: white;
+            color: rgb(0, 0, 0);
             font-weight: 600;
             backdrop-filter: blur(10px);
         }
@@ -192,7 +195,7 @@
             padding: 15px 12px;
             text-align: left;
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            color: white;
+            color: rgb(90, 83, 83);
         }
 
         th {
@@ -264,17 +267,17 @@
 
         .source-qr {
             background: linear-gradient(135deg, #00c851, #007e33);
-            color: white;
+            color: rgb(14, 13, 13);
         }
 
         .source-ocr {
             background: linear-gradient(135deg, #ff8800, #cc6600);
-            color: white;
+            color: rgb(17, 17, 17);
         }
 
         .source-manual {
             background: linear-gradient(135deg, #ff8800, #cc6600);
-            color: white;
+            color: rgb(236, 236, 236);
         }
 
         .category-badge {
@@ -288,22 +291,22 @@
 
         .category-1 {
             background: linear-gradient(135deg, #ff6b6b, #ee5a52);
-            color: white;
+            color: rgb(0, 0, 0);
         }
 
         .category-2 {
             background: linear-gradient(135deg, #4ecdc4, #44a08d);
-            color: white;
+            color: rgb(0, 0, 0);
         }
 
         .category-3 {
             background: linear-gradient(135deg, #45b7d1, #96c93d);
-            color: white;
+            color: rgb(0, 0, 0);
         }
 
         .category-4 {
             background: linear-gradient(135deg, #f9ca24, #f0932b);
-            color: white;
+            color: rgb(0, 0, 0);
         }
 
         .navigation {
@@ -388,12 +391,12 @@
     
     <div class="container">
         <div class="header">
-            <h1>💾 Saved Data Viewer</h1>
+            <h1>Saved Data Viewer</h1>
             <p>View and export your collected business card data</p>
         </div>
 
         <div class="navigation">
-            <a href="/" class="btn">🏠 Back to Scanner</a>
+            <a href="/" class="btn" style="background: #ff8800;" >🏠 Back to Scanner</a>
             <button class="btn success " style="background: #ff8800;" onclick="exportToPDF()">📄 Export to PDF</button>
             <button class="btn info" style="background: #ff8800; color: white;" onclick="exportToCSV()">📊 Export to CSV</button>
             <button class="btn danger" style="background: #ff8800;" onclick="clearAllData()">🗑️ Clear All Data</button>
@@ -787,7 +790,7 @@
                 
                 modal.innerHTML = `
                     <div class="edit-modal-content" style="
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        background: white;
                         border-radius: 20px;
                         padding: 0;
                         width: 90%;
@@ -795,6 +798,7 @@
                         box-shadow: 0 20px 60px rgba(0,0,0,0.3);
                         border: 2px solid rgba(255,255,255,0.1);
                         backdrop-filter: blur(10px);
+                        color : black
                     ">
                         <div style="
                             background: rgba(255,255,255,0.1);
@@ -803,7 +807,7 @@
                             border-bottom: 1px solid rgba(255,255,255,0.2);
                         ">
                             <h3 style="
-                                color: white;
+                                color: black;
                                 margin: 0;
                                 font-size: 1.5rem;
                                 font-weight: 600;
@@ -819,7 +823,7 @@
                             ${client.imageData ? `
                                 <div style="margin-bottom: 25px; text-align: center;">
                                     <div style="
-                                        color: white;
+                                        color: black;
                                         font-weight: 600;
                                         margin-bottom: 10px;
                                         font-size: 0.9rem;
@@ -836,7 +840,7 @@
                             <form id="editClientForm">
                                 <div style="margin-bottom: 20px;">
                                     <label style="
-                                        color: white;
+                                        color: black;
                                         font-weight: 600;
                                         margin-bottom: 8px;
                                         display: block;
@@ -856,7 +860,7 @@
                                 
                                 <div style="margin-bottom: 20px;">
                                     <label style="
-                                        color: white;
+                                        color: black;
                                         font-weight: 600;
                                         margin-bottom: 8px;
                                         display: block;
@@ -876,7 +880,7 @@
                                 
                                 <div style="margin-bottom: 20px;">
                                     <label style="
-                                        color: white;
+                                        color: black;
                                         font-weight: 600;
                                         margin-bottom: 8px;
                                         display: block;
@@ -888,7 +892,7 @@
                                         border: 2px solid rgba(255,255,255,0.2);
                                         border-radius: 10px;
                                         background: rgba(255,255,255,0.1);
-                                        color: white;
+                                        color: black;
                                         font-size: 1rem;
                                         transition: all 0.3s ease;
                                     " placeholder="Enter phone number">
@@ -896,7 +900,7 @@
                                 
                                 <div style="margin-bottom: 20px;">
                                     <label style="
-                                        color: white;
+                                        color: black;
                                         font-weight: 600;
                                         margin-bottom: 8px;
                                         display: block;
@@ -916,7 +920,7 @@
                                 
                                 <div style="margin-bottom: 20px;">
                                     <label style="
-                                        color: white;
+                                        color: black;
                                         font-weight: 600;
                                         margin-bottom: 8px;
                                         display: block;
@@ -936,7 +940,7 @@
                                 
                                 <div style="margin-bottom: 25px;">
                                     <label style="
-                                        color: white;
+                                        color: black;
                                         font-weight: 600;
                                         margin-bottom: 8px;
                                         display: block;
@@ -963,7 +967,7 @@
                                 
                                 <div style="margin-bottom: 25px;">
                                     <label style="
-                                        color: white;
+                                        color: black;
                                         font-weight: 600;
                                         margin-bottom: 8px;
                                         display: block;
@@ -975,7 +979,7 @@
                                         border: 2px solid rgba(255,255,255,0.2);
                                         border-radius: 10px;
                                         background: rgba(255,255,255,0.1);
-                                        color: white;
+                                        color: black;
                                         font-size: 1rem;
                                         transition: all 0.3s ease;
                                         resize: vertical;
@@ -995,19 +999,19 @@
                                 padding: 12px 25px;
                                 border: 2px solid rgba(255,255,255,0.3);
                                 border-radius: 10px;
-                                background: rgba(255,255,255,0.1);
-                                color: white;
+                                background: yellow;
+                                color: black;
                                 font-weight: 600;
                                 cursor: pointer;
-                                transition: all 0.3s ease;
+                               
                                 font-size: 0.9rem;
                             ">❌ Cancel</button>
                             <button type="button" class="edit-update-btn" style="
                                 padding: 12px 25px;
                                 border: none;
                                 border-radius: 10px;
-                                background: linear-gradient(135deg, #00c851, #007e33);
-                                color: white;
+                                background: yellow;
+                                color: black;
                                 font-weight: 600;
                                 cursor: pointer;
                                 transition: all 0.3s ease;

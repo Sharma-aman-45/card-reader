@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background:  #fdb26c;
+            background:  #ffffff;
             min-height: 100vh;
             color: #333;
             overflow-x: hidden;
@@ -49,7 +49,7 @@
         .header {
             text-align: center;
             margin-bottom: 40px;
-            color: white;
+            color: rgb(0, 0, 0);
             animation: fadeInDown 1s ease-out;
         }
 
@@ -67,12 +67,14 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            color: #000;
         }
 
         .header p {
             font-size: 1.2rem;
             opacity: 0.95;
             font-weight: 300;
+            color: #000;
         }
 
         .main-content {
@@ -80,6 +82,7 @@
             grid-template-columns: 1.2fr 0.8fr;
             gap: 30px;
             margin-bottom: 40px;
+            color: #000;
         }
 
         .card {
@@ -91,6 +94,7 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
             animation: fadeInUp 0.8s ease-out;
+            color: #000;
         }
 
         @keyframes fadeInUp {
@@ -104,7 +108,7 @@
         }
 
         .card h2 {
-            color: white;
+            color: rgb(17, 17, 17);
             margin-bottom: 25px;
             font-size: 1.6rem;
             text-align: center;
@@ -200,11 +204,11 @@
             cursor: pointer;
             transition: all 0.3s ease;
             background: rgba(255,255,255,0.05);
-            color: white;
+            color: rgb(0, 0, 0);
         }
 
         .upload-area:hover {
-            border-color: rgba(255,255,255,0.8);
+            border-color: rgba(15, 15, 15, 0.8);
             background: rgba(255,255,255,0.1);
             transform: scale(1.02);
         }
@@ -310,7 +314,7 @@
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: white;
+            color: rgb(0, 0, 0);
             font-size: 0.95rem;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
@@ -323,12 +327,12 @@
             font-size: 1rem;
             transition: all 0.3s ease;
             background: rgba(255,255,255,0.1);
-            color: white;
+            color: rgb(19, 19, 19);
             backdrop-filter: blur(10px);
         }
 
         .form-group input::placeholder {
-            color: rgba(255,255,255,0.6);
+            color: rgba(41, 39, 39, 0.6);
         }
 
         .form-group input:focus {
@@ -341,7 +345,7 @@
             outline: none;
             border-color: #ffee00;
             box-shadow: 0 4px 15px rgba(200, 113, 0, 0.822);
-            background: rgba(255,255,255,0.15);
+            background: rgba(15, 15, 15, 0.15);
         }
         .clients-table {
             grid-column: 1 / -1;
@@ -360,7 +364,7 @@
             background: rgba(255,255,255,0.1);
             padding: 15px 25px;
             border-radius: 15px;
-            color: white;
+            color: rgb(2, 2, 2);
             font-weight: 600;
             backdrop-filter: blur(10px);
             margin-left: auto;
@@ -380,7 +384,7 @@
             padding: 15px 12px;
             text-align: left;
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            color: white;
+            color: rgb(0, 0, 0);
         }
 
         th {
@@ -422,7 +426,7 @@
 
         .success {
             background:  #ff8800;
-            color: white;
+            color: rgb(0, 0, 0);
             border: 2px solid rgba(200, 113, 0, 0.822);
             box-shadow: 0 0 20px rgba(200, 113, 0, 0.822);
         }
@@ -436,7 +440,7 @@
 
         .info {
             background:  #ff8800;
-            color: white;
+            color: rgb(248, 245, 245);
             border: 2px solid rgba(200, 113, 0, 0.822);
             box-shadow: 0 0 20px rgba(200, 113, 0, 0.822);
         }
@@ -449,7 +453,7 @@
             display: none;
             text-align: center;
             padding: 30px;
-            color: white;
+            color: rgb(0, 0, 0);
         }
 
         .spinner {
@@ -472,7 +476,7 @@
             border-radius: 10px;
             padding: 15px;
             margin: 15px 0;
-            color: white;
+            color: rgb(17, 17, 17);
             font-size: 0.9rem;
             backdrop-filter: blur(5px);
         }
@@ -488,17 +492,17 @@
 
         .source-qr {
             background: linear-gradient(135deg, #e8ff1a,  #ff8800);
-            color: white;
+            color: rgb(0, 0, 0);
         }
 
         .source-ocr {
             background: linear-gradient(135deg, #e8ff1a,  #ff8800);
-            color: white;
+            color: rgb(12, 11, 11);
         }
 
         .source-manual {
             background: linear-gradient(135deg, #e8ff1a,  #ff8800);
-            color: white;
+            color: rgb(7, 7, 7);
         }
 
         @media (max-width: 1024px) {
@@ -548,7 +552,7 @@
             .txtmb{
                 font-size: 1.2rem;
                 font-weight: 600;
-                color: white;
+                color: rgb(17, 17, 17);
                 align-items: center;
             }
         }
@@ -601,7 +605,7 @@
             .txtmb{
                 font-size: 1.2rem;
                 font-weight: 600;
-                color: white;
+                color: rgb(0, 0, 0);
                 align-items: center;
                 text-align: center;
             }
@@ -611,10 +615,10 @@
 
         /* Category Selection Styles */
         .category-select {
-            background: rgba(255,255,255,0.1);
+            background: rgba(177, 170, 170, 0.644);
             border: 2px solid rgba(255,255,255,0.2);
             border-radius: 10px;
-            color: white;
+            color: rgb(0, 0, 0);
             padding: 8px 12px;
             font-size: 0.9rem;
             cursor: pointer;
@@ -629,8 +633,8 @@
         }
 
         .category-select option {
-            background: #333;
-            color: white;
+            background: #c2bcbc;
+            color: rgb(0, 0, 0);
         }
 
         .category-badge {
@@ -644,22 +648,22 @@
 
         .category-1 {
             background: linear-gradient(135deg, #ff6b6b, #ee5a52);
-            color: white;
+            color: rgb(17, 17, 17);
         }
 
         .category-2 {
             background: linear-gradient(135deg, #4ecdc4, #44a08d);
-            color: white;
+            color: rgb(17, 16, 16);
         }
 
         .category-3 {
             background: linear-gradient(135deg, #45b7d1, #96c93d);
-            color: white;
+            color: rgb(17, 15, 15);
         }
 
         .category-4 {
             background: linear-gradient(135deg, #f9ca24, #f0932b);
-            color: white;
+            color: rgb(17, 16, 16);
         }
 
         /* Enhanced Drag and Drop Styles */
@@ -707,7 +711,7 @@
             display: none;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: rgb(0, 0, 0);
             font-weight: 600;
             font-size: 1.2rem;
             z-index: 1000;
@@ -821,10 +825,10 @@
                     <div class="detection-info">
                         <strong>🤖 Business Card Scanner:</strong> 
                         <ul style="margin: 10px 0; padding-left: 20px;">
-                            <li><strong>Camera Capture:</strong> Take photos of business cards for data extraction</li>
-                            <li><strong>Drag & Drop:</strong> Upload business card images for processing</li>
+                            <li style="list-style: none;"><strong>Camera Capture:</strong> Take photos of business cards for data extraction</li>
+                            <li style="list-style: none;"><strong>Drag & Drop:</strong> Upload business card images for processing</li>
                         </ul>
-                        AI-powered extraction with immediate field population. Review and save your data.
+                       
                     </div>
                 </div>
 
@@ -849,8 +853,8 @@
 
                 <!-- Result Display Section -->
                 <div id="resultDisplay" style="display: none; background: rgba(255,255,255,0.1); border-radius: 15px; padding: 20px; margin: 20px 0; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);">
-                    <h3 style="color: white; margin-bottom: 15px; text-align: center;">📋 Extracted Data</h3>
-                    <div id="extractedData" style="color: white; font-size: 0.9rem;">
+                    <h3 style="color: rgb(0, 0, 0); margin-bottom: 15px; text-align: center;">📋 Extracted Data</h3>
+                    <div id="extractedData" style="color: rgb(0, 0, 0); font-size: 0.9rem;">
                         <!-- Extracted data will be displayed here -->
                     </div>
                     <div style="text-align: center; margin-top: 15px;">
@@ -929,7 +933,7 @@
                   </div>
               </div>
             
-            <div style="text-align: center; margin-top: 20px; color: white; opacity: 0.8;">
+            <div style="text-align: center; margin-top: 20px; color: rgb(14, 13, 13); opacity: 0.8;">
                 <p>📝 All scanned data is automatically saved. Use the buttons above to view, export, or integrate your data.</p>
                
             </div>
