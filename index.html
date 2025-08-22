@@ -1503,9 +1503,9 @@
                     const text = await this.extractTextFromImage(file);
                     console.log('Extracted text:', text);
 
-                    // Parse and display results
-                    const contactData = this.parseContactData(text);
-                    console.log('Parsed contact data:', contactData);
+                    // Use the more robust extractor that finds multiple fields
+                    const contactData = this.extractClientDataFromText(text);
+                    console.log('Parsed contact data (robust):', contactData);
 
                     // Automatically save the extracted data if we have any valid information
                     if (contactData.name || contactData.email || contactData.phone) {
@@ -1523,7 +1523,7 @@
                         this.showStatus('⚠️ No contact information found in the image', 'warning');
                     }
 
-                    // Display the extracted data for user review
+                    // Display the extracted data for user visibility
                     this.displayExtractedData(contactData);
                     
                 } catch (error) {
@@ -2062,14 +2062,16 @@ async extractTextFromImage(file) {
             return false;
         }
 
-        // Check if at least one valid contact field exists
-        const hasName = clientData.name && clientData.name.trim().length > 0;
-        const hasEmail = clientData.email && this.isValidEmail(clientData.email);
-        const hasPhone = clientData.phone && clientData.phone.trim().length > 0;
+        // Relaxed validation: save if ANY key field is present (no strict email format required)
+        const candidateFields = ['name', 'email', 'phone', 'company', 'website', 'address', 'notes', 'linkedIn'];
+        const hasAny = candidateFields.some(key => clientData[key] && String(clientData[key]).trim().length > 0);
 
-        console.log('Validation check:', { hasName, hasEmail, hasPhone, name: clientData.name, email: clientData.email, phone: clientData.phone });
+        console.log('Relaxed validation check:', {
+            hasAny,
+            fieldsPresent: candidateFields.filter(key => clientData[key] && String(clientData[key]).trim().length > 0)
+        });
 
-        return hasName || hasEmail || hasPhone;
+        return hasAny;
     }
 
     isValidEmail(email) {
