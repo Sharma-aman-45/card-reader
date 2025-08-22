@@ -1442,37 +1442,43 @@
             }
 
             async captureImage() {
-    if (this.isProcessing) {
-        this.showStatus('⏳ Already processing, please wait...', 'info');
-        return;
-    }
+                if (this.isProcessing) {
+                    this.showStatus('⏳ Already processing, please wait...', 'info');
+                    return;
+                }
 
-    if (!this.cameraStarted) {
-        this.showStatus('❌ Camera not started', 'error');
-        return;
-    }
+                if (!this.cameraStarted) {
+                    this.showStatus('❌ Camera not started', 'error');
+                    return;
+                }
 
-    this.isProcessing = true;
-    this.showStatus('📸 Capturing image...', 'info');
+                this.isProcessing = true;
+                this.showStatus('📸 Capturing image...', 'info');
 
-    try {
-        const video = document.getElementById('video');
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0);
+                try {
+                    const video = document.getElementById('video');
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0);
 
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
-        const file = new File([blob], 'captured-card.jpg', { type: 'image/jpeg' });
-        
-        // Process and save the image
-        await this.processImageFile(file);
-    } catch (error) {
-        this.showStatus('❌ Failed to capture image: ' + error.message, 'error');
-        this.isProcessing = false;
-    }
-}
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+                    const file = new File([blob], 'captured-card.jpg', { type: 'image/jpeg' });
+                    
+                    // Process and save the image
+                    await this.processImageFile(file);
+                    
+                    // Show success message
+                    this.showStatus('✅ Image captured and processed successfully!', 'success');
+                    
+                } catch (error) {
+                    console.error('Capture error:', error);
+                    this.showStatus('❌ Failed to capture image: ' + error.message, 'error');
+                } finally {
+                    this.isProcessing = false;
+                }
+            }
 
             handleFileUpload(event) {
                 const file = event.target.files[0];
@@ -1483,42 +1489,51 @@
             }
 
             async processImageFile(file) {
-    if (!file.type.startsWith('image/')) {
-        this.showStatus('❌ Please upload a valid image file', 'error');
-        return;
-    }
+                if (!file.type.startsWith('image/')) {
+                    this.showStatus('❌ Please upload a valid image file', 'error');
+                    return;
+                }
 
-    this.isProcessing = true;
-    this.showProcessing(true);
-    this.showStatus('🔍 Analyzing business card...', 'info');
+                this.isProcessing = true;
+                this.showProcessing(true);
+                this.showStatus('🔍 Analyzing business card...', 'info');
 
-    try {
-        // Extract text using OCR
-        const text = await this.extractTextFromImage(file);
-        console.log('Extracted text:', text);
+                try {
+                    // Extract text using OCR
+                    const text = await this.extractTextFromImage(file);
+                    console.log('Extracted text:', text);
 
-        // Parse and display results
-        const contactData = this.parseContactData(text);
-        this.displayExtractedData(contactData);
+                    // Parse and display results
+                    const contactData = this.parseContactData(text);
+                    console.log('Parsed contact data:', contactData);
 
-        // Add this line to automatically save the extracted data
-        if (contactData.name || contactData.email || contactData.phone) {
-            this.addClient({
-                ...contactData,
-                source: 'Image Upload',
-                timestamp: new Date().toLocaleString()
-            });
-        }
+                    // Automatically save the extracted data if we have any valid information
+                    if (contactData.name || contactData.email || contactData.phone) {
+                        const clientData = {
+                            ...contactData,
+                            source: 'Camera Capture',
+                            timestamp: new Date().toLocaleString()
+                        };
+                        
+                        console.log('Adding client with data:', clientData);
+                        this.addClient(clientData);
+                        
+                        this.showStatus('✅ Data extracted and saved successfully!', 'success');
+                    } else {
+                        this.showStatus('⚠️ No contact information found in the image', 'warning');
+                    }
 
-        this.showStatus('✅ Data extracted and saved successfully!', 'success');
-    } catch (error) {
-        console.error('Processing error:', error);
-        this.showStatus('❌ Failed to process image: ' + error.message, 'error');
-    } finally {
-        this.isProcessing = false;
-        this.showProcessing(false);
-    }
-}
+                    // Display the extracted data for user review
+                    this.displayExtractedData(contactData);
+                    
+                } catch (error) {
+                    console.error('Processing error:', error);
+                    this.showStatus('❌ Failed to process image: ' + error.message, 'error');
+                } finally {
+                    this.isProcessing = false;
+                    this.showProcessing(false);
+                }
+            }
 
 async extractTextFromImage(file) {
     try {
@@ -1573,6 +1588,8 @@ async extractTextFromImage(file) {
 }
 
             parseContactData(text) {
+                console.log('Parsing contact data from text:', text);
+                
                 const data = {
                     name: '',
                     email: '',
@@ -1585,27 +1602,33 @@ async extractTextFromImage(file) {
                 };
 
                 const lines = text.split('\n').filter(line => line.trim().length > 0);
+                console.log('Filtered lines:', lines);
 
                 // Extract email
                 const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
                 if (emailMatch) {
                     data.email = emailMatch[0];
+                    console.log('Found email:', data.email);
                 }
 
                 // Extract phone numbers
                 const phoneMatches = text.match(/(?:\+?[\d\s\-\(\)]{10,20})/g);
                 if (phoneMatches && phoneMatches.length > 0) {
                     data.phone = phoneMatches[0].trim();
+                    console.log('Found phone:', data.phone);
                 }
 
                 // Extract website
                 const websiteMatch = text.match(/https?:\/\/[^\s]+/g);
                 if (websiteMatch) {
                     data.website = websiteMatch[0];
+                    console.log('Found website:', data.website);
                 }
 
                 // Extract name (usually in first few lines, properly capitalized)
                 data.name = this.extractNameFromBusinessCard(text);
+                console.log('Found name:', data.name);
+                
                 // Extract company (look for company patterns)
                 const companyPatterns = [
                     /(.*?)\s+(Inc\.?|LLC|Corp\.?|Ltd\.?|Company|Co\.?|Corporation|Group|Solutions|Services|Technologies|Tech|Systems)/i,
@@ -1617,6 +1640,7 @@ async extractTextFromImage(file) {
                         const match = line.match(pattern);
                         if (match && !data.company) {
                             data.company = line.trim();
+                            console.log('Found company:', data.company);
                             break;
                         }
                     }
@@ -1629,6 +1653,7 @@ async extractTextFromImage(file) {
                     for (const title of jobTitles) {
                         if (line.toLowerCase().includes(title.toLowerCase())) {
                             data.jobTitle = line.trim();
+                            console.log('Found job title:', data.jobTitle);
                             break;
                         }
                     }
@@ -1640,10 +1665,12 @@ async extractTextFromImage(file) {
                 for (const line of lines) {
                     if (addressPatterns.some(pattern => pattern.test(line))) {
                         data.address = line.trim();
+                        console.log('Found address:', data.address);
                         break;
                     }
                 }
 
+                console.log('Final parsed data:', data);
                 return data;
             }
 
@@ -2031,6 +2058,7 @@ async extractTextFromImage(file) {
 
     validateClientData(clientData) {
         if (!clientData || typeof clientData !== 'object') {
+            console.log('Invalid client data type:', typeof clientData);
             return false;
         }
 
@@ -2038,6 +2066,8 @@ async extractTextFromImage(file) {
         const hasName = clientData.name && clientData.name.trim().length > 0;
         const hasEmail = clientData.email && this.isValidEmail(clientData.email);
         const hasPhone = clientData.phone && clientData.phone.trim().length > 0;
+
+        console.log('Validation check:', { hasName, hasEmail, hasPhone, name: clientData.name, email: clientData.email, phone: clientData.phone });
 
         return hasName || hasEmail || hasPhone;
     }
@@ -3199,28 +3229,31 @@ isGenericBusinessEmail(email) {
             }
 
             addClient(clientData) {
-    // Validate the client data
-    if (!this.validateClientData(clientData)) {
-        console.error('Invalid client data:', clientData);
-        this.showStatus('❌ Invalid client data - not saved', 'error');
-        return;
-    }
+                // Validate the client data
+                if (!this.validateClientData(clientData)) {
+                    console.error('Invalid client data:', clientData);
+                    this.showStatus('❌ Invalid client data - not saved', 'error');
+                    return;
+                }
 
-    const client = {
-        id: Date.now(),
-        ...clientData,
-        timestamp: new Date().toLocaleString(),
-        imageData: clientData.imageData || null,
-        notes: clientData.notes || ''
-    };
-    
-    this.clients.push(client);
-    this.saveClients();
-    this.updateClientStats();
-    
-    console.log('Client added:', client);
-    this.showStatus(`✅ Client ${client.name || ''} added successfully!`, 'success');
-}
+                const client = {
+                    id: Date.now(),
+                    ...clientData,
+                    timestamp: new Date().toLocaleString(),
+                    imageData: clientData.imageData || null,
+                    notes: clientData.notes || ''
+                };
+                
+                this.clients.push(client);
+                this.saveClients();
+                this.updateClientStats();
+                
+                console.log('Client added successfully:', client);
+                this.showStatus(`✅ Client ${client.name || 'Unknown'} added successfully!`, 'success');
+                
+                // Return the added client for debugging
+                return client;
+            }
             updateClientStats() {
                 const stats = document.getElementById('clientStats');
                 if (!stats) {
