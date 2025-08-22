@@ -801,6 +801,9 @@
         <div class="header">
             <img src="header image.jpeg" alt="" height="200px" width="50%">   
             <h5>🚀 Exhibition Card Reader </h5> 
+            <div style="margin-top: 20px; text-align: center;">
+                <a href="login.html" class="btn" style="background: #ff8800;">🔐 Login</a>
+            </div>
         </div>
 
         <div class="main-content">
@@ -818,8 +821,6 @@
                     <div style="margin: 20px 0;">
                         <div style="text-align: center;">
                             <button id="startCamera" class="btn" style="margin-top: 10px; background: #ff8800;">🔴 Start Camera</button>
-                            <button id="captureImage" class="btn" style="margin-top: 10px; background: #ff8800;">📸 Capture & Analyze</button>
-                            <button id="stopCamera" class="btn" style="margin-top: 10px; background: #ff8800;">⏹️ Stop Camera</button>
                         </div>
                     </div>
                     
@@ -1399,11 +1400,27 @@
                     const video = document.getElementById('video');
                     video.srcObject = this.stream;
                     document.getElementById('cameraPlaceholder').style.display = 'none';
-                    document.getElementById('captureImage').disabled = false;
-                    document.getElementById('startCamera').disabled = true;
+                    const startBtn = document.getElementById('startCamera');
+                    if (startBtn) startBtn.disabled = true;
                     
                     this.cameraStarted = true;
-                    this.showStatus('📷 Camera started! Position the business card and click "Capture & Analyze"', 'success');
+                    this.showStatus('📷 Camera started! Scanning and saving automatically...', 'success');
+
+                    const autoCapture = async () => {
+                        try {
+                            // Give the camera a brief moment to adjust focus/exposure
+                            await new Promise(r => setTimeout(r, 600));
+                            await this.captureImage();
+                        } finally {
+                            this.stopCamera();
+                        }
+                    };
+
+                    if (video.readyState >= 2) {
+                        autoCapture();
+                    } else {
+                        video.onloadedmetadata = () => autoCapture();
+                    }
                 } catch (error) {
                     this.showStatus('❌ Camera access denied: ' + error.message, 'error');
                 }
@@ -1417,8 +1434,8 @@
                 
                 document.getElementById('video').srcObject = null;
                 document.getElementById('cameraPlaceholder').style.display = 'flex';
-                document.getElementById('captureImage').disabled = true;
-                document.getElementById('startCamera').disabled = false;
+                const startBtn = document.getElementById('startCamera');
+                if (startBtn) startBtn.disabled = false;
                 
                 this.cameraStarted = false;
                 this.showStatus('⏹️ Camera stopped', 'info');
@@ -3995,11 +4012,13 @@ isGenericBusinessEmail(email) {
                 switch(e.key) {
                     case 's':
                         e.preventDefault();
-                        document.getElementById('startCamera').click();
+                        const sc = document.getElementById('startCamera');
+                        if (sc) sc.click();
                         break;
                     case 'e':
                         e.preventDefault();
-                        document.getElementById('exportData').click();
+                        const ex = document.getElementById('exportData');
+                        if (ex) ex.click();
                         break;
                 }
             }
